@@ -1,21 +1,23 @@
 export default function Hero() {
   return (
-    <section className="relative pt-32 pb-20 md:pt-44 md:pb-32 metal-texture overflow-hidden">
+    <section className="relative pt-32 pb-16 md:pt-44 md:pb-24 metal-texture overflow-hidden">
       {/* Decorative gasket rings */}
       <div className="gasket-ring w-[600px] h-[600px] -top-48 -right-48 opacity-40" />
       <div className="gasket-ring w-[400px] h-[400px] -top-32 -right-32 opacity-25" />
       <div className="gasket-ring w-[350px] h-[350px] bottom-0 -left-24 opacity-20" />
 
-      {/* Subtle top-to-bottom gradient */}
+      {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-charcoal-950/0 via-transparent to-obsidian pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left: copy */}
           <div>
+            {/* Urgency badges */}
             <div className="flex flex-wrap items-center gap-2.5 mb-8">
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-semibold bg-gold-500/8 text-gold-400 border border-gold-500/15 uppercase tracking-wider">
-                Next-Day Shipping
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-gold-500/8 text-gold-400 border border-gold-500/15 uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse" />
+                Most Orders Ship in 1–2 Days
               </span>
               <span className="inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-semibold bg-copper-500/8 text-copper-400 border border-copper-500/15 uppercase tracking-wider">
                 Rush Available
@@ -23,17 +25,22 @@ export default function Hero() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold tracking-tight leading-[1.08]">
-              <span className="text-white">Precision</span>
+              <span className="text-white">Machine Down?</span>
               <br />
-              <span className="text-white">Replacement</span>
+              <span className="text-white">Upload Your Gasket.</span>
               <br />
-              <span className="text-gold-gradient">Gaskets.</span>
+              <span className="text-gold-gradient">Get It Fast.</span>
             </h1>
 
             <p className="mt-7 text-base sm:text-lg text-charcoal-400 max-w-lg leading-relaxed">
-              Upload a DXF or photograph your gasket for an exact replacement.
-              Cut to spec and shipped fast — built for restoration, maintenance,
-              and industrial precision.
+              Send us a DXF file or snap a photo of your gasket on 8.5&quot; x 11&quot;
+              paper for scale. We cut an exact replacement and ship it — often
+              next day.
+            </p>
+
+            {/* Hard-hitting value line */}
+            <p className="mt-5 text-sm sm:text-base text-charcoal-200 font-semibold border-l-2 border-gold-500 pl-4">
+              If it&apos;s leaking, torn, or obsolete — send it. We&apos;ll cut it.
             </p>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-3.5">
@@ -41,7 +48,7 @@ export default function Hero() {
                 href="#quote"
                 className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-obsidian font-bold text-sm rounded tracking-wide transition-all shadow-lg shadow-gold-500/15 uppercase"
               >
-                Start Your Quote
+                Upload Your Gasket
                 <svg
                   className="ml-2.5 w-4 h-4"
                   fill="none"
@@ -56,7 +63,7 @@ export default function Hero() {
                 href="#how-it-works"
                 className="inline-flex items-center justify-center px-8 py-4 border border-charcoal-700 hover:border-gold-500/30 text-charcoal-300 hover:text-gold-300 font-medium text-sm rounded tracking-wide transition-all uppercase"
               >
-                See the Process
+                See How It Works
               </a>
             </div>
 
@@ -69,11 +76,11 @@ export default function Hero() {
               </span>
               <span className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-gold-500" />
-                One-Off or Batch
+                No Part Number Needed
               </span>
               <span className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-gold-500" />
-                Made to Order
+                One-Off or Batch
               </span>
             </div>
           </div>
@@ -99,30 +106,9 @@ export default function Hero() {
                   fill="none"
                   className="text-charcoal-600"
                 >
-                  <circle
-                    cx="70"
-                    cy="70"
-                    r="64"
-                    stroke="currentColor"
-                    strokeWidth="1"
-                    strokeDasharray="5 3"
-                  />
-                  <circle
-                    cx="70"
-                    cy="70"
-                    r="45"
-                    stroke="rgba(212, 160, 23, 0.25)"
-                    strokeWidth="1.5"
-                  />
-                  <circle
-                    cx="70"
-                    cy="70"
-                    r="26"
-                    stroke="currentColor"
-                    strokeWidth="1"
-                    strokeDasharray="5 3"
-                  />
-                  {/* Bolt holes */}
+                  <circle cx="70" cy="70" r="64" stroke="currentColor" strokeWidth="1" strokeDasharray="5 3" />
+                  <circle cx="70" cy="70" r="45" stroke="rgba(212, 160, 23, 0.25)" strokeWidth="1.5" />
+                  <circle cx="70" cy="70" r="26" stroke="currentColor" strokeWidth="1" strokeDasharray="5 3" />
                   <circle cx="70" cy="16" r="4.5" stroke="rgba(212, 160, 23, 0.2)" strokeWidth="1" fill="rgba(212, 160, 23, 0.04)" />
                   <circle cx="70" cy="124" r="4.5" stroke="rgba(212, 160, 23, 0.2)" strokeWidth="1" fill="rgba(212, 160, 23, 0.04)" />
                   <circle cx="16" cy="70" r="4.5" stroke="rgba(212, 160, 23, 0.2)" strokeWidth="1" fill="rgba(212, 160, 23, 0.04)" />
@@ -131,7 +117,6 @@ export default function Hero() {
                   <circle cx="108" cy="32" r="4.5" stroke="rgba(212, 160, 23, 0.2)" strokeWidth="1" fill="rgba(212, 160, 23, 0.04)" />
                   <circle cx="32" cy="108" r="4.5" stroke="rgba(212, 160, 23, 0.2)" strokeWidth="1" fill="rgba(212, 160, 23, 0.04)" />
                   <circle cx="108" cy="108" r="4.5" stroke="rgba(212, 160, 23, 0.2)" strokeWidth="1" fill="rgba(212, 160, 23, 0.04)" />
-                  {/* Dimension line */}
                   <line x1="5" y1="70" x2="135" y2="70" stroke="currentColor" strokeWidth="0.4" strokeDasharray="2 3" opacity="0.3" />
                   <text x="70" y="85" textAnchor="middle" fill="rgba(212, 160, 23, 0.4)" fontSize="8" fontFamily="monospace">
                     6.250&quot; OD
@@ -176,7 +161,7 @@ export default function Hero() {
               DXF Accepted
             </div>
             <div className="absolute -bottom-3 -right-3 bg-charcoal-900 border border-charcoal-700/50 rounded-lg px-3.5 py-2 text-[11px] font-semibold text-gold-400 card-glow uppercase tracking-wider">
-              Made to Order
+              No Part Number Needed
             </div>
           </div>
         </div>

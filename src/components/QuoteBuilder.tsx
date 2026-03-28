@@ -52,38 +52,56 @@ export default function QuoteBuilder() {
   return (
     <section id="quote" className="py-24 md:py-32 blueprint-grid relative">
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        {/* Section header — urgency focused */}
+        <div className="text-center mb-6">
           <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
-            Get Started
+            Start Here
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-white leading-tight">
-            Upload &amp; Get Your Quote
+            Upload Your Gasket. Get a Quote.
           </h2>
           <p className="mt-5 text-charcoal-400 max-w-xl mx-auto leading-relaxed">
-            Submit your file, specify your requirements, and receive an instant
-            estimate.
+            DXF file or photo — either works. Fill in details and get an
+            instant estimate. No account required.
           </p>
         </div>
 
-        <div className="max-w-4xl mx-auto">
+        {/* Urgency bar */}
+        <div className="flex items-center justify-center gap-6 mb-14">
+          <span className="flex items-center gap-2 text-xs text-charcoal-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            Most orders ship in 1–2 days
+          </span>
+          <span className="flex items-center gap-2 text-xs text-charcoal-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-gold-400" />
+            Rush same-day cutting available
+          </span>
+        </div>
+
+        <div className="max-w-5xl mx-auto">
           <div className="grid lg:grid-cols-5 gap-6">
-            {/* Left panel */}
-            <div className="lg:col-span-3 bg-charcoal-900/60 border border-charcoal-800/60 rounded-2xl p-5 sm:p-7 card-glow">
+            {/* Left panel — upload + form */}
+            <div className="lg:col-span-3 bg-charcoal-900/60 border border-charcoal-800/60 rounded-2xl p-5 sm:p-8 card-glow">
               {/* Tabs */}
-              <div className="flex rounded-xl bg-charcoal-950/60 p-1 mb-7 border border-charcoal-800/30">
+              <div className="flex rounded-xl bg-charcoal-950/60 p-1.5 mb-7 border border-charcoal-800/30">
                 <button
                   onClick={() => {
                     setActiveTab("dxf");
                     setUploaded(false);
                     setShowQuote(false);
                   }}
-                  className={`flex-1 py-2.5 text-[13px] font-semibold rounded-lg transition-all ${
+                  className={`flex-1 py-3 text-[13px] font-semibold rounded-lg transition-all ${
                     activeTab === "dxf"
                       ? "bg-charcoal-800 text-white shadow-sm"
                       : "text-charcoal-500 hover:text-charcoal-300"
                   }`}
                 >
-                  Upload DXF
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    Upload DXF
+                  </span>
                 </button>
                 <button
                   onClick={() => {
@@ -91,13 +109,19 @@ export default function QuoteBuilder() {
                     setUploaded(false);
                     setShowQuote(false);
                   }}
-                  className={`flex-1 py-2.5 text-[13px] font-semibold rounded-lg transition-all ${
+                  className={`flex-1 py-3 text-[13px] font-semibold rounded-lg transition-all ${
                     activeTab === "photo"
                       ? "bg-charcoal-800 text-white shadow-sm"
                       : "text-charcoal-500 hover:text-charcoal-300"
                   }`}
                 >
-                  Upload Photo
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                    </svg>
+                    Upload Photo
+                  </span>
                 </button>
               </div>
 
@@ -117,12 +141,12 @@ export default function QuoteBuilder() {
                   }}
                   className={`upload-zone ${
                     dragOver ? "active" : ""
-                  } rounded-xl p-10 sm:p-14 text-center cursor-pointer`}
+                  } rounded-xl p-10 sm:p-16 text-center cursor-pointer`}
                 >
                   <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 rounded-2xl bg-charcoal-800/60 flex items-center justify-center mb-5 border border-charcoal-700/30">
+                    <div className="w-20 h-20 rounded-2xl bg-charcoal-800/60 flex items-center justify-center mb-6 border border-charcoal-700/30">
                       <svg
-                        className="w-7 h-7 text-gold-500/50"
+                        className="w-9 h-9 text-gold-500/50"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="1.5"
@@ -135,26 +159,36 @@ export default function QuoteBuilder() {
                         />
                       </svg>
                     </div>
-                    <p className="text-sm font-medium text-charcoal-200 mb-1.5">
+                    <p className="text-base font-semibold text-charcoal-100 mb-2">
                       {activeTab === "dxf"
-                        ? "Drag & drop your DXF file"
-                        : "Drag & drop your gasket photo"}
+                        ? "Drop your DXF file here"
+                        : "Drop your gasket photo here"}
                     </p>
-                    <p className="text-xs text-charcoal-500 mb-4">
+                    <p className="text-sm text-charcoal-500 mb-5">
                       or tap to browse files
                     </p>
                     {activeTab === "dxf" ? (
-                      <span className="text-[11px] text-charcoal-600 uppercase tracking-wider">
-                        Accepts .dxf and .dwg
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[11px] text-charcoal-500 bg-charcoal-800/40 px-3 py-1.5 rounded-full border border-charcoal-700/30 font-mono">
+                          .dxf
+                        </span>
+                        <span className="text-[11px] text-charcoal-500 bg-charcoal-800/40 px-3 py-1.5 rounded-full border border-charcoal-700/30 font-mono">
+                          .dwg
+                        </span>
+                      </div>
                     ) : (
-                      <div className="bg-gold-500/3 border border-gold-500/10 rounded-lg px-5 py-3 mt-1 max-w-sm">
-                        <p className="text-xs text-gold-300/70 leading-relaxed">
-                          <strong className="text-gold-400/80">Scale Reference:</strong>{" "}
-                          Place your gasket on a standard 8.5&quot; x 11&quot;
-                          sheet of white paper before photographing. This
-                          provides the dimensional reference for accurate sizing.
-                        </p>
+                      <div className="bg-gold-500/4 border border-gold-500/12 rounded-xl px-5 py-4 mt-1 max-w-sm">
+                        <div className="flex items-start gap-3">
+                          <svg className="w-5 h-5 text-gold-400/60 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                          </svg>
+                          <p className="text-xs text-gold-300/80 leading-relaxed text-left">
+                            <strong className="text-gold-400">Important:</strong>{" "}
+                            Place your gasket on a standard <strong>8.5&quot; x 11&quot;</strong>{" "}
+                            sheet of white paper before photographing. Shoot from{" "}
+                            <strong>directly above</strong>. All paper edges must be visible.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -164,21 +198,13 @@ export default function QuoteBuilder() {
                   {/* Upload success */}
                   <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-4 mb-6 flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/8 flex items-center justify-center flex-shrink-0 border border-emerald-500/10">
-                      <svg
-                        className="w-5 h-5 text-emerald-400"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
+                      <svg className="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-emerald-400">
-                        File uploaded
+                        File uploaded successfully
                       </p>
                       <p className="text-xs text-charcoal-500 truncate">
                         {activeTab === "dxf"
@@ -252,7 +278,7 @@ export default function QuoteBuilder() {
                       </label>
                       <textarea
                         rows={2}
-                        placeholder="Special requirements, dimensions, or application details..."
+                        placeholder="Equipment type, application details, special requirements..."
                         className={`${inputClasses} placeholder:text-charcoal-600 resize-none`}
                       />
                     </div>
@@ -271,7 +297,7 @@ export default function QuoteBuilder() {
                           Rush Order
                         </span>
                         <p className="text-xs text-charcoal-500 mt-0.5">
-                          Same-day cutting + expedited shipping
+                          Same-day cutting + next-day shipping
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
@@ -294,7 +320,7 @@ export default function QuoteBuilder() {
 
                     <button
                       onClick={handleGetQuote}
-                      className="w-full py-3.5 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-obsidian font-bold text-sm rounded-lg transition-all shadow-lg shadow-gold-500/10 uppercase tracking-wide"
+                      className="w-full py-4 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-obsidian font-bold text-sm rounded-lg transition-all shadow-lg shadow-gold-500/10 uppercase tracking-wide"
                     >
                       Get Instant Estimate
                     </button>
@@ -307,7 +333,7 @@ export default function QuoteBuilder() {
             <div className="lg:col-span-2">
               <div className="bg-charcoal-900/60 border border-charcoal-800/60 rounded-2xl p-5 sm:p-7 sticky top-24 card-glow">
                 <h3 className="text-[11px] font-semibold text-charcoal-400 uppercase tracking-[0.15em] mb-6">
-                  Quote Estimate
+                  Your Estimate
                 </h3>
 
                 {!showQuote ? (
@@ -323,12 +349,15 @@ export default function QuoteBuilder() {
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
-                          d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+                          d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
                         />
                       </svg>
                     </div>
-                    <p className="text-sm text-charcoal-500 max-w-[200px] mx-auto leading-relaxed">
-                      Upload a file and fill in details to see your estimate.
+                    <p className="text-sm text-charcoal-300 font-medium mb-2">
+                      Upload a file to start
+                    </p>
+                    <p className="text-xs text-charcoal-500 max-w-[200px] mx-auto leading-relaxed">
+                      Your quote will appear here once you upload and fill in the details.
                     </p>
                   </div>
                 ) : (
@@ -404,8 +433,8 @@ export default function QuoteBuilder() {
                       </div>
                     </div>
 
-                    <button className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
-                      Request Final Review
+                    <button className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
+                      Confirm &amp; Request Review
                     </button>
                     <button
                       onClick={handleReset}

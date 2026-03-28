@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import HowItWorks from "@/components/HowItWorks";
 import QuoteBuilder from "@/components/QuoteBuilder";
+import PhotoGuide from "@/components/PhotoGuide";
 import Materials from "@/components/Materials";
 import UseCases from "@/components/UseCases";
 import WhyTrust from "@/components/WhyTrust";
@@ -17,6 +18,7 @@ export default function Home() {
         <Hero />
         <HowItWorks />
         <QuoteBuilder />
+        <PhotoGuide />
         <Materials />
         <UseCases />
         <WhyTrust />

@@ -57,10 +57,10 @@ export default function HowItWorks() {
             The Process
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-white leading-tight">
-            From Upload to Delivery
+            Upload Today. Gasket Tomorrow.
           </h2>
           <p className="mt-5 text-charcoal-400 max-w-xl mx-auto leading-relaxed">
-            Four steps. No minimum orders. No complex tooling setup.
+            Four steps. No minimums. No tooling setup. No waiting.
           </p>
         </div>
 

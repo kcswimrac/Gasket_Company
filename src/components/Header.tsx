@@ -63,7 +63,7 @@ export default function Header() {
               href="#quote"
               className="px-6 py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-obsidian font-bold text-[13px] rounded tracking-wide transition-all shadow-lg shadow-gold-500/15 uppercase"
             >
-              Get Quote
+              Upload Gasket
             </a>
           </div>
 
@@ -118,7 +118,7 @@ export default function Header() {
                 onClick={() => setMobileOpen(false)}
                 className="block px-6 py-4 bg-gradient-to-r from-gold-500 to-gold-600 text-obsidian font-bold text-base rounded text-center tracking-wide uppercase shadow-lg shadow-gold-500/15"
               >
-                Get Quote
+                Upload Gasket
               </a>
             </div>
           </div>
