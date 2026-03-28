@@ -53,35 +53,40 @@ export default function QuoteBuilder() {
     <section id="quote" className="py-24 md:py-32 blueprint-grid relative">
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
         {/* Section header — urgency focused */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-8">
           <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
-            Start Here
+            The Core Tool
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-white leading-tight">
-            Upload Your Gasket. Get a Quote.
+            Upload Your Gasket. Get a Quote. Get Back to Work.
           </h2>
-          <p className="mt-5 text-charcoal-400 max-w-xl mx-auto leading-relaxed">
-            DXF file or photo — either works. Fill in details and get an
-            instant estimate. No account required.
+          <p className="mt-5 text-charcoal-400 max-w-2xl mx-auto leading-relaxed">
+            DXF file or photo. Five minutes. Instant estimate. That&apos;s it.
           </p>
         </div>
 
-        {/* Urgency bar */}
-        <div className="flex items-center justify-center gap-6 mb-14">
-          <span className="flex items-center gap-2 text-xs text-charcoal-400">
+        {/* Trust + speed bar */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16 px-4 py-4 bg-charcoal-900/40 rounded-xl border border-charcoal-800/50 max-w-2xl mx-auto">
+          <span className="flex items-center gap-2 text-xs text-charcoal-300">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            Most orders ship in 1–2 days
+            <strong>Cut to ±1/32" accuracy</strong>
           </span>
-          <span className="flex items-center gap-2 text-xs text-charcoal-400">
+          <span className="text-charcoal-700 hidden sm:inline">•</span>
+          <span className="flex items-center gap-2 text-xs text-charcoal-300">
             <span className="w-1.5 h-1.5 rounded-full bg-gold-400" />
-            Rush same-day cutting available
+            <strong>Most ship in 1–2 days</strong>
+          </span>
+          <span className="text-charcoal-700 hidden sm:inline">•</span>
+          <span className="flex items-center gap-2 text-xs text-charcoal-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-copper-400" />
+            <strong>Rush same-day available</strong>
           </span>
         </div>
 
-        <div className="max-w-5xl mx-auto">
-          <div className="grid lg:grid-cols-5 gap-6">
-            {/* Left panel — upload + form */}
-            <div className="lg:col-span-3 bg-charcoal-900/60 border border-charcoal-800/60 rounded-2xl p-5 sm:p-8 card-glow">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid lg:grid-cols-7 gap-6">
+            {/* Left panel — upload + form — DOMINANT */}
+            <div className="lg:col-span-4 bg-charcoal-900 border border-gold-500/15 rounded-2xl p-6 sm:p-10 card-glow shadow-2xl shadow-gold-500/5">
               {/* Tabs */}
               <div className="flex rounded-xl bg-charcoal-950/60 p-1.5 mb-7 border border-charcoal-800/30">
                 <button
@@ -329,11 +334,11 @@ export default function QuoteBuilder() {
               )}
             </div>
 
-            {/* Right panel: quote result */}
-            <div className="lg:col-span-2">
-              <div className="bg-charcoal-900/60 border border-charcoal-800/60 rounded-2xl p-5 sm:p-7 sticky top-24 card-glow">
-                <h3 className="text-[11px] font-semibold text-charcoal-400 uppercase tracking-[0.15em] mb-6">
-                  Your Estimate
+            {/* Right panel: quote result — EMPHASIZED */}
+            <div className="lg:col-span-3">
+              <div className="bg-charcoal-900 border border-gold-500/15 rounded-2xl p-6 sm:p-8 sticky top-24 card-glow shadow-2xl shadow-gold-500/5">
+                <h3 className="text-[12px] font-bold text-white uppercase tracking-[0.15em] mb-6">
+                  Your Instant Estimate
                 </h3>
 
                 {!showQuote ? (
@@ -353,11 +358,11 @@ export default function QuoteBuilder() {
                         />
                       </svg>
                     </div>
-                    <p className="text-sm text-charcoal-300 font-medium mb-2">
-                      Upload a file to start
+                    <p className="text-sm text-charcoal-200 font-semibold mb-2">
+                      Upload to Generate
                     </p>
-                    <p className="text-xs text-charcoal-500 max-w-[200px] mx-auto leading-relaxed">
-                      Your quote will appear here once you upload and fill in the details.
+                    <p className="text-xs text-charcoal-500 max-w-[240px] mx-auto leading-relaxed">
+                      Your price, material, and ship date appear instantly. Accuracy guaranteed.
                     </p>
                   </div>
                 ) : (

@@ -7,23 +7,26 @@ export default function FinalCTA() {
       <div className="absolute inset-0 bg-gradient-to-b from-charcoal-900/40 via-charcoal-950/60 to-charcoal-900/40 pointer-events-none" />
 
       <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8 text-center relative z-10">
-        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-semibold bg-gold-500/6 text-gold-400/80 border border-gold-500/12 mb-8 uppercase tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-gold-400 animate-pulse" />
-          Most orders ship in 1–2 days. Rush available.
-        </span>
+        <div className="mb-8">
+          <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-semibold bg-copper-500/8 text-copper-400 border border-copper-500/15 uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-copper-400 animate-pulse" />
+            Downtime isn't cheap. Fix it now.
+          </span>
+        </div>
 
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-tight">
-          <span className="text-white">Don&apos;t Wait on a Gasket.</span>
+          <span className="text-white">Stop Waiting on a Gasket.</span>
           <br />
           <span className="text-gold-gradient">Upload It Now.</span>
         </h2>
 
-        <p className="mt-5 text-sm sm:text-base text-charcoal-300 font-semibold">
-          If it&apos;s leaking, torn, or obsolete — send it. We&apos;ll cut it.
+        <p className="mt-6 text-charcoal-300 max-w-lg mx-auto text-base font-medium leading-relaxed">
+          Most orders cut and shipped within 1–2 business days.
+          Rush same-day available.
         </p>
 
-        <p className="mt-4 text-charcoal-400 max-w-lg mx-auto text-base leading-relaxed">
-          DXF or photo. One gasket or a hundred. Get your replacement fast.
+        <p className="mt-3 text-sm text-charcoal-400">
+          If it&apos;s leaking, torn, or obsolete — send it. We&apos;ll cut it. Get back to work.
         </p>
 
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
@@ -31,7 +34,7 @@ export default function FinalCTA() {
             href="#quote"
             className="inline-flex items-center justify-center px-9 py-4 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-obsidian font-bold text-sm rounded-lg transition-all shadow-lg shadow-gold-500/15 uppercase tracking-wide"
           >
-            Upload Your Gasket
+            Upload Your Gasket Now
             <svg
               className="ml-2.5 w-4 h-4"
               fill="none"
@@ -46,7 +49,7 @@ export default function FinalCTA() {
             href="mailto:quotes@quicksealgaskets.com"
             className="inline-flex items-center justify-center px-9 py-4 border border-charcoal-700 hover:border-gold-500/25 text-charcoal-300 hover:text-gold-300 font-medium text-sm rounded-lg transition-all uppercase tracking-wide"
           >
-            Email Us Directly
+            Questions? Email Us
           </a>
         </div>
 

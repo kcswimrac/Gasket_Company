@@ -29,7 +29,7 @@ export default function Hero() {
               <br />
               <span className="text-white">Upload Your Gasket.</span>
               <br />
-              <span className="text-gold-gradient">Get It Fast.</span>
+              <span className="text-gold-gradient">Back Up and Running Tomorrow.</span>
             </h1>
 
             <p className="mt-7 text-base sm:text-lg text-charcoal-400 max-w-lg leading-relaxed">
@@ -40,8 +40,18 @@ export default function Hero() {
 
             {/* Hard-hitting value line */}
             <p className="mt-5 text-sm sm:text-base text-charcoal-200 font-semibold border-l-2 border-gold-500 pl-4">
-              If it&apos;s leaking, torn, or obsolete — send it. We&apos;ll cut it.
+              If it&apos;s down, fix it now.
             </p>
+
+            {/* Accuracy trust line — KEY SIGNAL */}
+            <div className="mt-6 flex items-center gap-2 text-xs text-charcoal-400 bg-charcoal-900/40 rounded-lg px-4 py-2.5 border border-charcoal-800/50 w-fit">
+              <svg className="w-4 h-4 text-gold-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>
+                <strong className="text-charcoal-100">Cut to within ±1/32&quot;</strong> — from photo or DXF
+              </span>
+            </div>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-3.5">
               <a
@@ -161,7 +171,7 @@ export default function Hero() {
               DXF Accepted
             </div>
             <div className="absolute -bottom-3 -right-3 bg-charcoal-900 border border-charcoal-700/50 rounded-lg px-3.5 py-2 text-[11px] font-semibold text-gold-400 card-glow uppercase tracking-wider">
-              No Part Number Needed
+              ±1/32" Accuracy
             </div>
           </div>
         </div>
