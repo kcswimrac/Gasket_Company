@@ -100,8 +100,8 @@ export default function Header() {
 
       {/* Mobile nav — full screen overlay */}
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 top-18 bg-obsidian/98 backdrop-blur-xl z-40">
-          <div className="px-6 py-8 space-y-1">
+        <div className="md:hidden fixed inset-0 top-[72px] z-40" style={{ backgroundColor: 'rgba(8, 9, 13, 0.99)' }}>
+          <div className="px-6 py-8 space-y-1 bg-charcoal-950 min-h-full">
             {navItems.map((item) => (
               <a
                 key={item.href}
