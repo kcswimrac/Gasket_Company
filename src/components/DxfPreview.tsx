@@ -108,7 +108,7 @@ export default function DxfPreview({ file }: DxfPreviewProps) {
           </span>
         )}
       </div>
-      <div className="bg-charcoal-950 rounded-lg border border-charcoal-800/50 p-3 flex items-center justify-center">
+      <div className="bg-white rounded-lg border border-charcoal-800/50 p-3 flex items-center justify-center">
         <svg
           viewBox={viewBox}
           className="w-full max-h-48"
@@ -138,8 +138,8 @@ function entityToSvgPath(
   entity: IEntity,
   updateBounds: (x: number, y: number) => void
 ): PathData | null {
-  const gold = "rgba(212, 160, 23, 0.6)";
-  const dim = "rgba(148, 163, 184, 0.35)";
+  const primary = "#1a1e2a";
+  const secondary = "#64748b";
 
   switch (entity.type) {
     case "LWPOLYLINE": {
@@ -195,7 +195,7 @@ function entityToSvgPath(
         d += " Z";
       }
 
-      return { d, stroke: gold };
+      return { d, stroke: primary };
     }
 
     case "CIRCLE": {
@@ -207,7 +207,7 @@ function entityToSvgPath(
       updateBounds(cx + r, cy + r);
       // SVG circle as two arcs
       const d = `M ${cx - r} ${cy} A ${r} ${r} 0 1 1 ${cx + r} ${cy} A ${r} ${r} 0 1 1 ${cx - r} ${cy} Z`;
-      return { d, stroke: gold };
+      return { d, stroke: primary };
     }
 
     case "ARC": {
@@ -234,7 +234,7 @@ function entityToSvgPath(
       updateBounds(cx + r, cy + r);
       const largeArc = sweep > Math.PI ? 1 : 0;
       const d = `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
-      return { d, stroke: dim };
+      return { d, stroke: secondary };
     }
 
     case "LINE": {
@@ -244,7 +244,7 @@ function entityToSvgPath(
       const p2 = l.vertices[1];
       updateBounds(p1.x, p1.y);
       updateBounds(p2.x, p2.y);
-      return { d: `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`, stroke: dim };
+      return { d: `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`, stroke: secondary };
     }
 
     case "ELLIPSE": {
@@ -260,7 +260,7 @@ function entityToSvgPath(
       updateBounds(e.center.x - a, e.center.y - b);
       updateBounds(e.center.x + a, e.center.y + b);
       const d = `M ${e.center.x - a} ${e.center.y} A ${a} ${b} ${rot} 1 1 ${e.center.x + a} ${e.center.y} A ${a} ${b} ${rot} 1 1 ${e.center.x - a} ${e.center.y} Z`;
-      return { d, stroke: gold };
+      return { d, stroke: primary };
     }
 
     default:
