@@ -35,6 +35,9 @@ export default function QuoteBuilder() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
+  const [photoConfidence, setPhotoConfidence] = useState<number | null>(null);
+  const [photoWarnings, setPhotoWarnings] = useState<string[]>([]);
+  const [dxfBase64, setDxfBase64] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,36 +112,30 @@ export default function QuoteBuilder() {
 
         setQuoteResult(data.quote);
       } else {
-        // Photo tab — mock response for now (Sprint 2)
-        await new Promise((r) => setTimeout(r, 1500));
-        const qty = parseInt(quantity) || 1;
-        setQuoteResult({
-          unitPrice: 12.5,
-          quantity: qty,
-          volumeDiscount: 0,
-          subtotal: 12.5 * qty,
-          rushFee: rush ? 27.5 : 0,
-          total: 12.5 * qty + 5 + (rush ? 27.5 : 0),
-          breakdown: {
-            materialCost: 5.2,
-            cuttingCost: 5.8,
-            handlingFee: 5.0,
-            complexityCharge: 1.5,
-          },
-          geometry: {
-            totalArea: 28.5,
-            totalCutLength: 38.2,
-            boundingBox: { width: 6.25, height: 6.25 },
-            holeCount: 4,
-          },
-          leadTime: rush ? "Same day" : "1–2 business days",
-          material:
-            materialOptions.find((m) => m.value === material)?.label ||
-            material,
-          thickness:
-            thicknessOptions.find((t) => t.value === thickness)?.label ||
-            thickness,
+        // Photo tab — real API call
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("material", material);
+        formData.append("thickness", thickness);
+        formData.append("quantity", quantity);
+        formData.append("rush", String(rush));
+
+        const res = await fetch("/api/photo-to-dxf", {
+          method: "POST",
+          body: formData,
         });
+
+        const data = await res.json();
+
+        if (!data.success) {
+          setError(data.error || "Failed to process photo");
+          return;
+        }
+
+        setQuoteResult(data.quote);
+        setPhotoConfidence(data.confidence ?? null);
+        setPhotoWarnings(data.warnings ?? []);
+        setDxfBase64(data.dxfBase64 ?? null);
       }
     } catch {
       setError("Network error. Please try again.");
@@ -156,6 +153,9 @@ export default function QuoteBuilder() {
     setQuantity("1");
     setRush(false);
     setIsLoading(false);
+    setPhotoConfidence(null);
+    setPhotoWarnings([]);
+    setDxfBase64(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -522,10 +522,14 @@ export default function QuoteBuilder() {
                       </svg>
                     </div>
                     <p className="text-sm text-charcoal-300 font-semibold mb-1">
-                      Analyzing geometry...
+                      {activeTab === "photo"
+                        ? "Tracing gasket from photo..."
+                        : "Analyzing geometry..."}
                     </p>
                     <p className="text-xs text-charcoal-500">
-                      Calculating area, cut length, and pricing
+                      {activeTab === "photo"
+                        ? "Detecting paper, extracting outline, generating DXF"
+                        : "Calculating area, cut length, and pricing"}
                     </p>
                   </div>
                 ) : !quoteResult ? (
@@ -696,6 +700,96 @@ export default function QuoteBuilder() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Photo-specific: confidence + warnings + DXF download */}
+                    {activeTab === "photo" && photoConfidence !== null && (
+                      <div className="space-y-3">
+                        {/* Confidence bar */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[10px] text-charcoal-500 uppercase tracking-wider">
+                              Trace Confidence
+                            </span>
+                            <span
+                              className={`text-xs font-semibold ${
+                                photoConfidence > 0.7
+                                  ? "text-emerald-400"
+                                  : photoConfidence > 0.4
+                                  ? "text-gold-400"
+                                  : "text-red-400"
+                              }`}
+                            >
+                              {Math.round(photoConfidence * 100)}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1.5 bg-charcoal-800 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                photoConfidence > 0.7
+                                  ? "bg-emerald-400"
+                                  : photoConfidence > 0.4
+                                  ? "bg-gold-400"
+                                  : "bg-red-400"
+                              }`}
+                              style={{ width: `${photoConfidence * 100}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Warnings */}
+                        {photoWarnings.length > 0 && (
+                          <div className="bg-gold-500/4 border border-gold-500/12 rounded-lg p-3 space-y-1.5">
+                            {photoWarnings.map((w, i) => (
+                              <p
+                                key={i}
+                                className="text-[11px] text-gold-300/80 leading-relaxed flex items-start gap-2"
+                              >
+                                <span className="text-gold-400 flex-shrink-0 mt-px">!</span>
+                                {w}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Download generated DXF */}
+                        {dxfBase64 && (
+                          <button
+                            onClick={() => {
+                              const blob = new Blob(
+                                [
+                                  Uint8Array.from(atob(dxfBase64), (c) =>
+                                    c.charCodeAt(0)
+                                  ),
+                                ],
+                                { type: "application/dxf" }
+                              );
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = "gasket_traced.dxf";
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="w-full py-2.5 border border-charcoal-700/50 hover:border-gold-500/20 text-charcoal-300 hover:text-gold-300 text-xs font-medium rounded-lg transition-colors uppercase tracking-wider flex items-center justify-center gap-2"
+                          >
+                            <svg
+                              className="w-3.5 h-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+                              />
+                            </svg>
+                            Download Generated DXF
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     <button className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
                       Confirm &amp; Request Review
