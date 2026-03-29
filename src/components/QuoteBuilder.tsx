@@ -1,58 +1,175 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
+import type { QuoteResult } from "@/lib/pricing/types";
 
 type UploadTab = "dxf" | "photo";
 
-const materials = [
-  "Paper Gasket",
-  "Cork",
-  "Rubber",
-  "Fiber",
-  "Neoprene",
-  "Not Sure",
+const materialOptions = [
+  { value: "paper", label: "Paper Gasket" },
+  { value: "cork", label: "Cork" },
+  { value: "rubber", label: "Rubber" },
+  { value: "fiber", label: "Fiber" },
+  { value: "neoprene", label: "Neoprene" },
 ];
 
-const thicknesses = ['1/32"', '1/16"', '3/32"', '1/8"', '3/16"', '1/4"'];
+const thicknessOptions = [
+  { value: "1/32", label: '1/32"' },
+  { value: "1/16", label: '1/16"' },
+  { value: "3/32", label: '3/32"' },
+  { value: "1/8", label: '1/8"' },
+  { value: "3/16", label: '3/16"' },
+  { value: "1/4", label: '1/4"' },
+];
 
 export default function QuoteBuilder() {
   const [activeTab, setActiveTab] = useState<UploadTab>("dxf");
-  const [uploaded, setUploaded] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
   const [material, setMaterial] = useState("");
   const [thickness, setThickness] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [rush, setRush] = useState(false);
-  const [showQuote, setShowQuote] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
-  const handleUploadClick = () => setUploaded(true);
+  // API state
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [quoteResult, setQuoteResult] = useState<QuoteResult | null>(null);
 
-  const handleGetQuote = () => setShowQuote(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = useCallback(
+    (selectedFile: File) => {
+      // Validate file type
+      if (activeTab === "dxf") {
+        const ext = selectedFile.name.toLowerCase().split(".").pop();
+        if (ext !== "dxf" && ext !== "dwg") {
+          setError("Please upload a .dxf or .dwg file");
+          return;
+        }
+      }
+      setFile(selectedFile);
+      setError(null);
+      setQuoteResult(null);
+    },
+    [activeTab]
+  );
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) handleFileSelect(selected);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const dropped = e.dataTransfer.files[0];
+    if (dropped) handleFileSelect(dropped);
+  };
+
+  const handleGetQuote = async () => {
+    if (!file) return;
+    if (!material) {
+      setError("Please select a material");
+      return;
+    }
+    if (!thickness) {
+      setError("Please select a thickness");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (activeTab === "dxf") {
+        // Real API call for DXF files
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("material", material);
+        formData.append("thickness", thickness);
+        formData.append("quantity", quantity);
+        formData.append("rush", String(rush));
+
+        const res = await fetch("/api/quote", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+          setError(data.error || "Failed to generate quote");
+          return;
+        }
+
+        setQuoteResult(data.quote);
+      } else {
+        // Photo tab — mock response for now (Sprint 2)
+        await new Promise((r) => setTimeout(r, 1500));
+        const qty = parseInt(quantity) || 1;
+        setQuoteResult({
+          unitPrice: 12.5,
+          quantity: qty,
+          volumeDiscount: 0,
+          subtotal: 12.5 * qty,
+          rushFee: rush ? 27.5 : 0,
+          total: 12.5 * qty + 5 + (rush ? 27.5 : 0),
+          breakdown: {
+            materialCost: 5.2,
+            cuttingCost: 5.8,
+            handlingFee: 5.0,
+            complexityCharge: 1.5,
+          },
+          geometry: {
+            totalArea: 28.5,
+            totalCutLength: 38.2,
+            boundingBox: { width: 6.25, height: 6.25 },
+            holeCount: 4,
+          },
+          leadTime: rush ? "Same day" : "1–2 business days",
+          material:
+            materialOptions.find((m) => m.value === material)?.label ||
+            material,
+          thickness:
+            thicknessOptions.find((t) => t.value === thickness)?.label ||
+            thickness,
+        });
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleReset = () => {
-    setUploaded(false);
-    setShowQuote(false);
+    setFile(null);
+    setQuoteResult(null);
+    setError(null);
     setMaterial("");
     setThickness("");
     setQuantity("1");
     setRush(false);
+    setIsLoading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
-
-  const qty = parseInt(quantity) || 1;
-  const unitPrice =
-    material === "Neoprene" ? 14.5 : material === "Cork" ? 11.0 : 9.5;
-  const rushFee = rush ? 25 : 0;
-  const totalEstimate = (unitPrice * qty + rushFee).toFixed(2);
 
   const selectClasses =
     "w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-gold-500/40 focus:border-gold-500/40 transition-colors appearance-none";
   const inputClasses =
     "w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-gold-500/40 focus:border-gold-500/40 transition-colors";
 
+  const qty = parseInt(quantity) || 1;
+
   return (
     <section id="quote" className="py-24 md:py-32 blueprint-grid relative">
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-        {/* Section header — urgency focused */}
+        {/* Section header */}
         <div className="text-center mb-8">
           <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
             The Core Tool
@@ -69,14 +186,14 @@ export default function QuoteBuilder() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-16 px-4 py-4 bg-charcoal-900/40 rounded-xl border border-charcoal-800/50 max-w-2xl mx-auto">
           <span className="flex items-center gap-2 text-xs text-charcoal-300">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <strong>Cut to ±1/32" accuracy</strong>
+            <strong>Cut to ±1/32&quot; accuracy</strong>
           </span>
-          <span className="text-charcoal-700 hidden sm:inline">•</span>
+          <span className="text-charcoal-700 hidden sm:inline">&bull;</span>
           <span className="flex items-center gap-2 text-xs text-charcoal-300">
             <span className="w-1.5 h-1.5 rounded-full bg-gold-400" />
             <strong>Most ship in 1–2 days</strong>
           </span>
-          <span className="text-charcoal-700 hidden sm:inline">•</span>
+          <span className="text-charcoal-700 hidden sm:inline">&bull;</span>
           <span className="flex items-center gap-2 text-xs text-charcoal-300">
             <span className="w-1.5 h-1.5 rounded-full bg-copper-400" />
             <strong>Rush same-day available</strong>
@@ -85,15 +202,23 @@ export default function QuoteBuilder() {
 
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-7 gap-6">
-            {/* Left panel — upload + form — DOMINANT */}
+            {/* Left panel — upload + form */}
             <div className="lg:col-span-4 bg-charcoal-900 border border-gold-500/15 rounded-2xl p-6 sm:p-10 card-glow shadow-2xl shadow-gold-500/5">
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={activeTab === "dxf" ? ".dxf,.dwg" : ".jpg,.jpeg,.png,.webp"}
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
               {/* Tabs */}
               <div className="flex rounded-xl bg-charcoal-950/60 p-1.5 mb-7 border border-charcoal-800/30">
                 <button
                   onClick={() => {
                     setActiveTab("dxf");
-                    setUploaded(false);
-                    setShowQuote(false);
+                    handleReset();
                   }}
                   className={`flex-1 py-3 text-[13px] font-semibold rounded-lg transition-all ${
                     activeTab === "dxf"
@@ -111,8 +236,7 @@ export default function QuoteBuilder() {
                 <button
                   onClick={() => {
                     setActiveTab("photo");
-                    setUploaded(false);
-                    setShowQuote(false);
+                    handleReset();
                   }}
                   className={`flex-1 py-3 text-[13px] font-semibold rounded-lg transition-all ${
                     activeTab === "photo"
@@ -130,8 +254,18 @@ export default function QuoteBuilder() {
                 </button>
               </div>
 
+              {/* Error display */}
+              {error && (
+                <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 mb-6 flex items-center gap-3">
+                  <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                  <p className="text-sm text-red-400">{error}</p>
+                </div>
+              )}
+
               {/* Upload zone */}
-              {!uploaded ? (
+              {!file ? (
                 <div
                   onClick={handleUploadClick}
                   onDragOver={(e) => {
@@ -139,11 +273,7 @@ export default function QuoteBuilder() {
                     setDragOver(true);
                   }}
                   onDragLeave={() => setDragOver(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setDragOver(false);
-                    setUploaded(true);
-                  }}
+                  onDrop={handleDrop}
                   className={`upload-zone ${
                     dragOver ? "active" : ""
                   } rounded-xl p-10 sm:p-16 text-center cursor-pointer`}
@@ -209,12 +339,10 @@ export default function QuoteBuilder() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-emerald-400">
-                        File uploaded successfully
+                        File uploaded
                       </p>
                       <p className="text-xs text-charcoal-500 truncate">
-                        {activeTab === "dxf"
-                          ? "pump_cover_gasket.dxf — 42 KB"
-                          : "gasket_photo_001.jpg — 2.4 MB"}
+                        {file.name} — {(file.size / 1024).toFixed(0)} KB
                       </p>
                     </div>
                     <button
@@ -237,9 +365,9 @@ export default function QuoteBuilder() {
                         className={selectClasses}
                       >
                         <option value="">Select material...</option>
-                        {materials.map((m) => (
-                          <option key={m} value={m}>
-                            {m}
+                        {materialOptions.map((m) => (
+                          <option key={m.value} value={m.value}>
+                            {m.label}
                           </option>
                         ))}
                       </select>
@@ -256,9 +384,9 @@ export default function QuoteBuilder() {
                           className={selectClasses}
                         >
                           <option value="">Select...</option>
-                          {thicknesses.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
+                          {thicknessOptions.map((t) => (
+                            <option key={t.value} value={t.value}>
+                              {t.label}
                             </option>
                           ))}
                         </select>
@@ -279,7 +407,10 @@ export default function QuoteBuilder() {
 
                     <div>
                       <label className="block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider">
-                        Notes <span className="text-charcoal-600 normal-case tracking-normal">(optional)</span>
+                        Notes{" "}
+                        <span className="text-charcoal-600 normal-case tracking-normal">
+                          (optional)
+                        </span>
                       </label>
                       <textarea
                         rows={2}
@@ -325,23 +456,79 @@ export default function QuoteBuilder() {
 
                     <button
                       onClick={handleGetQuote}
-                      className="w-full py-4 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-obsidian font-bold text-sm rounded-lg transition-all shadow-lg shadow-gold-500/10 uppercase tracking-wide"
+                      disabled={isLoading}
+                      className="w-full py-4 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-obsidian font-bold text-sm rounded-lg transition-all shadow-lg shadow-gold-500/10 uppercase tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
                     >
-                      Get Instant Estimate
+                      {isLoading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg
+                            className="animate-spin w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                            />
+                          </svg>
+                          Processing...
+                        </span>
+                      ) : (
+                        "Get Instant Estimate"
+                      )}
                     </button>
                   </div>
                 </>
               )}
             </div>
 
-            {/* Right panel: quote result — EMPHASIZED */}
+            {/* Right panel: quote result */}
             <div className="lg:col-span-3">
               <div className="bg-charcoal-900 border border-gold-500/15 rounded-2xl p-6 sm:p-8 sticky top-24 card-glow shadow-2xl shadow-gold-500/5">
                 <h3 className="text-[12px] font-bold text-white uppercase tracking-[0.15em] mb-6">
                   Your Instant Estimate
                 </h3>
 
-                {!showQuote ? (
+                {isLoading ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 mx-auto rounded-2xl bg-charcoal-800/30 flex items-center justify-center mb-5 border border-charcoal-800/40">
+                      <svg
+                        className="animate-spin w-6 h-6 text-gold-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                    </div>
+                    <p className="text-sm text-charcoal-300 font-semibold mb-1">
+                      Analyzing geometry...
+                    </p>
+                    <p className="text-xs text-charcoal-500">
+                      Calculating area, cut length, and pricing
+                    </p>
+                  </div>
+                ) : !quoteResult ? (
                   <div className="text-center py-12">
                     <div className="w-20 h-20 mx-auto rounded-2xl bg-charcoal-800/30 flex items-center justify-center mb-5 border border-charcoal-800/40">
                       <svg
@@ -362,39 +549,111 @@ export default function QuoteBuilder() {
                       Upload to Generate
                     </p>
                     <p className="text-xs text-charcoal-500 max-w-[240px] mx-auto leading-relaxed">
-                      Your price, material, and ship date appear instantly. Accuracy guaranteed.
+                      Your price, material, and ship date appear instantly.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-5">
-                    <div className="space-y-3">
-                      {[
-                        [
-                          "File",
-                          activeTab === "dxf"
-                            ? "pump_cover_gasket.dxf"
-                            : "gasket_photo_001.jpg",
-                        ],
-                        ["Material", material || "Standard"],
-                        ["Thickness", thickness || '1/16"'],
-                        ["Quantity", `${qty} pcs`],
-                      ].map(([label, value]) => (
-                        <div
-                          key={label}
-                          className="flex justify-between text-sm py-1"
-                        >
-                          <span className="text-charcoal-500">{label}</span>
-                          <span className="text-charcoal-100 font-medium">
-                            {value}
+                    {/* Geometry info */}
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div className="bg-charcoal-950/40 rounded-lg px-3 py-2 border border-charcoal-800/30">
+                        <span className="text-charcoal-500 text-[9px] uppercase tracking-wider">
+                          Area
+                        </span>
+                        <p className="text-charcoal-100 font-semibold text-xs mt-0.5">
+                          {quoteResult.geometry.totalArea} sq in
+                        </p>
+                      </div>
+                      <div className="bg-charcoal-950/40 rounded-lg px-3 py-2 border border-charcoal-800/30">
+                        <span className="text-charcoal-500 text-[9px] uppercase tracking-wider">
+                          Cut Length
+                        </span>
+                        <p className="text-charcoal-100 font-semibold text-xs mt-0.5">
+                          {quoteResult.geometry.totalCutLength} in
+                        </p>
+                      </div>
+                      <div className="bg-charcoal-950/40 rounded-lg px-3 py-2 border border-charcoal-800/30">
+                        <span className="text-charcoal-500 text-[9px] uppercase tracking-wider">
+                          Size
+                        </span>
+                        <p className="text-charcoal-100 font-semibold text-xs mt-0.5">
+                          {quoteResult.geometry.boundingBox.width}&quot; x{" "}
+                          {quoteResult.geometry.boundingBox.height}&quot;
+                        </p>
+                      </div>
+                      <div className="bg-charcoal-950/40 rounded-lg px-3 py-2 border border-charcoal-800/30">
+                        <span className="text-charcoal-500 text-[9px] uppercase tracking-wider">
+                          Holes
+                        </span>
+                        <p className="text-charcoal-100 font-semibold text-xs mt-0.5">
+                          {quoteResult.geometry.holeCount}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Quote details */}
+                    <div className="space-y-2.5">
+                      <div className="flex justify-between text-sm py-0.5">
+                        <span className="text-charcoal-500">Material</span>
+                        <span className="text-charcoal-100 font-medium">
+                          {quoteResult.material}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm py-0.5">
+                        <span className="text-charcoal-500">Thickness</span>
+                        <span className="text-charcoal-100 font-medium">
+                          {quoteResult.thickness}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm py-0.5">
+                        <span className="text-charcoal-500">Quantity</span>
+                        <span className="text-charcoal-100 font-medium">
+                          {qty} pcs
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Price breakdown */}
+                    <div className="gold-divider" />
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex justify-between text-charcoal-500">
+                        <span>Material cost</span>
+                        <span>${quoteResult.breakdown.materialCost.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-charcoal-500">
+                        <span>Cutting cost</span>
+                        <span>${quoteResult.breakdown.cuttingCost.toFixed(2)}</span>
+                      </div>
+                      {quoteResult.breakdown.complexityCharge > 0 && (
+                        <div className="flex justify-between text-charcoal-500">
+                          <span>Complexity</span>
+                          <span>
+                            ${quoteResult.breakdown.complexityCharge.toFixed(2)}
                           </span>
                         </div>
-                      ))}
-                      {rush && (
-                        <div className="flex justify-between text-sm py-1">
-                          <span className="text-gold-400">Rush Order</span>
-                          <span className="text-gold-400 font-medium">
-                            +$25.00
+                      )}
+                      <div className="flex justify-between text-charcoal-500">
+                        <span>Unit price</span>
+                        <span className="text-charcoal-200 font-medium">
+                          ${quoteResult.unitPrice.toFixed(2)}
+                        </span>
+                      </div>
+                      {quoteResult.volumeDiscount > 0 && (
+                        <div className="flex justify-between text-emerald-400">
+                          <span>Volume discount</span>
+                          <span>
+                            -{(quoteResult.volumeDiscount * 100).toFixed(0)}%
                           </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-charcoal-500">
+                        <span>Handling fee</span>
+                        <span>${quoteResult.breakdown.handlingFee.toFixed(2)}</span>
+                      </div>
+                      {quoteResult.rushFee > 0 && (
+                        <div className="flex justify-between text-gold-400">
+                          <span>Rush fee</span>
+                          <span>+${quoteResult.rushFee.toFixed(2)}</span>
                         </div>
                       )}
                     </div>
@@ -404,10 +663,10 @@ export default function QuoteBuilder() {
                     <div className="flex items-end justify-between pt-1">
                       <div>
                         <span className="text-[10px] text-charcoal-500 uppercase tracking-wider">
-                          Estimated Total
+                          Total
                         </span>
                         <p className="text-3xl font-extrabold text-white mt-1">
-                          ${totalEstimate}
+                          ${quoteResult.total.toFixed(2)}
                         </p>
                       </div>
                       {rush && (
@@ -423,7 +682,7 @@ export default function QuoteBuilder() {
                         <span className="text-charcoal-400">
                           Lead time:{" "}
                           <strong className="text-charcoal-100">
-                            {rush ? "Same day" : "1–2 business days"}
+                            {quoteResult.leadTime}
                           </strong>
                         </span>
                       </div>
