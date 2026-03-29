@@ -121,7 +121,7 @@ export default function DxfPreview({ file }: DxfPreviewProps) {
                 d={p.d}
                 fill="none"
                 stroke={p.stroke}
-                strokeWidth="0.5%"
+                strokeWidth="2"
                 vectorEffect="non-scaling-stroke"
                 strokeLinejoin="round"
                 strokeLinecap="round"
