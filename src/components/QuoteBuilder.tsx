@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import type { QuoteResult } from "@/lib/pricing/types";
+import DxfPreview from "./DxfPreview";
 
 type UploadTab = "dxf" | "photo";
 
@@ -352,6 +353,9 @@ export default function QuoteBuilder() {
                       Replace
                     </button>
                   </div>
+
+                  {/* DXF Preview */}
+                  {activeTab === "dxf" && <DxfPreview file={file} />}
 
                   {/* Form fields */}
                   <div className="space-y-5">
