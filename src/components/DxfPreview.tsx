@@ -57,9 +57,10 @@ export default function DxfPreview({ file }: DxfPreviewProps) {
 
         const padding = Math.max(maxX - minX, maxY - minY) * 0.08;
         const vbX = minX - padding;
-        const vbY = minY - padding;
         const vbW = maxX - minX + padding * 2;
         const vbH = maxY - minY + padding * 2;
+        // Flip Y: viewBox starts at -maxY so that scale(1,-1) maps correctly
+        const vbY = -maxY - padding;
 
         setPaths(svgPaths);
         setViewBox(`${vbX} ${vbY} ${vbW} ${vbH}`);
@@ -111,20 +112,22 @@ export default function DxfPreview({ file }: DxfPreviewProps) {
         <svg
           viewBox={viewBox}
           className="w-full max-h-48"
-          style={{ transform: "scaleY(-1)" }}
+          preserveAspectRatio="xMidYMid meet"
         >
-          {paths.map((p, i) => (
-            <path
-              key={i}
-              d={p.d}
-              fill="none"
-              stroke={p.stroke}
-              strokeWidth="0.5%"
-              vectorEffect="non-scaling-stroke"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          ))}
+          <g transform="scale(1,-1)">
+            {paths.map((p, i) => (
+              <path
+                key={i}
+                d={p.d}
+                fill="none"
+                stroke={p.stroke}
+                strokeWidth="0.5%"
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            ))}
+          </g>
         </svg>
       </div>
     </div>
