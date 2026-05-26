@@ -48,7 +48,8 @@ export default function Footer() {
                 ["Applications", "#applications"],
                 ["FAQ", "#faq"],
                 ["Get Quote", "#quote"],
-                ["PartVault — Restoration Parts", "/parts"],
+                ["PartVault", "/parts"],
+                ["Backyard Restoration", "/restoration"],
               ].map(([label, href]) => (
                 <li key={href}>
                   <a
