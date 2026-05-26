@@ -53,7 +53,7 @@ export default function HowItWorks() {
 
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
             The Process
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-white leading-tight">
@@ -68,7 +68,7 @@ export default function HowItWorks() {
           {steps.map((step, i) => (
             <div
               key={step.number}
-              className="relative bg-charcoal-900/40 border border-charcoal-800/60 rounded-2xl p-6 sm:p-7 hover:border-gold-500/15 transition-all duration-300 group"
+              className="relative bg-charcoal-900/40 border border-charcoal-800/60 rounded-2xl p-6 sm:p-7 hover:border-emerald-500/15 transition-all duration-300 group"
             >
               {/* Connector line on desktop */}
               {i < steps.length - 1 && (
@@ -76,10 +76,10 @@ export default function HowItWorks() {
               )}
 
               <div className="flex items-center gap-3 mb-5">
-                <span className="text-[11px] font-mono font-bold text-gold-500/40 tracking-wider">
+                <span className="text-[11px] font-mono font-bold text-emerald-500/40 tracking-wider">
                   {step.number}
                 </span>
-                <div className="w-11 h-11 rounded-xl bg-charcoal-800/60 flex items-center justify-center text-charcoal-400 group-hover:text-gold-400 group-hover:bg-gold-500/5 transition-all duration-300 border border-charcoal-700/30">
+                <div className="w-11 h-11 rounded-xl bg-charcoal-800/60 flex items-center justify-center text-charcoal-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/5 transition-all duration-300 border border-charcoal-700/30">
                   {step.icon}
                 </div>
               </div>

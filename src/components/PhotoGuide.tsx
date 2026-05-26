@@ -38,7 +38,7 @@ export default function PhotoGuide() {
               </div>
 
               {/* "Top-down view" label */}
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-charcoal-900 border border-charcoal-700/50 rounded-md px-3 py-1.5 text-[10px] font-semibold text-gold-400 uppercase tracking-wider whitespace-nowrap card-glow">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-charcoal-900 border border-charcoal-700/50 rounded-md px-3 py-1.5 text-[10px] font-semibold text-emerald-400 uppercase tracking-wider whitespace-nowrap card-glow">
                 Top-Down Photo — For Scale
               </div>
             </div>
@@ -46,19 +46,19 @@ export default function PhotoGuide() {
             {/* Annotation callouts */}
             <div className="absolute -right-2 top-1/4 sm:-right-4 bg-charcoal-900 border border-charcoal-700/50 rounded-lg px-3 py-2 card-glow max-w-[160px]">
               <p className="text-[11px] text-charcoal-300 leading-snug">
-                <strong className="text-gold-400">Step 1:</strong> Place gasket flat on white paper
+                <strong className="text-emerald-400">Step 1:</strong> Place gasket flat on white paper
               </p>
             </div>
             <div className="absolute -left-2 bottom-1/4 sm:-left-4 bg-charcoal-900 border border-charcoal-700/50 rounded-lg px-3 py-2 card-glow max-w-[160px]">
               <p className="text-[11px] text-charcoal-300 leading-snug">
-                <strong className="text-gold-400">Step 2:</strong> Photo from directly above, all edges visible
+                <strong className="text-emerald-400">Step 2:</strong> Photo from directly above, all edges visible
               </p>
             </div>
           </div>
 
           {/* Right: explanation */}
           <div>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
               No DXF? No Problem.
             </span>
             <h2 className="mt-4 text-2xl sm:text-3xl font-extrabold text-white leading-tight">
@@ -80,7 +80,7 @@ export default function PhotoGuide() {
               ].map((tip) => (
                 <div key={tip} className="flex items-start gap-3">
                   <svg
-                    className="w-4 h-4 text-gold-400 flex-shrink-0 mt-0.5"
+                    className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -97,7 +97,7 @@ export default function PhotoGuide() {
 
             <a
               href="#quote"
-              className="inline-flex items-center justify-center mt-8 px-7 py-3.5 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-obsidian font-bold text-sm rounded tracking-wide transition-all shadow-lg shadow-gold-500/15 uppercase"
+              className="inline-flex items-center justify-center mt-8 px-7 py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded tracking-wide transition-all shadow-lg shadow-emerald-500/15 uppercase"
             >
               Upload a Photo Now
               <svg

@@ -50,7 +50,7 @@ export default function Materials() {
 
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
             Materials
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-white leading-tight">
@@ -68,15 +68,15 @@ export default function Materials() {
               key={mat.name}
               className={`rounded-2xl p-6 sm:p-7 transition-all duration-300 group ${
                 mat.accent
-                  ? "bg-gold-500/3 border border-gold-500/15 hover:border-gold-500/30"
-                  : "bg-charcoal-900/40 border border-charcoal-800/60 hover:border-gold-500/10"
+                  ? "bg-emerald-500/3 border border-emerald-500/15 hover:border-emerald-500/30"
+                  : "bg-charcoal-900/40 border border-charcoal-800/60 hover:border-emerald-500/10"
               }`}
             >
               <h3
                 className={`text-lg font-bold mb-3 transition-colors ${
                   mat.accent
-                    ? "text-gold-400"
-                    : "text-white group-hover:text-gold-300"
+                    ? "text-emerald-400"
+                    : "text-white group-hover:text-emerald-300"
                 }`}
               >
                 {mat.name}
@@ -90,7 +90,7 @@ export default function Materials() {
                     key={prop}
                     className={`text-[11px] px-2.5 py-1 rounded-full font-medium ${
                       mat.accent
-                        ? "bg-gold-500/8 text-gold-400 border border-gold-500/12"
+                        ? "bg-emerald-500/8 text-emerald-400 border border-emerald-500/12"
                         : "bg-charcoal-800/50 text-charcoal-400 border border-charcoal-700/40"
                     }`}
                   >

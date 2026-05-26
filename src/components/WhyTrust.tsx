@@ -69,7 +69,7 @@ export default function WhyTrust() {
 
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
             Why QuickSeal
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-white leading-tight">
@@ -84,9 +84,9 @@ export default function WhyTrust() {
           {reasons.map((reason) => (
             <div
               key={reason.title}
-              className="flex gap-5 p-6 rounded-2xl border border-charcoal-800/50 hover:border-gold-500/10 transition-all duration-300 group"
+              className="flex gap-5 p-6 rounded-2xl border border-charcoal-800/50 hover:border-emerald-500/10 transition-all duration-300 group"
             >
-              <div className="w-11 h-11 rounded-xl bg-gold-500/5 flex items-center justify-center text-gold-400/70 flex-shrink-0 border border-gold-500/8 group-hover:border-gold-500/15 group-hover:text-gold-400 transition-all">
+              <div className="w-11 h-11 rounded-xl bg-emerald-500/5 flex items-center justify-center text-emerald-400/70 flex-shrink-0 border border-emerald-500/8 group-hover:border-emerald-500/15 group-hover:text-emerald-400 transition-all">
                 {reason.icon}
               </div>
               <div>

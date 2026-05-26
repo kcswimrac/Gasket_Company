@@ -46,7 +46,7 @@ export default function FAQ() {
 
       <div className="max-w-3xl mx-auto px-5 sm:px-6 lg:px-8">
         <div className="text-center mb-14">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
             FAQ
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold text-white">
@@ -60,7 +60,7 @@ export default function FAQ() {
               key={i}
               className={`border rounded-xl overflow-hidden transition-all duration-300 ${
                 open === i
-                  ? "border-gold-500/15 bg-charcoal-900/30"
+                  ? "border-emerald-500/15 bg-charcoal-900/30"
                   : "border-charcoal-800/50"
               }`}
             >
@@ -72,7 +72,7 @@ export default function FAQ() {
                   {faq.q}
                 </span>
                 <svg
-                  className={`w-4 h-4 text-gold-500/50 flex-shrink-0 transition-transform duration-300 ${
+                  className={`w-4 h-4 text-emerald-500/50 flex-shrink-0 transition-transform duration-300 ${
                     open === i ? "rotate-180" : ""
                   }`}
                   fill="none"

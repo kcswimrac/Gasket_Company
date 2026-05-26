@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "QuickSeal Gaskets — Precision Custom Gaskets, Delivered Fast",
+  title: "Backyard Restoration — Custom Gaskets & Reproduction Parts",
   description:
-    "Upload a DXF or photo to get a precision-cut custom replacement gasket. Quick-turn manufacturing with next-day shipping available. Built for restoration, industrial, and specialty applications.",
+    "On-demand custom gaskets and 3D-scanned reproduction parts for classic cars, tractors, outboards, motorcycles, and industrial equipment. Upload a DXF or photo, or browse the parts catalog.",
 };
 
 export default function RootLayout({

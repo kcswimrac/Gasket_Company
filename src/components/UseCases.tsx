@@ -81,7 +81,7 @@ export default function UseCases() {
 
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
             Applications
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-white leading-tight">
@@ -97,12 +97,12 @@ export default function UseCases() {
           {applications.map((app) => (
             <div
               key={app.title}
-              className="bg-charcoal-900/30 border border-charcoal-800/50 rounded-2xl p-5 sm:p-6 hover:border-gold-500/10 transition-all duration-300 group"
+              className="bg-charcoal-900/30 border border-charcoal-800/50 rounded-2xl p-5 sm:p-6 hover:border-emerald-500/10 transition-all duration-300 group"
             >
-              <div className="w-10 h-10 rounded-xl bg-charcoal-800/50 flex items-center justify-center text-charcoal-500 group-hover:text-gold-400 group-hover:bg-gold-500/5 transition-all duration-300 border border-charcoal-700/30 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-charcoal-800/50 flex items-center justify-center text-charcoal-500 group-hover:text-emerald-400 group-hover:bg-emerald-500/5 transition-all duration-300 border border-charcoal-700/30 mb-4">
                 {app.icon}
               </div>
-              <h3 className="text-sm font-bold text-white mb-1.5 group-hover:text-gold-300 transition-colors">
+              <h3 className="text-sm font-bold text-white mb-1.5 group-hover:text-emerald-300 transition-colors">
                 {app.title}
               </h3>
               <p className="text-xs text-charcoal-500 leading-relaxed">

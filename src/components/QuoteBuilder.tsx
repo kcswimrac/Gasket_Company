@@ -161,9 +161,9 @@ export default function QuoteBuilder() {
   };
 
   const selectClasses =
-    "w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-gold-500/40 focus:border-gold-500/40 transition-colors appearance-none";
+    "w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors appearance-none";
   const inputClasses =
-    "w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-gold-500/40 focus:border-gold-500/40 transition-colors";
+    "w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors";
 
   const qty = parseInt(quantity) || 1;
 
@@ -172,7 +172,7 @@ export default function QuoteBuilder() {
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center mb-8">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
             The Core Tool
           </span>
           <h2 className="mt-4 text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-white leading-tight">
@@ -191,12 +191,12 @@ export default function QuoteBuilder() {
           </span>
           <span className="text-charcoal-700 hidden sm:inline">&bull;</span>
           <span className="flex items-center gap-2 text-xs text-charcoal-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-gold-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             <strong>Most ship in 1–2 days</strong>
           </span>
           <span className="text-charcoal-700 hidden sm:inline">&bull;</span>
           <span className="flex items-center gap-2 text-xs text-charcoal-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-copper-400" />
+            <span className="w-1.5 h-1.5 rounded-full bg-charcoal-800" />
             <strong>Rush same-day available</strong>
           </span>
         </div>
@@ -204,7 +204,7 @@ export default function QuoteBuilder() {
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-7 gap-6">
             {/* Left panel — upload + form */}
-            <div className="lg:col-span-4 bg-charcoal-900 border border-gold-500/15 rounded-2xl p-6 sm:p-10 card-glow shadow-2xl shadow-gold-500/5">
+            <div className="lg:col-span-4 bg-charcoal-900 border border-emerald-500/15 rounded-2xl p-6 sm:p-10 card-glow shadow-2xl shadow-emerald-500/5">
               {/* Hidden file input */}
               <input
                 ref={fileInputRef}
@@ -282,7 +282,7 @@ export default function QuoteBuilder() {
                   <div className="flex flex-col items-center">
                     <div className="w-20 h-20 rounded-2xl bg-charcoal-800/60 flex items-center justify-center mb-6 border border-charcoal-700/30">
                       <svg
-                        className="w-9 h-9 text-gold-500/50"
+                        className="w-9 h-9 text-emerald-500/50"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="1.5"
@@ -313,13 +313,13 @@ export default function QuoteBuilder() {
                         </span>
                       </div>
                     ) : (
-                      <div className="bg-gold-500/4 border border-gold-500/12 rounded-xl px-5 py-4 mt-1 max-w-sm">
+                      <div className="bg-emerald-500/4 border border-emerald-500/12 rounded-xl px-5 py-4 mt-1 max-w-sm">
                         <div className="flex items-start gap-3">
-                          <svg className="w-5 h-5 text-gold-400/60 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 text-emerald-400/60 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                           </svg>
-                          <p className="text-xs text-gold-300/80 leading-relaxed text-left">
-                            <strong className="text-gold-400">Important:</strong>{" "}
+                          <p className="text-xs text-emerald-300/80 leading-relaxed text-left">
+                            <strong className="text-emerald-400">Important:</strong>{" "}
                             Place your gasket on a standard <strong>8.5&quot; x 11&quot;</strong>{" "}
                             sheet of white paper before photographing. Shoot from{" "}
                             <strong>directly above</strong>. All paper edges must be visible.
@@ -348,7 +348,7 @@ export default function QuoteBuilder() {
                     </div>
                     <button
                       onClick={handleReset}
-                      className="text-[11px] text-charcoal-500 hover:text-gold-400 font-medium uppercase tracking-wider transition-colors flex-shrink-0"
+                      className="text-[11px] text-charcoal-500 hover:text-emerald-400 font-medium uppercase tracking-wider transition-colors flex-shrink-0"
                     >
                       Replace
                     </button>
@@ -428,7 +428,7 @@ export default function QuoteBuilder() {
                       onClick={() => setRush(!rush)}
                       className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
                         rush
-                          ? "border-gold-500/25 bg-gold-500/3"
+                          ? "border-emerald-500/25 bg-emerald-500/3"
                           : "border-charcoal-700/40 hover:border-charcoal-600/50"
                       }`}
                     >
@@ -441,12 +441,12 @@ export default function QuoteBuilder() {
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-gold-400/70 font-medium">
+                        <span className="text-xs text-emerald-400/70 font-medium">
                           +$25
                         </span>
                         <div
                           className={`relative w-11 h-6 rounded-full transition-colors ${
-                            rush ? "bg-gold-500" : "bg-charcoal-700"
+                            rush ? "bg-emerald-500" : "bg-charcoal-700"
                           }`}
                         >
                           <div
@@ -461,7 +461,7 @@ export default function QuoteBuilder() {
                     <button
                       onClick={handleGetQuote}
                       disabled={isLoading}
-                      className="w-full py-4 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-obsidian font-bold text-sm rounded-lg transition-all shadow-lg shadow-gold-500/10 uppercase tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-emerald-500/10 uppercase tracking-wide disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {isLoading ? (
                         <span className="flex items-center justify-center gap-2">
@@ -497,7 +497,7 @@ export default function QuoteBuilder() {
 
             {/* Right panel: quote result */}
             <div className="lg:col-span-3">
-              <div className="bg-charcoal-900 border border-gold-500/15 rounded-2xl p-6 sm:p-8 sticky top-24 card-glow shadow-2xl shadow-gold-500/5">
+              <div className="bg-charcoal-900 border border-emerald-500/15 rounded-2xl p-6 sm:p-8 sticky top-24 card-glow shadow-2xl shadow-emerald-500/5">
                 <h3 className="text-[12px] font-bold text-white uppercase tracking-[0.15em] mb-6">
                   Your Instant Estimate
                 </h3>
@@ -506,7 +506,7 @@ export default function QuoteBuilder() {
                   <div className="text-center py-12">
                     <div className="w-16 h-16 mx-auto rounded-2xl bg-charcoal-800/30 flex items-center justify-center mb-5 border border-charcoal-800/40">
                       <svg
-                        className="animate-spin w-6 h-6 text-gold-400"
+                        className="animate-spin w-6 h-6 text-emerald-400"
                         fill="none"
                         viewBox="0 0 24 24"
                       >
@@ -659,7 +659,7 @@ export default function QuoteBuilder() {
                         <span>${quoteResult.breakdown.handlingFee.toFixed(2)}</span>
                       </div>
                       {quoteResult.rushFee > 0 && (
-                        <div className="flex justify-between text-gold-400">
+                        <div className="flex justify-between text-emerald-400">
                           <span>Rush fee</span>
                           <span>+${quoteResult.rushFee.toFixed(2)}</span>
                         </div>
@@ -678,7 +678,7 @@ export default function QuoteBuilder() {
                         </p>
                       </div>
                       {rush && (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-gold-500/8 text-gold-400 border border-gold-500/15 uppercase tracking-wider">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/8 text-emerald-400 border border-emerald-500/15 uppercase tracking-wider">
                           Rush
                         </span>
                       )}
@@ -719,7 +719,7 @@ export default function QuoteBuilder() {
                                 photoConfidence > 0.7
                                   ? "text-emerald-400"
                                   : photoConfidence > 0.4
-                                  ? "text-gold-400"
+                                  ? "text-emerald-400"
                                   : "text-red-400"
                               }`}
                             >
@@ -732,7 +732,7 @@ export default function QuoteBuilder() {
                                 photoConfidence > 0.7
                                   ? "bg-emerald-400"
                                   : photoConfidence > 0.4
-                                  ? "bg-gold-400"
+                                  ? "bg-emerald-400"
                                   : "bg-red-400"
                               }`}
                               style={{ width: `${photoConfidence * 100}%` }}
@@ -742,13 +742,13 @@ export default function QuoteBuilder() {
 
                         {/* Warnings */}
                         {photoWarnings.length > 0 && (
-                          <div className="bg-gold-500/4 border border-gold-500/12 rounded-lg p-3 space-y-1.5">
+                          <div className="bg-emerald-500/4 border border-emerald-500/12 rounded-lg p-3 space-y-1.5">
                             {photoWarnings.map((w, i) => (
                               <p
                                 key={i}
-                                className="text-[11px] text-gold-300/80 leading-relaxed flex items-start gap-2"
+                                className="text-[11px] text-emerald-300/80 leading-relaxed flex items-start gap-2"
                               >
-                                <span className="text-gold-400 flex-shrink-0 mt-px">!</span>
+                                <span className="text-emerald-400 flex-shrink-0 mt-px">!</span>
                                 {w}
                               </p>
                             ))}
@@ -774,7 +774,7 @@ export default function QuoteBuilder() {
                               a.click();
                               URL.revokeObjectURL(url);
                             }}
-                            className="w-full py-2.5 border border-charcoal-700/50 hover:border-gold-500/20 text-charcoal-300 hover:text-gold-300 text-xs font-medium rounded-lg transition-colors uppercase tracking-wider flex items-center justify-center gap-2"
+                            className="w-full py-2.5 border border-charcoal-700/50 hover:border-emerald-500/20 text-charcoal-300 hover:text-emerald-300 text-xs font-medium rounded-lg transition-colors uppercase tracking-wider flex items-center justify-center gap-2"
                           >
                             <svg
                               className="w-3.5 h-3.5"
@@ -800,7 +800,7 @@ export default function QuoteBuilder() {
                     </button>
                     <button
                       onClick={handleReset}
-                      className="w-full py-2 text-xs text-charcoal-500 hover:text-gold-400 transition-colors uppercase tracking-wider font-medium"
+                      className="w-full py-2 text-xs text-charcoal-500 hover:text-emerald-400 transition-colors uppercase tracking-wider font-medium"
                     >
                       Start Over
                     </button>
