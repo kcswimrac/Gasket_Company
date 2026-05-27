@@ -141,7 +141,12 @@ function PartCard({ part }: { part: CatalogPart }) {
 
   const photos = part.files?.filter((f) => f.file_type.startsWith("photo") && f.show_in_catalog) || [];
   const heroPhoto = photos[0];
-  const stepFile = part.files?.find((f) => f.is_step_file) || null;
+
+  const photoChip = (fileType: string, fileName: string) => {
+    if (fileName.startsWith("preview_")) return { label: "CAD Render", color: "bg-blue-500/80" };
+    if (fileType === "photo_donor") return { label: "Original Part", color: "bg-gold-500/80" };
+    return { label: "Finished Part", color: "bg-emerald-500/80" };
+  };
 
   return (
     <div className="bg-charcoal-900/40 border border-charcoal-800/60 rounded-2xl overflow-hidden hover:border-emerald-500/12 transition-all group">
@@ -149,6 +154,11 @@ function PartCard({ part }: { part: CatalogPart }) {
       {heroPhoto ? (
         <div className="relative h-40 bg-charcoal-950 border-b border-charcoal-800/40 overflow-hidden">
           <img src={heroPhoto.file_url} alt={part.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute top-2 left-2">
+            <span className={`${photoChip(heroPhoto.file_type, heroPhoto.file_name).color} text-white text-[8px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm`}>
+              {photoChip(heroPhoto.file_type, heroPhoto.file_name).label}
+            </span>
+          </div>
           <div className="absolute top-2 right-2">
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border backdrop-blur-sm ${FITMENT_COLORS[part.fitment_status] || ""}`}>
               {FITMENT_LABELS[part.fitment_status] || part.fitment_status}
@@ -374,6 +384,13 @@ function PartCard({ part }: { part: CatalogPart }) {
 function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }) {
   const photos = part.files?.filter((f) => f.file_type.startsWith("photo") && f.file_url) || [];
   const [activeTier, setActiveTier] = useState(0);
+  const [activePhoto, setActivePhoto] = useState(0);
+
+  const chipLabel = (fileType: string, fileName: string) => {
+    if (fileName.startsWith("preview_")) return { label: "CAD Render", color: "bg-blue-500/80" };
+    if (fileType === "photo_donor") return { label: "Original Part", color: "bg-gold-500/80" };
+    return { label: "Finished Part", color: "bg-emerald-500/80" };
+  };
   const [quoting, setQuoting] = useState(false);
   const [quote, setQuote] = useState<CartQuote | null>(null);
   const [qty, setQty] = useState(1);
@@ -420,11 +437,23 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
           {/* Photos + 3D view */}
           {photos.length > 0 && (
             <div>
-              <img src={photos[0].file_url} alt={part.name} className="w-full rounded-lg object-cover max-h-72" />
+              {/* Main photo */}
+              <div className="relative">
+                <img src={photos[activePhoto]?.file_url || photos[0].file_url} alt={part.name} className="w-full rounded-lg object-cover max-h-80" />
+                <span className={`absolute top-2 left-2 ${chipLabel(photos[activePhoto]?.file_type || photos[0].file_type, photos[activePhoto]?.file_name || photos[0].file_name).color} text-white text-[9px] font-semibold px-2 py-0.5 rounded backdrop-blur-sm`}>
+                  {chipLabel(photos[activePhoto]?.file_type || photos[0].file_type, photos[activePhoto]?.file_name || photos[0].file_name).label}
+                </span>
+              </div>
+              {/* Thumbnails */}
               {photos.length > 1 && (
                 <div className="flex gap-1.5 overflow-x-auto mt-2">
-                  {photos.slice(1).map((f) => (
-                    <img key={f.id} src={f.file_url!} alt="" className="w-20 h-20 rounded object-cover flex-shrink-0" />
+                  {photos.map((f, i) => (
+                    <button key={f.id} onClick={() => setActivePhoto(i)} className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-colors ${activePhoto === i ? "border-emerald-500" : "border-transparent hover:border-charcoal-600"}`}>
+                      <img src={f.file_url!} alt="" className="w-16 h-16 object-cover" />
+                      <span className={`absolute bottom-0 left-0 right-0 ${chipLabel(f.file_type, f.file_name).color} text-white text-[7px] font-semibold text-center py-px`}>
+                        {chipLabel(f.file_type, f.file_name).label}
+                      </span>
+                    </button>
                   ))}
                 </div>
               )}
