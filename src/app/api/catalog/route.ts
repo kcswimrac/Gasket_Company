@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
                c.public_credit_name as contributor_name
         FROM parts p
         LEFT JOIN contributors c ON p.contributor_id = c.id
-        WHERE p.active = true AND p.segment = ${segment}
+        WHERE p.active IS NOT false AND p.segment = ${segment}
         AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})
         ORDER BY p.name
       `;
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
                c.public_credit_name as contributor_name
         FROM parts p
         LEFT JOIN contributors c ON p.contributor_id = c.id
-        WHERE p.active = true AND p.segment = ${segment}
+        WHERE p.active IS NOT false AND p.segment = ${segment}
         ORDER BY p.name
       `;
     } else if (search) {
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
                c.public_credit_name as contributor_name
         FROM parts p
         LEFT JOIN contributors c ON p.contributor_id = c.id
-        WHERE p.active = true
+        WHERE p.active IS NOT false
         AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})
         ORDER BY p.name
       `;
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
                c.public_credit_name as contributor_name
         FROM parts p
         LEFT JOIN contributors c ON p.contributor_id = c.id
-        WHERE p.active = true
+        WHERE p.active IS NOT false
         ORDER BY p.name
       `;
     }
