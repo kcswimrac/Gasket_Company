@@ -175,6 +175,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: "id is required" }, { status: 400 });
     }
 
+    // Clear references that don't cascade
+    await sql`UPDATE scan_queue SET part_id = NULL WHERE part_id = ${id}`;
+    await sql`DELETE FROM autoquote_cache WHERE variant_id IN (SELECT id FROM part_variants WHERE part_id = ${id})`;
+    // part_variants and part_files cascade automatically
     await sql`DELETE FROM parts WHERE id = ${id}`;
     return NextResponse.json({ success: true });
   } catch (e) {
