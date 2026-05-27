@@ -14,6 +14,7 @@
     "@types/react": "^19.2.14",
     "dxf-parser": "^1.1.2",
     "dxf-writer": "^1.18.4",
+    "framer-motion": "^12.40.0",
     "next": "^16.2.1",
     "postcss": "^8.5.8",
     "potrace": "^2.1.8",
