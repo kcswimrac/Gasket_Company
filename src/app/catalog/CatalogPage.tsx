@@ -264,7 +264,7 @@ function PartCard({ part }: { part: CatalogPart }) {
             <div>
               {part.hasStepFile ? (
                 <button
-                  onClick={handleAddToCart}
+                  onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
                   disabled={quoting}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[11px] rounded transition-all uppercase tracking-wider shadow-lg shadow-emerald-500/10 disabled:opacity-50"
                 >
@@ -310,7 +310,7 @@ function PartCard({ part }: { part: CatalogPart }) {
                   className="w-14 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-1.5 text-xs text-charcoal-100 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
                 />
                 <button
-                  onClick={handleAddToCart}
+                  onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
                   disabled={quoting}
                   className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[11px] rounded transition-all uppercase tracking-wider shadow-lg shadow-emerald-500/10 disabled:opacity-50 flex items-center gap-1.5"
                 >

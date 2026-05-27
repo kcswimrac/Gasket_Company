@@ -114,7 +114,9 @@ export async function POST(request: NextRequest) {
         const quote = await pollRes.json();
 
         if (terminal.has(quote.status)) {
-          if (quote.status === "OFFERED" && quote.buyable && quote.unit_price_usd) {
+          // Return price if available, regardless of buyable flag
+          // Restoration parts often trigger NEEDS_REVIEW but still have a price
+          if (quote.unit_price_usd) {
             return NextResponse.json({
               success: true,
               estimate: {
@@ -122,19 +124,21 @@ export async function POST(request: NextRequest) {
                 totalPrice: quote.total_price_usd,
                 leadTimeDays: quote.lead_time_days,
                 material: materialCode,
-                source: "autoquote",
+                source: quote.buyable ? "autoquote" : "autoquote_review",
+                message: !quote.buyable ? "Estimate — final price confirmed after review." : undefined,
               },
             });
           }
 
+          // No price at all
           return NextResponse.json({
             success: true,
             estimate: {
               unitPrice: null,
               message: quote.status === "NEEDS_REVIEW"
                 ? "This part needs manual review. We'll follow up within 24 hours."
-                : "Unable to auto-quote. Contact us for pricing.",
-              source: "needs_review",
+                : `AutoQuote status: ${quote.status}. Contact us for pricing.`,
+              source: quote.status.toLowerCase(),
             },
           });
         }
