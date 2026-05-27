@@ -148,6 +148,31 @@ v2.0.0 — material change, requires re-validation
 
 ---
 
+## AutoQuote Material Code Map
+
+Source: AutoQuote session response (contract locked)
+
+| AutoQuote Code | Display Name | Processes | Auto-Quote Whitelist |
+|---|---|---|---|
+| `AL_6061` | Aluminum 6061-T6 | CNC_3AXIS, WATERJET, LASER | Yes |
+| `STEEL_1018` | 1018 Mild Steel | CNC_3AXIS, WATERJET, LASER | Yes |
+| `STEEL_4140` | 4140 Alloy Steel | CNC_3AXIS | No — needs operator add |
+| `SS_304` | 304 Stainless Steel | CNC_3AXIS, WATERJET, LASER | Yes |
+| `SS_316` | 316 Stainless Steel | CNC_3AXIS, WATERJET, LASER | No — needs operator add |
+| `BRASS_360` | Brass 360 (Free-Machining) | CNC_3AXIS, LASER | No — needs operator add |
+| `PLA` | PLA | FDM | Yes |
+| `PETG` | PETG | FDM | Yes |
+
+**Naming convention:** Stainless uses `SS_` prefix (NOT `STEEL_*SS`). Use codes verbatim from `GET /bridge/materials`.
+
+**BRASS_C260 vs BRASS_360:** Different alloys. C260 = cartridge brass (70Cu/30Zn), C360 = free-machining (61Cu/35Zn/3Pb). If restoration work needs C260, operator adds `BRASS_C260` entry to rate card. Not a substitute.
+
+**SHEET_METAL process:** Rate card has bend tables for STEEL_1018 and SS_304 but the processes arrays don't include SHEET_METAL yet. Operator can add via /admin/rate-card.
+
+**Gasket materials:** Stay on local pricing engine (`/api/quote` + `src/lib/pricing/engine.ts`). AutoQuote's LASER process is metal-only. Gasket pricing is a separate concern.
+
+---
+
 ## Verified Fit Badge System
 
 | Badge | Meaning | Trigger |
