@@ -46,6 +46,8 @@ export interface QuoteResponse {
   dfm_issues: DfmIssue[];
   cost_breakdown: Record<string, unknown> | null;
   routing: Array<{ process: string; [key: string]: unknown }>;
+  expires_at: string | null;
+  quote_url: string | null;
 }
 
 export interface AutoQuoteError {

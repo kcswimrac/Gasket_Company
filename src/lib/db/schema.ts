@@ -105,6 +105,7 @@ export const partVariants = pgTable("part_variants", {
   lastQuotedPrice: decimal("last_quoted_price", { precision: 10, scale: 2 }),
   lastQuotedAt: timestamp("last_quoted_at"),
   lastQuoteId: text("last_quote_id"),
+  lastQuoteExpiresAt: timestamp("last_quote_expires_at"),
   available: boolean("available").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -216,6 +217,8 @@ export const autoquoteCache = pgTable("autoquote_cache", {
   routing: jsonb("routing"),
   materialCode: text("material_code"),
   quantity: integer("quantity"),
+  expiresAt: timestamp("expires_at"),
+  quoteUrl: text("quote_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

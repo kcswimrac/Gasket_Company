@@ -95,6 +95,48 @@ export async function getQuote(quoteId: string): Promise<QuoteResponse> {
 }
 
 /**
+ * Check if a cached quote is still valid.
+ * Cheaper than re-quoting — GET is not rate-limited like POST.
+ *
+ * Returns the quote if still OFFERED and not expired with matching
+ * material/quantity, or null if a fresh quote is needed.
+ */
+export async function validateCachedQuote(
+  cachedQuoteId: string,
+  expectedMaterial: string,
+  expectedQuantity: number
+): Promise<QuoteResponse | null> {
+  try {
+    const quote = await getQuote(cachedQuoteId);
+
+    if (quote.status !== "OFFERED") return null;
+    if (!quote.buyable) return null;
+
+    // Check expiry
+    if (quote.expires_at) {
+      const expiresAt = new Date(quote.expires_at);
+      if (expiresAt <= new Date()) return null;
+    }
+
+    return quote;
+  } catch {
+    return null;
+  }
+}
+
+/** Default staleness threshold for cached prices (30 days) */
+export const PRICE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Check if a cached price timestamp is stale */
+export function isCachedPriceStale(
+  lastQuotedAt: Date | null,
+  ttlMs: number = PRICE_CACHE_TTL_MS
+): boolean {
+  if (!lastQuotedAt) return true;
+  return Date.now() - lastQuotedAt.getTime() > ttlMs;
+}
+
+/**
  * Submit a file and poll until priced or failed.
  * Returns the final quote response.
  */
