@@ -1,0 +1,237 @@
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  decimal,
+  jsonb,
+  pgEnum,
+} from "drizzle-orm/pg-core";
+
+/* ─── Enums ─── */
+
+export const fitmentStatusEnum = pgEnum("fitment_status", [
+  "verified",
+  "scan_verified",
+  "reference",
+]);
+
+export const tierEnum = pgEnum("tier", [
+  "oem",
+  "improved",
+  "custom",
+  "fitment_check",
+]);
+
+export const safetyClassEnum = pgEnum("safety_class", [
+  "cosmetic",
+  "functional",
+  "critical_excluded",
+]);
+
+export const segmentEnum = pgEnum("segment", [
+  "tractor",
+  "marine",
+  "automotive",
+  "motorcycle",
+  "industrial",
+]);
+
+export const orderStatusEnum = pgEnum("order_status", [
+  "pending_quote",
+  "quoted",
+  "paid",
+  "queued",
+  "in_progress",
+  "qc",
+  "shipped",
+  "delivered",
+  "cancelled",
+]);
+
+export const quoteStatusEnum = pgEnum("quote_status", [
+  "draft",
+  "pending",
+  "offered",
+  "needs_review",
+  "accepted",
+  "rejected",
+  "expired",
+]);
+
+/* ─── Parts Library ─── */
+
+export const parts = pgTable("parts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  segment: segmentEnum("segment").notNull(),
+  application: text("application").notNull(),
+  description: text("description"),
+  fitmentStatus: fitmentStatusEnum("fitment_status")
+    .notNull()
+    .default("reference"),
+  safetyClass: safetyClassEnum("safety_class")
+    .notNull()
+    .default("cosmetic"),
+  dimensions: text("dimensions"),
+  partNumber: text("part_number"),
+  scanDate: timestamp("scan_date"),
+  scanSource: text("scan_source"),
+  cadFileUrl: text("cad_file_url"),
+  stlPreviewUrl: text("stl_preview_url"),
+  contributorId: uuid("contributor_id").references(() => contributors.id),
+  notes: text("notes"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/* ─── Part Variants (material tiers) ─── */
+
+export const partVariants = pgTable("part_variants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  partId: uuid("part_id")
+    .notNull()
+    .references(() => parts.id, { onDelete: "cascade" }),
+  tier: tierEnum("tier").notNull(),
+  material: text("material").notNull(),
+  process: text("process").notNull(),
+  basePrice: decimal("base_price", { precision: 10, scale: 2 }),
+  leadTimeDays: integer("lead_time_days"),
+  autoquoteMaterialCode: text("autoquote_material_code"),
+  autoquoteProcess: text("autoquote_process"),
+  lastQuotedPrice: decimal("last_quoted_price", { precision: 10, scale: 2 }),
+  lastQuotedAt: timestamp("last_quoted_at"),
+  lastQuoteId: text("last_quote_id"),
+  available: boolean("available").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/* ─── Manufacturing Packages ─── */
+
+export const manufacturingPackages = pgTable("manufacturing_packages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  variantId: uuid("variant_id")
+    .notNull()
+    .references(() => partVariants.id, { onDelete: "cascade" }),
+  version: text("version").notNull(),
+  approvedForProduction: boolean("approved_for_production")
+    .notNull()
+    .default(false),
+  releasedAt: timestamp("released_at"),
+  releasedBy: text("released_by"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/* ─── Manufacturing Artifacts (files in a package) ─── */
+
+export const manufacturingArtifacts = pgTable("manufacturing_artifacts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  packageId: uuid("package_id")
+    .notNull()
+    .references(() => manufacturingPackages.id, { onDelete: "cascade" }),
+  artifactType: text("artifact_type").notNull(),
+  machineTarget: text("machine_target"),
+  fileUrl: text("file_url").notNull(),
+  checksum: text("checksum"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/* ─── Contributors ─── */
+
+export const contributors = pgTable("contributors", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  location: text("location"),
+  publicCreditName: text("public_credit_name"),
+  totalContributions: integer("total_contributions").notNull().default(0),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/* ─── Customers ─── */
+
+export const customers = pgTable("customers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  company: text("company"),
+  isShopAccount: boolean("is_shop_account").notNull().default(false),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/* ─── Orders ─── */
+
+export const orders = pgTable("orders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  customerId: uuid("customer_id").references(() => customers.id),
+  status: orderStatusEnum("status").notNull().default("pending_quote"),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  rushOrder: boolean("rush_order").notNull().default(false),
+  shippingMethod: text("shipping_method"),
+  trackingNumber: text("tracking_number"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  shippedAt: timestamp("shipped_at"),
+});
+
+/* ─── Order Line Items ─── */
+
+export const orderLineItems = pgTable("order_line_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  variantId: uuid("variant_id").references(() => partVariants.id),
+  quantity: integer("quantity").notNull().default(1),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  autoquoteQuoteId: text("autoquote_quote_id"),
+  status: orderStatusEnum("status").notNull().default("pending_quote"),
+  notes: text("notes"),
+});
+
+/* ─── AutoQuote Cache ─── */
+
+export const autoquoteCache = pgTable("autoquote_cache", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  variantId: uuid("variant_id").references(() => partVariants.id),
+  quoteId: text("quote_id").notNull(),
+  status: quoteStatusEnum("quote_status").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  leadTimeDays: integer("lead_time_days"),
+  confidence: decimal("confidence", { precision: 3, scale: 2 }),
+  buyable: boolean("buyable"),
+  dfmIssues: jsonb("dfm_issues"),
+  costBreakdown: jsonb("cost_breakdown"),
+  routing: jsonb("routing"),
+  materialCode: text("material_code"),
+  quantity: integer("quantity"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/* ─── Scan Queue (donor parts awaiting processing) ─── */
+
+export const scanQueue = pgTable("scan_queue", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  contributorId: uuid("contributor_id").references(() => contributors.id),
+  partDescription: text("part_description").notNull(),
+  application: text("application").notNull(),
+  condition: text("condition"),
+  status: text("status").notNull().default("received"),
+  photoUrls: jsonb("photo_urls"),
+  partId: uuid("part_id").references(() => parts.id),
+  notes: text("notes"),
+  receivedAt: timestamp("received_at").notNull().defaultNow(),
+  scannedAt: timestamp("scanned_at"),
+  completedAt: timestamp("completed_at"),
+});
