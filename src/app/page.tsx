@@ -74,11 +74,22 @@ function HeroSection() {
           </FadeUp>
 
           <FadeUp delay={0.15}>
-            <p className="mt-8 text-xl sm:text-2xl text-charcoal-100 max-w-2xl leading-relaxed font-light">
-              Obsolete, discontinued, corroded, broken — if you have the original, we
-              3D-scan it, reverse engineer it, and manufacture an exact replacement.
-              Custom gaskets cut in 24 hours.
-            </p>
+            <div className="mt-10 grid sm:grid-cols-2 gap-6 max-w-2xl">
+              <div className="border-l-2 border-gold-400/40 pl-5">
+                <h2 className="text-base font-bold text-white mb-1.5">Reproduction Parts</h2>
+                <p className="text-sm text-charcoal-300 leading-relaxed">
+                  Obsolete, discontinued, or unobtainable — send us the original.
+                  We 3D-scan it, reverse engineer it, and fabricate an exact replacement.
+                </p>
+              </div>
+              <div className="border-l-2 border-gold-400/40 pl-5">
+                <h2 className="text-base font-bold text-white mb-1.5">Custom Gaskets</h2>
+                <p className="text-sm text-charcoal-300 leading-relaxed">
+                  Upload a DXF or snap a photo on paper for scale.
+                  We laser-cut your replacement in cork, rubber, neoprene, fiber, or paper. Ships in 24 hours.
+                </p>
+              </div>
+            </div>
           </FadeUp>
 
           {/* Authority stats bar */}
