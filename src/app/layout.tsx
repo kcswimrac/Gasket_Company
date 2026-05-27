@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { CartProvider } from "@/lib/cart";
 
 export const metadata: Metadata = {
   title: "Backyard Restoration — Custom Gaskets & Reproduction Parts",
@@ -26,7 +27,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <CartProvider>{children}</CartProvider>
+      </body>
     </html>
   );
 }

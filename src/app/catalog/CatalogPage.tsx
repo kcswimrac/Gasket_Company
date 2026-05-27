@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useCart } from "@/lib/cart";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
@@ -78,6 +79,8 @@ function PartCard({ part }: { part: CatalogPart }) {
   const [quoting, setQuoting] = useState(false);
   const [quote, setQuote] = useState<CartQuote | null>(null);
   const [qty, setQty] = useState(1);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const { addItem } = useCart();
 
   const variant = part.variants[activeTier] || null;
   const hasVariants = part.variants.length > 0;
@@ -362,10 +365,37 @@ function PartCard({ part }: { part: CatalogPart }) {
               </div>
 
               <div className="flex gap-2">
-                {quote.unitPrice && (
-                  <button className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[11px] rounded uppercase tracking-wider transition-colors">
-                    Proceed to Checkout
+                {quote.unitPrice && !addedToCart && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addItem({
+                        partId: part.id,
+                        partName: part.name,
+                        variantId: variant?.id || null,
+                        tier: variant?.tier || null,
+                        material: variant?.material || "Default",
+                        process: variant?.process || "TBD",
+                        quantity: qty,
+                        unitPrice: quote.unitPrice,
+                        totalPrice: quote.totalPrice,
+                        leadTimeDays: quote.leadTimeDays,
+                        isEstimate: quote.isEstimate,
+                        quoteId: quote.quoteId || null,
+                        quoteSource: quote.source,
+                      });
+                      setAddedToCart(true);
+                    }}
+                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[11px] rounded uppercase tracking-wider transition-colors"
+                  >
+                    Add to Cart
                   </button>
+                )}
+                {addedToCart && (
+                  <a href="/cart" className="flex-1 py-2.5 bg-charcoal-800 hover:bg-charcoal-700 text-emerald-400 font-bold text-[11px] rounded uppercase tracking-wider transition-colors text-center flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                    View Cart
+                  </a>
                 )}
                 <button
                   onClick={() => setQuote(null)}
