@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 const SEGMENTS = [
   { id: "tractor", label: "Vintage Tractors" },
@@ -16,6 +16,18 @@ const FITMENT_STATUSES = [
   { id: "verified", label: "Verified Fit", color: "bg-emerald-500/10 text-emerald-400" },
 ];
 
+interface PartFile {
+  id: string;
+  file_type: string;
+  file_name: string;
+  file_url: string;
+  file_size: number | null;
+  show_in_catalog: boolean;
+  is_step_file: boolean;
+  notes: string | null;
+  uploaded_at: string;
+}
+
 interface Part {
   id: string;
   name: string;
@@ -29,6 +41,8 @@ interface Part {
   fitment_status: string;
   dimensions: string | null;
   part_number: string | null;
+  cad_file_url: string | null;
+  scan_queue_id: string | null;
   active: boolean;
   created_at: string;
   contributor_name: string | null;
@@ -146,8 +160,49 @@ function AddPartForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
+function PartFileUpload({ partId, fileType, label, onUploaded }: { partId: string; fileType: string; label: string; onUploaded: () => void }) {
+  const [uploading, setUploading] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  const handleFile = async (file: File) => {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("partId", partId);
+      fd.append("fileType", fileType);
+      fd.append("showInCatalog", fileType.startsWith("photo") ? "true" : "false");
+      await fetch("/api/admin/parts/files", { method: "POST", body: fd });
+      onUploaded();
+    } catch { /* ignore */ }
+    finally { setUploading(false); if (ref.current) ref.current.value = ""; }
+  };
+  return (
+    <>
+      <input ref={ref} type="file" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
+      <button onClick={() => ref.current?.click()} disabled={uploading} className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium disabled:opacity-50 flex items-center gap-1">
+        {uploading ? "..." : label}
+      </button>
+    </>
+  );
+}
+
 function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => void; onDelete: (id: string, name: string) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [files, setFiles] = useState<PartFile[]>([]);
+  const [filesLoaded, setFilesLoaded] = useState(false);
+
+  const loadFiles = useCallback(async () => {
+    const res = await fetch(`/api/admin/parts/files?partId=${part.id}`);
+    const data = await res.json();
+    if (data.success) setFiles(data.files);
+    setFilesLoaded(true);
+  }, [part.id]);
+
+  useEffect(() => {
+    if (expanded && !filesLoaded) loadFiles();
+  }, [expanded, filesLoaded, loadFiles]);
+
+  const handleFileUploaded = () => { loadFiles(); onRefresh(); };
 
   const yearDisplay = part.year_start && part.year_end ? `${part.year_start}–${part.year_end}` : part.year_start ? `${part.year_start}+` : "—";
 
@@ -228,7 +283,72 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
             <p className="text-[10px] text-charcoal-500">Contributor: {part.contributor_name}</p>
           )}
 
+          {/* Files */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Photos */}
+            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">Photos</span>
+                <div className="flex gap-2">
+                  <PartFileUpload partId={part.id} fileType="photo_donor" label="+ Donor" onUploaded={handleFileUploaded} />
+                  <PartFileUpload partId={part.id} fileType="photo_finished" label="+ Finished" onUploaded={handleFileUploaded} />
+                </div>
+              </div>
+              {files.filter((f) => f.file_type.startsWith("photo")).length === 0 && <p className="text-[10px] text-charcoal-600">No photos</p>}
+              {files.filter((f) => f.file_type.startsWith("photo")).map((f) => (
+                <div key={f.id} className="flex items-center gap-2 text-[11px] py-1">
+                  <span className={`text-[9px] px-1 rounded ${f.file_type === "photo_donor" ? "bg-gold-500/10 text-gold-400" : "bg-emerald-500/10 text-emerald-400"}`}>
+                    {f.file_type === "photo_donor" ? "donor" : "finished"}
+                  </span>
+                  <a href={f.file_url} target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 truncate">{f.file_name}</a>
+                  {f.show_in_catalog && <span className="text-[9px] text-charcoal-500">catalog</span>}
+                </div>
+              ))}
+            </div>
+
+            {/* CAD Files */}
+            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">CAD Files</span>
+                <div className="flex gap-2">
+                  <PartFileUpload partId={part.id} fileType="cad_step" label="+ STEP" onUploaded={handleFileUploaded} />
+                  <PartFileUpload partId={part.id} fileType="cad_other" label="+ Other" onUploaded={handleFileUploaded} />
+                </div>
+              </div>
+              {files.filter((f) => f.file_type.startsWith("cad")).length === 0 && <p className="text-[10px] text-charcoal-600">No CAD files</p>}
+              {files.filter((f) => f.file_type.startsWith("cad")).map((f) => (
+                <div key={f.id} className="flex items-center gap-2 text-[11px] py-1">
+                  {f.is_step_file && <span className="text-[9px] px-1 rounded bg-blue-500/10 text-blue-400">STEP</span>}
+                  <a href={f.file_url} target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 truncate">{f.file_name}</a>
+                  {f.file_size && <span className="text-charcoal-600">{(f.file_size / 1024).toFixed(0)}KB</span>}
+                </div>
+              ))}
+            </div>
+
+            {/* Other files */}
+            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">Other Files</span>
+                <div className="flex gap-2">
+                  <PartFileUpload partId={part.id} fileType="stl_preview" label="+ STL" onUploaded={handleFileUploaded} />
+                  <PartFileUpload partId={part.id} fileType="drawing_pdf" label="+ Drawing" onUploaded={handleFileUploaded} />
+                </div>
+              </div>
+              {files.filter((f) => !f.file_type.startsWith("photo") && !f.file_type.startsWith("cad")).length === 0 && <p className="text-[10px] text-charcoal-600">No files</p>}
+              {files.filter((f) => !f.file_type.startsWith("photo") && !f.file_type.startsWith("cad")).map((f) => (
+                <div key={f.id} className="flex items-center gap-2 text-[11px] py-1">
+                  <span className="text-[9px] px-1 rounded bg-charcoal-800 text-charcoal-400">{f.file_type}</span>
+                  <a href={f.file_url} target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 truncate">{f.file_name}</a>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
           <div className="flex gap-3 pt-2">
+            {part.scan_queue_id && (
+              <a href="/admin/scans" className="text-[11px] text-blue-400 hover:text-blue-300 font-medium">View in Scan Queue</a>
+            )}
             <button onClick={() => onDelete(part.id, part.name)} className="text-[11px] text-red-400/60 hover:text-red-400 font-medium">Delete Part</button>
           </div>
         </div>

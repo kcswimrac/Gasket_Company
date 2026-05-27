@@ -86,6 +86,7 @@ export const parts = pgTable("parts", {
   cadFileUrl: text("cad_file_url"),
   stlPreviewUrl: text("stl_preview_url"),
   contributorId: uuid("contributor_id").references(() => contributors.id),
+  scanQueueId: uuid("scan_queue_id"),
   notes: text("notes"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -277,6 +278,37 @@ export const scanArtifacts = pgTable("scan_artifacts", {
   fileUrl: text("file_url").notNull(),
   fileSize: integer("file_size"),
   supersededBy: uuid("superseded_by"),
+  notes: text("notes"),
+  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
+});
+
+/* ─── Part Files (photos, CAD files, drawings per catalog part) ─── */
+
+export const partFileTypeEnum = pgEnum("part_file_type", [
+  "photo_donor",
+  "photo_finished",
+  "cad_step",
+  "cad_fusion",
+  "cad_solidworks",
+  "cad_other",
+  "stl_preview",
+  "drawing_pdf",
+  "scan_raw",
+  "other",
+]);
+
+export const partFiles = pgTable("part_files", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  partId: uuid("part_id")
+    .notNull()
+    .references(() => parts.id, { onDelete: "cascade" }),
+  fileType: partFileTypeEnum("file_type").notNull(),
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSize: integer("file_size"),
+  displayOrder: integer("display_order").notNull().default(0),
+  showInCatalog: boolean("show_in_catalog").notNull().default(false),
+  isStepFile: boolean("is_step_file").notNull().default(false),
   notes: text("notes"),
   uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
 });

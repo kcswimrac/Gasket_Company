@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       INSERT INTO parts (
         name, segment, make, model, year_start, year_end, application,
         description, fitment_status, dimensions, part_number,
-        contributor_id, cad_file_url, stl_preview_url,
+        contributor_id, scan_queue_id, cad_file_url, stl_preview_url,
         scan_date, notes, active
       ) VALUES (
         ${item.part_description},
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
         ${item.dimensions || null},
         ${item.part_number || null},
         ${item.contributor_id || null},
+        ${scanQueueId},
         ${cadFiles.length > 0 ? cadFiles[0].file_url : null},
         ${stlFiles.length > 0 ? stlFiles[0].file_url : null},
         NOW(),
@@ -84,6 +85,30 @@ export async function POST(request: NextRequest) {
         completed_at = CASE WHEN completed_at IS NULL THEN NOW() ELSE completed_at END
       WHERE id = ${scanQueueId}
     `;
+
+    // Copy scan artifacts to part_files
+    const allArtifacts = await sql`
+      SELECT * FROM scan_artifacts WHERE scan_queue_id = ${scanQueueId} AND superseded_by IS NULL
+      ORDER BY artifact_type, version DESC
+    `;
+
+    const typeMap: Record<string, string> = {
+      scan_raw: "scan_raw",
+      scan_processed: "scan_raw",
+      cad_model: "cad_step",
+      stl_preview: "stl_preview",
+      drawing_pdf: "drawing_pdf",
+      photo: "photo_donor",
+    };
+
+    for (const artifact of allArtifacts) {
+      const partFileType = typeMap[artifact.artifact_type as string] || "other";
+      const isStep = partFileType === "cad_step";
+      await sql`
+        INSERT INTO part_files (part_id, file_type, file_name, file_url, file_size, show_in_catalog, is_step_file, notes)
+        VALUES (${part[0].id}, ${partFileType}, ${artifact.file_name}, ${artifact.file_url}, ${artifact.file_size || null}, ${partFileType === "photo_donor"}, ${isStep}, ${"From scan queue v" + artifact.version})
+      `;
+    }
 
     return NextResponse.json({ success: true, part: part[0] });
   } catch (e) {

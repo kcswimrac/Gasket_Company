@@ -195,8 +195,9 @@ function PartCard({ part }: { part: CatalogPart }) {
         {/* Price + Add to Cart */}
         <div className="pt-3 border-t border-charcoal-800/40">
           {!variant ? (
-            <a href="/catalog#contribute" className="text-xs text-emerald-400 hover:text-emerald-300 uppercase tracking-wider font-medium">
-              Request a quote →
+            <a href={`mailto:parts@backyardrestoration.com?subject=Quote request: ${encodeURIComponent(part.name)}&body=${encodeURIComponent(`Part: ${part.name}\nApplication: ${part.application}\nQuantity: 1\n\nPlease provide a quote for this part.`)}`} className="inline-flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 uppercase tracking-wider font-medium">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+              Request a quote
             </a>
           ) : !quote ? (
             <div className="flex items-end justify-between">

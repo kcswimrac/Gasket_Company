@@ -87,6 +87,24 @@ export async function GET(request: NextRequest) {
       variantsByPart[pid].push(v);
     }
 
+    // Fetch catalog-visible files
+    let partFilesData: Record<string, unknown>[] = [];
+    if (partIds.length > 0) {
+      partFilesData = await sql`
+        SELECT id, part_id, file_type, file_name, file_url, is_step_file
+        FROM part_files
+        WHERE part_id = ANY(${partIds}) AND show_in_catalog = true
+        ORDER BY display_order
+      `;
+    }
+
+    const filesByPart: Record<string, typeof partFilesData> = {};
+    for (const f of partFilesData) {
+      const pid = f.part_id as string;
+      if (!filesByPart[pid]) filesByPart[pid] = [];
+      filesByPart[pid].push(f);
+    }
+
     const result = parts.map((p) => {
       const pvariants = (variantsByPart[p.id as string] || []).map((v) => {
         const lastQuotedAt = v.last_quoted_at ? new Date(v.last_quoted_at as string) : null;
@@ -103,7 +121,7 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      return { ...p, variants: pvariants };
+      return { ...p, variants: pvariants, files: filesByPart[p.id as string] || [] };
     });
 
     return NextResponse.json({ success: true, parts: result });

@@ -29,6 +29,13 @@
       "when": 1779909585722,
       "tag": "0003_whole_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779910891395,
+      "tag": "0004_tiny_bloodscream",
+      "breakpoints": true
     }
   ]
 }
