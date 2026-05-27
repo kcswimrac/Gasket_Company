@@ -163,6 +163,180 @@ function AddPartForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
+interface AQMaterial { code: string; display_name: string; processes: string[] }
+
+function VariantManager({ partId, variants, onChanged }: { partId: string; variants: Part["variants"]; onChanged: () => void }) {
+  const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [materials, setMaterials] = useState<AQMaterial[]>([]);
+  const [materialsLoaded, setMaterialsLoaded] = useState(false);
+
+  const [tier, setTier] = useState("oem");
+  const [materialCode, setMaterialCode] = useState("");
+  const [process, setProcess] = useState("");
+  const [basePrice, setBasePrice] = useState("");
+  const [leadTime, setLeadTime] = useState("");
+
+  const loadMaterials = async () => {
+    if (materialsLoaded) return;
+    try {
+      const res = await fetch("/api/admin/autoquote");
+      const data = await res.json();
+      if (data.success && data.materialList) {
+        setMaterials(data.materialList);
+        if (data.materialList.length > 0) {
+          setMaterialCode(data.materialList[0].code);
+          if (data.materialList[0].processes.length > 0) setProcess(data.materialList[0].processes[0]);
+        }
+      }
+    } catch { /* ignore */ }
+    setMaterialsLoaded(true);
+  };
+
+  const selectedMaterial = materials.find((m) => m.code === materialCode);
+
+  const handleAdd = async () => {
+    if (!materialCode || !process) return;
+    setSaving(true);
+    const mat = materials.find((m) => m.code === materialCode);
+    await fetch("/api/admin/variants", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        partId,
+        tier,
+        material: mat?.display_name || materialCode,
+        process,
+        basePrice: basePrice || null,
+        leadTimeDays: leadTime ? parseInt(leadTime) : null,
+        autoquoteMaterialCode: materialCode,
+        autoquoteProcess: process,
+        available: true,
+      }),
+    });
+    setSaving(false);
+    setAdding(false);
+    setBasePrice("");
+    setLeadTime("");
+    onChanged();
+  };
+
+  const handleDelete = async (variantId: string) => {
+    if (!confirm("Remove this tier?")) return;
+    await fetch("/api/admin/variants", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: variantId }),
+    });
+    onChanged();
+  };
+
+  const toggleAvailable = async (v: Part["variants"][0]) => {
+    await fetch("/api/admin/variants", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: v.id, available: !v.available }),
+    });
+    onChanged();
+  };
+
+  const inputCls = "w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-1.5 text-xs text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold">Material Tiers ({variants.length})</span>
+        <button onClick={() => { setAdding(true); loadMaterials(); }} className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium">+ Add Tier</button>
+      </div>
+
+      {/* Existing variants */}
+      <div className="space-y-2">
+        {variants.map((v) => (
+          <div key={v.id} className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className={`text-[10px] px-2 py-0.5 rounded font-semibold uppercase ${v.tier === "oem" ? "bg-blue-500/10 text-blue-400" : v.tier === "improved" ? "bg-emerald-500/10 text-emerald-400" : v.tier === "fitment_check" ? "bg-gold-500/10 text-gold-400" : "bg-charcoal-800 text-charcoal-400"}`}>
+                {v.tier === "fitment_check" ? "3D Fit" : v.tier}
+              </span>
+              <div>
+                <span className="text-xs text-charcoal-200">{v.material}</span>
+                <span className="text-[10px] text-charcoal-500 ml-1.5">{v.process}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {v.last_quoted_price && <span className="text-xs text-emerald-400 font-medium">${v.last_quoted_price}</span>}
+              {v.base_price && <span className="text-xs text-charcoal-400">${v.base_price}</span>}
+              <button onClick={() => toggleAvailable(v)} className={`text-[10px] px-2 py-0.5 rounded transition-colors ${v.available ? "bg-emerald-500/15 text-emerald-400" : "bg-charcoal-800 text-charcoal-500"}`}>
+                {v.available ? "Active" : "Draft"}
+              </button>
+              <button onClick={() => handleDelete(v.id)} className="text-[10px] text-red-400/50 hover:text-red-400">×</button>
+            </div>
+          </div>
+        ))}
+
+        {variants.length === 0 && !adding && (
+          <p className="text-[10px] text-charcoal-600 py-2">No tiers configured. Add material tiers to enable ordering.</p>
+        )}
+      </div>
+
+      {/* Add tier form */}
+      {adding && (
+        <div className="mt-3 bg-charcoal-950/40 rounded-lg p-4 border border-emerald-500/20 space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label className="text-[9px] text-charcoal-500 uppercase tracking-wider">Tier</label>
+              <select value={tier} onChange={(e) => setTier(e.target.value)} className={inputCls}>
+                <option value="oem">OEM Spec</option>
+                <option value="improved">Improved</option>
+                <option value="custom">Custom</option>
+                <option value="fitment_check">3D Test-Fit</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[9px] text-charcoal-500 uppercase tracking-wider">Material</label>
+              {materials.length > 0 ? (
+                <select value={materialCode} onChange={(e) => { setMaterialCode(e.target.value); const m = materials.find((x) => x.code === e.target.value); if (m?.processes[0]) setProcess(m.processes[0]); }} className={inputCls}>
+                  {materials.map((m) => <option key={m.code} value={m.code}>{m.display_name} ({m.code})</option>)}
+                </select>
+              ) : (
+                <input value={materialCode} onChange={(e) => setMaterialCode(e.target.value)} placeholder="e.g., AL_6061" className={inputCls} />
+              )}
+            </div>
+            <div>
+              <label className="text-[9px] text-charcoal-500 uppercase tracking-wider">Process</label>
+              {selectedMaterial ? (
+                <select value={process} onChange={(e) => setProcess(e.target.value)} className={inputCls}>
+                  {selectedMaterial.processes.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              ) : (
+                <input value={process} onChange={(e) => setProcess(e.target.value)} placeholder="e.g., CNC_3AXIS" className={inputCls} />
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[9px] text-charcoal-500 uppercase tracking-wider">Base $</label>
+                <input value={basePrice} onChange={(e) => setBasePrice(e.target.value)} placeholder="0.00" className={inputCls} />
+              </div>
+              <div>
+                <label className="text-[9px] text-charcoal-500 uppercase tracking-wider">Days</label>
+                <input value={leadTime} onChange={(e) => setLeadTime(e.target.value)} placeholder="7" className={inputCls} />
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleAdd} disabled={saving || !materialCode || !process} className="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[11px] rounded uppercase tracking-wider disabled:opacity-50">
+              {saving ? "Adding..." : "Add Tier"}
+            </button>
+            <button onClick={() => setAdding(false)} className="px-4 py-1.5 border border-charcoal-700 text-charcoal-400 text-[11px] rounded uppercase tracking-wider">Cancel</button>
+          </div>
+          {materials.length === 0 && materialsLoaded && (
+            <p className="text-[10px] text-gold-400">AutoQuote not connected — enter material codes manually.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EditablePartFields({ part, onSaved }: { part: Part; onSaved: () => void }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -414,29 +588,8 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
           {/* Editable detail fields */}
           <EditablePartFields part={part} onSaved={onRefresh} />
 
-          {/* Variants */}
-          {part.variants.length > 0 && (
-            <div>
-              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold">Material Tiers</span>
-              <div className="mt-2 space-y-2">
-                {part.variants.map((v) => (
-                  <div key={v.id} className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-medium text-charcoal-200 uppercase">{v.tier}</span>
-                      <span className="text-xs text-charcoal-500 ml-2">{v.material} — {v.process}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {v.last_quoted_price && <span className="text-xs text-charcoal-300">${v.last_quoted_price}</span>}
-                      {v.base_price && <span className="text-xs text-charcoal-400">${v.base_price} <span className="text-charcoal-600">base</span></span>}
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${v.available ? "bg-emerald-500/10 text-emerald-400" : "bg-charcoal-800 text-charcoal-500"}`}>
-                        {v.available ? "Available" : "Draft"}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Variants / Material Tiers */}
+          <VariantManager partId={part.id} variants={part.variants} onChanged={onRefresh} />
 
           {/* CAD + Other files */}
           <div className="grid grid-cols-2 gap-4">
