@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { neon } from "@neondatabase/serverless";
+import sharp from "sharp";
 
 export const runtime = "nodejs";
 
@@ -48,10 +49,31 @@ export async function POST(request: NextRequest) {
     const fileName = file instanceof File ? file.name : "upload";
     const isStep = fileType === "cad_step" || fileName.toLowerCase().endsWith(".step") || fileName.toLowerCase().endsWith(".stp");
 
-    // Upload to Vercel Blob
+    // Upload original to Vercel Blob
     const blob = await put(`parts/${partId}/${fileType}_${Date.now()}_${fileName}`, file, {
       access: "private",
     });
+
+    // Generate thumbnail for photo files
+    let thumbnailUrl: string | null = null;
+    const isPhoto = fileType.startsWith("photo");
+    if (isPhoto) {
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const thumb = await sharp(buffer)
+          .resize(400, 400, { fit: "cover", withoutEnlargement: true })
+          .jpeg({ quality: 70 })
+          .toBuffer();
+        const thumbBlob = await put(
+          `parts/${partId}/thumb_${Date.now()}_${fileName.replace(/\.[^.]+$/, ".jpg")}`,
+          thumb,
+          { access: "private", contentType: "image/jpeg" }
+        );
+        thumbnailUrl = thumbBlob.url;
+      } catch {
+        // Thumbnail generation failed — not critical, proceed without
+      }
+    }
 
     // Get next display order
     const orderResult = await sql`
@@ -60,8 +82,8 @@ export async function POST(request: NextRequest) {
     `;
 
     const result = await sql`
-      INSERT INTO part_files (part_id, file_type, file_name, file_url, file_size, display_order, show_in_catalog, is_step_file, notes)
-      VALUES (${partId}, ${fileType}, ${fileName}, ${blob.url}, ${file.size}, ${orderResult[0].next_order}, ${showInCatalog}, ${isStep}, ${notes || null})
+      INSERT INTO part_files (part_id, file_type, file_name, file_url, file_size, display_order, show_in_catalog, is_step_file, thumbnail_url, notes)
+      VALUES (${partId}, ${fileType}, ${fileName}, ${blob.url}, ${file.size}, ${orderResult[0].next_order}, ${showInCatalog}, ${isStep}, ${thumbnailUrl}, ${notes || null})
       RETURNING *
     `;
 

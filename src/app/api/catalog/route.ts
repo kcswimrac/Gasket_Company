@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     let partFilesData: Record<string, unknown>[] = [];
     if (partIds.length > 0) {
       partFilesData = await sql`
-        SELECT id, part_id, file_type, file_name, file_url, is_step_file, show_in_catalog
+        SELECT id, part_id, file_type, file_name, file_url, thumbnail_url, is_step_file, show_in_catalog
         FROM part_files
         WHERE part_id = ANY(${partIds}) AND (show_in_catalog = true OR is_step_file = true OR file_type = 'stl_preview')
         ORDER BY display_order
@@ -134,7 +134,8 @@ export async function GET(request: NextRequest) {
         // Never expose CAD file URLs to the client — only serve rendered images
         const isCadFile = f.is_step_file || (f.file_type as string).startsWith("cad") || f.file_type === "stl_preview";
         const url = isCadFile ? null : proxyUrl(f.file_url as string | null);
-        return { id: f.id, file_type: f.file_type, file_name: f.file_name, file_url: url, is_step_file: f.is_step_file, show_in_catalog: f.show_in_catalog };
+        const thumbUrl = f.thumbnail_url ? proxyUrl(f.thumbnail_url as string) : null;
+        return { id: f.id, file_type: f.file_type, file_name: f.file_name, file_url: url, thumbnail_url: thumbUrl, is_step_file: f.is_step_file, show_in_catalog: f.show_in_catalog };
       }).filter((f) => f.file_url !== null);
 
       return {

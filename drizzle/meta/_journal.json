@@ -43,6 +43,13 @@
       "when": 1779917029035,
       "tag": "0005_milky_micromacro",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779918321911,
+      "tag": "0006_fine_genesis",
+      "breakpoints": true
     }
   ]
 }

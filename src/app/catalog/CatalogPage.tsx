@@ -55,6 +55,7 @@ interface CatalogPart {
     file_type: string;
     file_name: string;
     file_url: string;
+    thumbnail_url: string | null;
     is_step_file: boolean;
     show_in_catalog: boolean;
   }>;
@@ -154,7 +155,7 @@ function PartCard({ part }: { part: CatalogPart }) {
       {/* Photo or placeholder */}
       {heroPhoto ? (
         <div className="relative h-40 bg-charcoal-950 border-b border-charcoal-800/40 overflow-hidden">
-          <img src={heroPhoto.file_url} alt={part.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+          <img src={heroPhoto.thumbnail_url || heroPhoto.file_url} alt={part.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" loading="lazy" />
           <div className="absolute top-2 left-2">
             <span className={`${photoChip(heroPhoto.file_type, heroPhoto.file_name).color} text-white text-[8px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm`}>
               {photoChip(heroPhoto.file_type, heroPhoto.file_name).label}
@@ -451,7 +452,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                 <div className="flex gap-1.5 overflow-x-auto mt-2">
                   {photos.map((f, i) => (
                     <button key={f.id} onClick={() => setActivePhoto(i)} className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-colors ${activePhoto === i ? "border-emerald-500" : "border-transparent hover:border-charcoal-600"}`}>
-                      <img src={f.file_url!} alt="" className="w-16 h-16 object-cover" />
+                      <img src={f.thumbnail_url || f.file_url!} alt="" className="w-16 h-16 object-cover" loading="lazy" />
                       <span className={`absolute bottom-0 left-0 right-0 ${chipLabel(f.file_type, f.file_name).color} text-white text-[7px] font-semibold text-center py-px`}>
                         {chipLabel(f.file_type, f.file_name).label}
                       </span>

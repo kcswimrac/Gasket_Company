@@ -310,6 +310,7 @@ export const partFiles = pgTable("part_files", {
   displayOrder: integer("display_order").notNull().default(0),
   showInCatalog: boolean("show_in_catalog").notNull().default(false),
   isStepFile: boolean("is_step_file").notNull().default(false),
+  thumbnailUrl: text("thumbnail_url"),
   notes: text("notes"),
   uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
 });
