@@ -132,7 +132,7 @@ export async function POST(request: Request) {
           .filter((s) => s.length > 0);
 
         for (const stmt of statements) {
-          await sql(stmt as unknown as TemplateStringsArray);
+          await sql.query(stmt);
         }
 
         // Record as applied
