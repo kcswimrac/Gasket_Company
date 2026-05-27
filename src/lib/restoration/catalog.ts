@@ -314,10 +314,10 @@ export const CATALOG: CatalogEntry[] = [
 ];
 
 export const BOUNTY_BOARD: BountyEntry[] = [
-  { id: "bnt-001", partName: "Steering Wheel Center Cap", application: "1955–1957 Ford Thunderbird", segment: "automotive", requestedBy: 14, bounty: "$50 + free part", status: "seeking_donor" },
-  { id: "bnt-002", partName: "Fuel Tank Sediment Bowl Bracket", application: "1939–1947 Ford 2N / 9N", segment: "tractor", requestedBy: 23, bounty: "$40 + free part + 5% royalty", status: "seeking_donor" },
-  { id: "bnt-003", partName: "Coil Mounting Bracket", application: "1958–1962 Mercury Mark 75 / 78", segment: "marine", requestedBy: 8, bounty: "$35 + free part + 5% royalty", status: "seeking_donor" },
-  { id: "bnt-004", partName: "Rear Footpeg Mount Bracket", application: "1965–1970 Honda CB450 Black Bomber", segment: "motorcycle", requestedBy: 11, bounty: "$30 + free part + 5% royalty", status: "scanning" },
-  { id: "bnt-005", partName: "Compound Rest Lock Nut", application: "Hardinge HLV-H Toolroom Lathe", segment: "industrial", requestedBy: 6, bounty: "$45 + free part + 5% royalty", status: "modeling" },
-  { id: "bnt-006", partName: "Headlight Bucket Retaining Ring", application: "1960–1966 Chevrolet C10 Pickup", segment: "automotive", requestedBy: 19, bounty: "$40 + free part + 5% royalty", status: "seeking_donor" },
+  { id: "bnt-001", partName: "Steering Wheel Center Cap", application: "1955–1957 Ford Thunderbird", segment: "automotive", requestedBy: 14, bounty: "Part at cost + credit", status: "seeking_donor" },
+  { id: "bnt-002", partName: "Fuel Tank Sediment Bowl Bracket", application: "1939–1947 Ford 2N / 9N", segment: "tractor", requestedBy: 23, bounty: "Part at cost + credit", status: "seeking_donor" },
+  { id: "bnt-003", partName: "Coil Mounting Bracket", application: "1958–1962 Mercury Mark 75 / 78", segment: "marine", requestedBy: 8, bounty: "Part at cost + credit", status: "seeking_donor" },
+  { id: "bnt-004", partName: "Rear Footpeg Mount Bracket", application: "1965–1970 Honda CB450 Black Bomber", segment: "motorcycle", requestedBy: 11, bounty: "Part at cost + credit", status: "scanning" },
+  { id: "bnt-005", partName: "Compound Rest Lock Nut", application: "Hardinge HLV-H Toolroom Lathe", segment: "industrial", requestedBy: 6, bounty: "Part at cost + credit", status: "modeling" },
+  { id: "bnt-006", partName: "Headlight Bucket Retaining Ring", application: "1960–1966 Chevrolet C10 Pickup", segment: "automotive", requestedBy: 19, bounty: "Part at cost + credit", status: "seeking_donor" },
 ];

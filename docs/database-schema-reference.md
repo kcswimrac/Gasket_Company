@@ -110,8 +110,8 @@ v2.0.0 — material change, requires re-validation
 |---|---|---|
 | contributor_id | uuid | PK |
 | donor_name | text | |
-| royalty_rate | decimal | Default 0.05 (5%) |
-| lifetime_payout | decimal | |
+| discount_rate (default at-cost pricing)
+| lifetime_contributions | decimal | |
 | tax_w9_on_file | boolean | |
 | public_credit_name | text | Displayed on part page |
 
@@ -209,7 +209,6 @@ unit_price = (machine_hours × hourly_rate)
            + setup_cost
            + material_cost
            + finishing_cost
-           + contributor_royalty (typically 5%)
            + margin (target 35-45%)
 ```
 
@@ -219,7 +218,7 @@ Batch discount when 5+ orders queue for the same part.
 
 ## Contributor Acquisition Paths
 
-1. **Contributor program** — Owner sends original (broken is fine). Gets free reproduction + 5% perpetual royalty + named credit.
+1. **Contributor program** — Owner sends original (broken is fine). Gets free reproduction + replacement at cost + named credit.
 2. **Curated acquisition** — Source donor parts from junkyards, swap meets, eBay, club connections.
 3. **CAD upload** — Third parties upload existing CAD. First-order discount. Flagged as Reference Model until physically verified.
 

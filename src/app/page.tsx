@@ -181,7 +181,7 @@ function CapabilitiesSection() {
     },
     {
       title: "Reverse Engineering",
-      desc: "Send us any part. We 3D-scan it, model it, and add it to the library. You get a free replacement.",
+      desc: "Send us any part. We 3D-scan it, model it, and add it to the library. You get a replacement at cost.",
       href: "/catalog#contribute",
       cta: "Submit a part",
       lead: "10–15 days",
@@ -334,26 +334,25 @@ function ContributorSection() {
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-[1.0]">
               Send the broken one.
               <br />
-              Get a new one free.
-              <br />
-              <span className="text-gold-400">Earn 5% forever.</span>
+              <span className="text-gold-400">Get a new one at cost.</span>
             </h2>
           </FadeUp>
 
           <FadeUp delay={0.15}>
             <p className="mt-8 text-lg text-charcoal-200 leading-relaxed font-light max-w-lg">
               Ship us a worn-out, cracked, or corroded part. We 3D-scan it,
-              manufacture a fresh replacement, and send both back. You pay nothing.
-              And every time someone orders that part in the future, you earn 5%.
+              build the digital model, and manufacture a fresh replacement.
+              You get the new part at our cost — deeply discounted — and your
+              original back. We add the model to the library so others can order it too.
             </p>
           </FadeUp>
 
           <FadeUp delay={0.3}>
             <div className="mt-10 grid grid-cols-3 gap-6 max-w-sm">
               {[
-                { value: "$0", label: "Your cost" },
-                { value: "5%", label: "Per sale, forever" },
-                { value: "Free", label: "Replacement part" },
+                { value: "$0", label: "Scanning cost" },
+                { value: "At Cost", label: "Your replacement" },
+                { value: "Named", label: "Contributor credit" },
               ].map((s) => (
                 <div key={s.label}>
                   <p className="text-2xl font-extrabold text-white">{s.value}</p>

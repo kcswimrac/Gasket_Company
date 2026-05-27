@@ -236,20 +236,21 @@ export default function CatalogPage() {
           <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">Contributor Royalty Program</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">Contributor Program</span>
                 <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold text-white leading-tight">
-                  Send the Broken One.<br />Get a New One Free.<br />
-                  <span className="text-emerald-400">Earn Royalties Forever.</span>
+                  Send the Broken One.<br />
+                  <span className="text-emerald-400">Get the New One at Cost.</span>
                 </h2>
                 <p className="mt-6 text-charcoal-400 leading-relaxed max-w-md">
                   You have a worn-out part sitting in a box. Send it to us. We scan it, model it,
-                  and manufacture a fresh replacement. You get a perfect part — and 5% of every
-                  future sale, perpetually.
+                  and manufacture a fresh replacement. You get the new part at our cost —
+                  deeply discounted — and your original back. We add the model to the library
+                  so others can order it too.
                 </p>
                 <div className="mt-8 space-y-4">
                   {[
-                    { title: "Zero cost to you", desc: "Ship us the original. We cover scanning and first-article production." },
-                    { title: "5% royalty — forever", desc: "Every time someone orders that part, you earn." },
+                    { title: "Free scanning", desc: "Ship us the original. We cover 3D scanning and modeling at no charge." },
+                    { title: "Your replacement at cost", desc: "You get the new part at our manufacturing cost — no markup." },
                     { title: "Named credit", desc: "Your name on the part page. \"Scanned from donor contributed by...\"" },
                     { title: "Broken is fine", desc: "Cracked, corroded, worn. As long as we can scan the geometry." },
                   ].map((item, i) => (
@@ -315,7 +316,7 @@ export default function CatalogPage() {
               <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">Community Wanted</span>
               <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold text-white">Bounty Board</h2>
               <p className="mt-5 text-charcoal-400 max-w-xl mx-auto">
-                Parts the community needs. Provide a donor part and earn a free reproduction plus perpetual royalties.
+                Parts the community needs. Provide a donor and get your replacement at cost plus named contributor credit.
               </p>
             </div>
             <div className="space-y-4">
