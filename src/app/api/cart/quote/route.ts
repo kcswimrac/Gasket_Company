@@ -134,11 +134,21 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Fetch the CAD file
-      const cadRes = await fetch(variant.cad_file_url as string);
-      if (!cadRes.ok) throw new Error("Failed to fetch CAD file");
+      // Fetch the CAD file from private blob storage with auth
+      const cadFileUrl = variant.cad_file_url as string;
+      const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+      let cadRes = await fetch(cadFileUrl, {
+        headers: blobToken ? { Authorization: `Bearer ${blobToken}` } : {},
+      });
+      if (!cadRes.ok && blobToken) {
+        cadRes = await fetch(`${cadFileUrl}?token=${blobToken}`);
+      }
+      if (!cadRes.ok) {
+        cadRes = await fetch(cadFileUrl);
+      }
+      if (!cadRes.ok) throw new Error("Failed to fetch CAD file from storage");
       const cadBlob = await cadRes.blob();
-      const fileName = (variant.cad_file_url as string).split("/").pop() || "part.step";
+      const fileName = cadFileUrl.split("/").pop()?.split("?")[0] || "part.step";
 
       // Submit to AutoQuote
       const formData = new FormData();

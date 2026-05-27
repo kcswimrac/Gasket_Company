@@ -64,11 +64,25 @@ export async function POST(request: NextRequest) {
     const materialCode = material || "AL_6061";
 
     try {
-      // Fetch the CAD file
-      const cadRes = await fetch(cadUrl);
-      if (!cadRes.ok) throw new Error("Failed to fetch CAD file");
+      // Fetch the CAD file from private blob storage with auth
+      const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+      let cadRes = await fetch(cadUrl, {
+        headers: blobToken ? { Authorization: `Bearer ${blobToken}` } : {},
+      });
+
+      // Try with token as query param if header auth fails
+      if (!cadRes.ok && blobToken) {
+        cadRes = await fetch(`${cadUrl}?token=${blobToken}`);
+      }
+
+      // Last resort: direct fetch (works if URL is pre-signed or public)
+      if (!cadRes.ok) {
+        cadRes = await fetch(cadUrl);
+      }
+
+      if (!cadRes.ok) throw new Error("Failed to fetch CAD file from storage");
       const cadBlob = await cadRes.blob();
-      const fileName = (cadUrl).split("/").pop() || "part.step";
+      const fileName = cadUrl.split("/").pop()?.split("?")[0] || "part.step";
 
       const formData = new FormData();
       formData.append("file", cadBlob, fileName);
