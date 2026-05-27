@@ -117,6 +117,16 @@ export async function POST(request: NextRequest) {
           // Return price if available, regardless of buyable flag
           // Restoration parts often trigger NEEDS_REVIEW but still have a price
           if (quote.unit_price_usd) {
+            // Store estimate on the part for catalog display
+            await sql`
+              UPDATE parts SET
+                last_estimate_price = ${quote.unit_price_usd},
+                last_estimate_at = NOW(),
+                last_estimate_material = ${materialCode},
+                updated_at = NOW()
+              WHERE id = ${partId}
+            `;
+
             return NextResponse.json({
               success: true,
               estimate: {

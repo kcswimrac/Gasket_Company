@@ -138,12 +138,23 @@ export async function GET(request: NextRequest) {
         return { id: f.id, file_type: f.file_type, file_name: f.file_name, file_url: url, thumbnail_url: thumbUrl, is_step_file: f.is_step_file, show_in_catalog: f.show_in_catalog };
       }).filter((f) => f.file_url !== null);
 
+      const estimateAge = p.last_estimate_at
+        ? Date.now() - new Date(p.last_estimate_at as string).getTime()
+        : null;
+      const estimateStale = !estimateAge || estimateAge > 30 * 24 * 60 * 60 * 1000;
+
       return {
         ...p,
         cad_file_url: null,
         variants: pvariants,
         files: pfiles,
         hasStepFile: hasStep,
+        estimate: p.last_estimate_price ? {
+          price: p.last_estimate_price as string,
+          material: p.last_estimate_material as string | null,
+          isStale: estimateStale,
+          quotedAt: p.last_estimate_at as string | null,
+        } : null,
       };
     });
 

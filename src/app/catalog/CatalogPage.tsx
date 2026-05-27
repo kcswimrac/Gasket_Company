@@ -50,6 +50,12 @@ interface CatalogPart {
   contributor_name: string | null;
   cad_file_url: string | null;
   hasStepFile: boolean;
+  estimate: {
+    price: string;
+    material: string | null;
+    isStale: boolean;
+    quotedAt: string | null;
+  } | null;
   variants: Variant[];
   files: Array<{
     id: string;
@@ -265,7 +271,36 @@ function PartCard({ part }: { part: CatalogPart }) {
         <div className="pt-3 border-t border-charcoal-800/40">
           {!variant ? (
             <div>
-              {part.hasStepFile ? (
+              {/* Show cached estimate if available */}
+              {part.estimate && !quote ? (
+                <div>
+                  <div className="flex items-end justify-between mb-2">
+                    <div>
+                      <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">
+                        {part.estimate.isStale ? "Previous est." : "Est. from"}
+                      </span>
+                      <p className="text-lg font-bold text-white">${part.estimate.price}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="number" min="1" max="999" value={qty} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-14 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-1.5 text-xs text-charcoal-100 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/40" onClick={(e) => e.stopPropagation()} />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
+                        disabled={quoting}
+                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[10px] rounded uppercase tracking-wider transition-colors disabled:opacity-50"
+                      >
+                        {quoting ? "..." : "Add to Cart"}
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
+                    disabled={quoting}
+                    className="text-[10px] text-charcoal-500 hover:text-emerald-400 transition-colors"
+                  >
+                    {quoting ? "Updating..." : "↻ Get updated pricing"}
+                  </button>
+                </div>
+              ) : part.hasStepFile && !quote ? (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
                   disabled={quoting}
@@ -275,12 +310,12 @@ function PartCard({ part }: { part: CatalogPart }) {
                     <><svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Getting estimate...</>
                   ) : "Get Estimate"}
                 </button>
-              ) : (
-                <a href={`mailto:parts@backyardrestoration.com?subject=Quote: ${encodeURIComponent(part.name)}`} className="inline-flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 uppercase tracking-wider font-medium">
+              ) : !quote ? (
+                <a href={`mailto:parts@backyardrestoration.com?subject=Quote: ${encodeURIComponent(part.name)}`} className="inline-flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 uppercase tracking-wider font-medium" onClick={(e) => e.stopPropagation()}>
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
                   Request a quote
                 </a>
-              )}
+              ) : null}
               {quote && (
                 <div className={`mt-3 rounded-lg p-3 ${quote.isEstimate ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
                   {quote.unitPrice ? (
