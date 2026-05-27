@@ -198,6 +198,7 @@ function NewScanVersionButton({ part, onCreated }: { part: Part; onCreated: () =
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          partId: part.id,
           partDescription: part.name,
           application: part.application,
           segment: part.segment,
@@ -205,18 +206,12 @@ function NewScanVersionButton({ part, onCreated }: { part: Part; onCreated: () =
           model: part.model || "",
           yearStart: part.year_start,
           yearEnd: part.year_end,
-          notes: `New scan version for existing part ${part.id}`,
+          notes: `Revision scan for existing part`,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        // Link the scan queue entry to this part
-        await fetch("/api/admin/parts", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: part.id, scanQueueId: data.item.id }),
-        });
-        alert("New scan version created in Scan Queue. Upload files there.");
+        alert("Revision scan created in Scan Queue. Upload new files there, then 'Release Update' to push to this part.");
         setShowConfirm(false);
         onCreated();
       } else {

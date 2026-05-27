@@ -162,7 +162,7 @@ function PartCard({ part }: { part: CatalogPart }) {
           {yearDisplay && <span>({yearDisplay})</span>}
         </p>
         <p className="text-[11px] text-charcoal-500 mt-0.5">{part.application}</p>
-        {part.description && (
+        {part.description && !part.description.startsWith("Published from") && !part.description.startsWith("New scan version") && !part.description.startsWith("Revision scan") && (
           <p className="text-xs text-charcoal-400 leading-relaxed mb-4 line-clamp-2">{part.description}</p>
         )}
 
