@@ -116,8 +116,7 @@ function ArtifactList({ artifacts, type }: { artifacts: Artifact[]; type: string
   );
 }
 
-function ScanItemRow({ item, onRefresh }: { item: ScanItem; onRefresh: () => void }) {
-  const [expanded, setExpanded] = useState(false);
+function ScanItemRow({ item, onRefresh, expanded, onToggle }: { item: ScanItem; onRefresh: () => void; expanded: boolean; onToggle: () => void }) {
   const [publishing, setPublishing] = useState(false);
 
   const nextStatus = () => {
@@ -143,7 +142,7 @@ function ScanItemRow({ item, onRefresh }: { item: ScanItem; onRefresh: () => voi
       {/* Main row */}
       <div
         className="flex items-center gap-4 py-3 px-4 hover:bg-charcoal-900/30 cursor-pointer transition-colors"
-        onClick={() => setExpanded(!expanded)}
+        onClick={onToggle}
       >
         <svg className={`w-3 h-3 text-charcoal-600 transition-transform ${expanded ? "rotate-90" : ""}`} fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
@@ -356,6 +355,16 @@ export default function ScansAdmin() {
   const [pipeline, setPipeline] = useState<Record<string, number>>({ received: 0, scanning: 0, modeling: 0, complete: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -413,7 +422,7 @@ export default function ScansAdmin() {
               <span className="w-20 text-center">Status</span>
               <span className="w-24">Contributor</span>
             </div>
-            {items.map((item) => <ScanItemRow key={item.id} item={item} onRefresh={fetchData} />)}
+            {items.map((item) => <ScanItemRow key={item.id} item={item} onRefresh={fetchData} expanded={expandedIds.has(item.id)} onToggle={() => toggleExpanded(item.id)} />)}
           </div>
         )}
       </div>
