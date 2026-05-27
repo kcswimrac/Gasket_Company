@@ -82,8 +82,14 @@ function renderView(
 
 async function loadStepGeometry(url: string): Promise<THREE.BufferGeometry | null> {
   try {
-    const occtImport = await import("occt-import-js");
-    const occt = await occtImport.default();
+    // occt-import-js WASM may not be available on all deployments
+    const occtModule = await import("occt-import-js").catch(() => null);
+    if (!occtModule) return null;
+
+    const occt = await occtModule.default({
+      locateFile: () => "/occt-import-js.wasm",
+    }).catch(() => null);
+    if (!occt) return null;
 
     const res = await fetch(url);
     const buffer = await res.arrayBuffer();
@@ -156,7 +162,7 @@ export default function CadViewer({ url, fileName = "", className = "" }: CadVie
         }
 
         if (!geometry) {
-          setError("Could not parse file");
+          setError(isStep ? "Upload an STL version for 3D preview" : "Could not parse file");
           setLoading(false);
           return;
         }
