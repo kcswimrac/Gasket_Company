@@ -66,12 +66,12 @@ export async function POST(request: NextRequest) {
       RETURNING *
     `;
 
-    // Update scan_queue version trackers
+    // Update scan_queue version trackers + auto-advance status based on what exists
     const isScanType = artifactType === "scan_raw" || artifactType === "scan_processed";
     const isCadType = artifactType === "cad_model";
+    const isStlType = artifactType === "stl_preview";
 
     if (isScanType) {
-      // New scan version uploaded — update scan version and flag needs_cad_update if CAD exists
       const cadExists = await sql`
         SELECT COUNT(*)::int as count FROM scan_artifacts
         WHERE scan_queue_id = ${scanQueueId} AND artifact_type = 'cad_model'
@@ -82,20 +82,46 @@ export async function POST(request: NextRequest) {
         UPDATE scan_queue SET
           current_scan_version = ${newVersion},
           needs_cad_update = ${needsCadUpdate},
-          status = CASE WHEN status = 'received' THEN 'scanning' ELSE status END,
+          status = CASE
+            WHEN status = 'received' THEN 'scanning'
+            ELSE status
+          END,
           scanned_at = CASE WHEN scanned_at IS NULL THEN NOW() ELSE scanned_at END
         WHERE id = ${scanQueueId}
       `;
     }
 
     if (isCadType) {
+      // CAD upload — jump to at least "modeling" regardless of current status
       await sql`
         UPDATE scan_queue SET
           current_cad_version = ${newVersion},
           needs_cad_update = false,
-          status = CASE WHEN status IN ('received', 'scanning') THEN 'modeling' ELSE status END
+          status = CASE
+            WHEN status IN ('received', 'scanning') THEN 'modeling'
+            ELSE status
+          END
         WHERE id = ${scanQueueId}
       `;
+    }
+
+    if (isStlType) {
+      // STL preview uploaded — if we have both scan and CAD, can mark complete
+      const hasCad = await sql`
+        SELECT COUNT(*)::int as count FROM scan_artifacts
+        WHERE scan_queue_id = ${scanQueueId} AND artifact_type = 'cad_model'
+      `;
+      if ((hasCad[0].count as number) > 0) {
+        await sql`
+          UPDATE scan_queue SET
+            status = CASE
+              WHEN status IN ('received', 'scanning', 'modeling') THEN 'complete'
+              ELSE status
+            END,
+            completed_at = CASE WHEN completed_at IS NULL THEN NOW() ELSE completed_at END
+          WHERE id = ${scanQueueId}
+        `;
+      }
     }
 
     return NextResponse.json({

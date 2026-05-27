@@ -215,17 +215,32 @@ function ScanItemRow({ item, onRefresh }: { item: ScanItem; onRefresh: () => voi
             </div>
           </div>
 
-          {/* Status actions */}
-          <div className="flex items-center gap-3">
-            {nextStatus() && (
+          {/* Status actions — contextual based on what's uploaded */}
+          <div className="flex flex-wrap items-center gap-3">
+            {item.status !== "complete" && cadArtifacts.length > 0 && (
               <button
-                onClick={() => advanceStatus(nextStatus()!)}
-                className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[11px] font-semibold rounded uppercase tracking-wider transition-colors border border-emerald-500/15"
+                onClick={() => advanceStatus("complete")}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white text-[11px] font-semibold rounded uppercase tracking-wider transition-colors"
               >
-                Advance to → {nextStatus()}
+                Mark Complete
               </button>
             )}
-            {item.notes && <span className="text-[10px] text-charcoal-600">Notes: {item.notes}</span>}
+            {item.status === "received" && scanArtifacts.length === 0 && cadArtifacts.length === 0 && (
+              <span className="text-[10px] text-charcoal-500">Upload a scan or CAD file to advance status</span>
+            )}
+            {item.status === "scanning" && cadArtifacts.length === 0 && (
+              <span className="text-[10px] text-charcoal-500">Upload CAD to advance to modeling</span>
+            )}
+            {item.status === "modeling" && (
+              <span className="text-[10px] text-charcoal-500">Upload STL preview or mark complete to publish</span>
+            )}
+            {item.status === "complete" && (
+              <span className="text-[10px] text-emerald-400/70 flex items-center gap-1.5">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                Complete — ready for catalog
+              </span>
+            )}
+            {item.notes && <span className="text-[10px] text-charcoal-600 ml-auto">Notes: {item.notes}</span>}
           </div>
         </div>
       )}
