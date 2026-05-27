@@ -96,17 +96,12 @@ body {
   background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3), transparent);
 }
 
-/* Cinematic scroll-snap container — desktop only, free-scroll on mobile */
+/* Cinematic scroll-snap container */
 .snap-container {
   height: 100vh;
   overflow-y: auto;
+  scroll-snap-type: y mandatory;
   -webkit-overflow-scrolling: touch;
-}
-
-@media (min-width: 1024px) {
-  .snap-container {
-    scroll-snap-type: y mandatory;
-  }
 }
 
 .snap-section {
@@ -116,6 +111,8 @@ body {
   display: flex;
   align-items: center;
   overflow: hidden;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
 }
 
 /* Cinematic dark overlay for video/image backgrounds */
