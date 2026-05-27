@@ -125,6 +125,11 @@ export async function GET(request: NextRequest) {
         };
       });
 
+      // Check for STEP before filtering out CAD URLs
+      const hasStep = (filesByPart[p.id as string] || []).some(
+        (f) => f.is_step_file || (f.file_type as string) === "cad_step"
+      ) || !!(p.cad_file_url);
+
       const pfiles = (filesByPart[p.id as string] || []).map((f) => {
         // Never expose CAD file URLs to the client — only serve rendered images
         const isCadFile = f.is_step_file || (f.file_type as string).startsWith("cad") || f.file_type === "stl_preview";
@@ -137,7 +142,7 @@ export async function GET(request: NextRequest) {
         cad_file_url: null,
         variants: pvariants,
         files: pfiles,
-        hasStepFile: pfiles.some((f) => f.is_step_file as boolean) || !!(p.cad_file_url),
+        hasStepFile: hasStep,
       };
     });
 

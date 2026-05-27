@@ -31,7 +31,19 @@ export async function POST(request: NextRequest) {
     }
 
     const part = parts[0];
-    if (!part.cad_file_url) {
+
+    // Find CAD file URL — check parts.cad_file_url first, then part_files
+    let cadUrl = part.cad_file_url as string | null;
+    if (!cadUrl) {
+      const cadFiles = await sql`
+        SELECT file_url FROM part_files
+        WHERE part_id = ${partId} AND (is_step_file = true OR file_type = 'cad_step')
+        ORDER BY uploaded_at DESC LIMIT 1
+      `;
+      if (cadFiles.length > 0) cadUrl = cadFiles[0].file_url as string;
+    }
+
+    if (!cadUrl) {
       return NextResponse.json({
         success: true,
         estimate: { unitPrice: null, message: "No CAD file attached. Contact us for pricing." },
@@ -53,10 +65,10 @@ export async function POST(request: NextRequest) {
 
     try {
       // Fetch the CAD file
-      const cadRes = await fetch(part.cad_file_url as string);
+      const cadRes = await fetch(cadUrl);
       if (!cadRes.ok) throw new Error("Failed to fetch CAD file");
       const cadBlob = await cadRes.blob();
-      const fileName = (part.cad_file_url as string).split("/").pop() || "part.step";
+      const fileName = (cadUrl).split("/").pop() || "part.step";
 
       const formData = new FormData();
       formData.append("file", cadBlob, fileName);
