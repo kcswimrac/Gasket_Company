@@ -146,6 +146,7 @@ export async function PUT(request: NextRequest) {
         dimensions = ${fields.dimensions ?? null},
         part_number = ${fields.partNumber ?? null},
         notes = ${fields.notes ?? null},
+        scan_queue_id = COALESCE(${fields.scanQueueId ?? null}, scan_queue_id),
         active = COALESCE(${fields.active ?? null}, active),
         updated_at = NOW()
       WHERE id = ${id}

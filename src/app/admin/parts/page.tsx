@@ -186,6 +186,71 @@ function PartFileUpload({ partId, fileType, label, onUploaded }: { partId: strin
   );
 }
 
+function NewScanVersionButton({ part, onCreated }: { part: Part; onCreated: () => void }) {
+  const [creating, setCreating] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      // Create a new scan queue entry linked to this part
+      const res = await fetch("/api/admin/scans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          partDescription: part.name,
+          application: part.application,
+          segment: part.segment,
+          make: part.make || "",
+          model: part.model || "",
+          yearStart: part.year_start,
+          yearEnd: part.year_end,
+          notes: `New scan version for existing part ${part.id}`,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Link the scan queue entry to this part
+        await fetch("/api/admin/parts", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: part.id, scanQueueId: data.item.id }),
+        });
+        alert("New scan version created in Scan Queue. Upload files there.");
+        setShowConfirm(false);
+        onCreated();
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert("Failed to create scan version");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  if (showConfirm) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-charcoal-400">Start new scan version?</span>
+        <button onClick={handleCreate} disabled={creating} className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium disabled:opacity-50">
+          {creating ? "Creating..." : "Yes, create"}
+        </button>
+        <button onClick={() => setShowConfirm(false)} className="text-[11px] text-charcoal-500 hover:text-charcoal-300 font-medium">Cancel</button>
+      </div>
+    );
+  }
+
+  return (
+    <button onClick={() => setShowConfirm(true)} className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1">
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+      </svg>
+      New Scan Version
+    </button>
+  );
+}
+
 function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => void; onDelete: (id: string, name: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   const [files, setFiles] = useState<PartFile[]>([]);
@@ -345,7 +410,8 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-wrap gap-3 pt-2">
+            <NewScanVersionButton part={part} onCreated={onRefresh} />
             {part.scan_queue_id && (
               <a href="/admin/scans" className="text-[11px] text-blue-400 hover:text-blue-300 font-medium">View in Scan Queue</a>
             )}
