@@ -114,40 +114,40 @@ export async function POST(request: NextRequest) {
         const quote = await pollRes.json();
 
         if (terminal.has(quote.status)) {
-          // Return price if available, regardless of buyable flag
-          // Restoration parts often trigger NEEDS_REVIEW but still have a price
-          if (quote.unit_price_usd) {
+          // Always show price if available, regardless of status or buyable flag
+          const price = quote.unit_price_usd || quote.total_price_usd;
+
+          if (price && price !== "0" && price !== "0.00") {
             // Store estimate on the part for catalog display
             await sql`
               UPDATE parts SET
-                last_estimate_price = ${quote.unit_price_usd},
+                last_estimate_price = ${quote.unit_price_usd || price},
                 last_estimate_at = NOW(),
                 last_estimate_material = ${materialCode},
                 updated_at = NOW()
               WHERE id = ${partId}
             `;
 
+            const needsReview = !quote.buyable || quote.status === "NEEDS_REVIEW" || quote.status === "REJECTED";
             return NextResponse.json({
               success: true,
               estimate: {
-                unitPrice: quote.unit_price_usd,
-                totalPrice: quote.total_price_usd,
+                unitPrice: quote.unit_price_usd || price,
+                totalPrice: quote.total_price_usd || price,
                 leadTimeDays: quote.lead_time_days,
                 material: materialCode,
-                source: quote.buyable ? "autoquote" : "autoquote_review",
-                message: !quote.buyable ? "Estimate — final price confirmed after review." : undefined,
+                source: needsReview ? "autoquote_review" : "autoquote",
+                message: needsReview ? "Estimate — final price confirmed after review." : undefined,
               },
             });
           }
 
-          // No price at all
+          // Genuinely no price in the response
           return NextResponse.json({
             success: true,
             estimate: {
               unitPrice: null,
-              message: quote.status === "NEEDS_REVIEW"
-                ? "This part needs manual review. We'll follow up within 24 hours."
-                : `AutoQuote status: ${quote.status}. Contact us for pricing.`,
+              message: `This part needs manual review (${quote.status}). We'll follow up within 24 hours.`,
               source: quote.status.toLowerCase(),
             },
           });
