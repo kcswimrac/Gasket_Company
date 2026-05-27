@@ -145,6 +145,7 @@ function PartCard({ part }: { part: CatalogPart }) {
   const photoChip = (fileType: string, fileName: string) => {
     if (fileName.startsWith("preview_")) return { label: "CAD Render", color: "bg-blue-500/80" };
     if (fileType === "photo_donor") return { label: "Original Part", color: "bg-gold-500/80" };
+    if (fileType === "photo_mockup") return { label: "3D Print Mockup", color: "bg-copper-500/80" };
     return { label: "Finished Part", color: "bg-emerald-500/80" };
   };
 
@@ -389,6 +390,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
   const chipLabel = (fileType: string, fileName: string) => {
     if (fileName.startsWith("preview_")) return { label: "CAD Render", color: "bg-blue-500/80" };
     if (fileType === "photo_donor") return { label: "Original Part", color: "bg-gold-500/80" };
+    if (fileType === "photo_mockup") return { label: "3D Print Mockup", color: "bg-copper-500/80" };
     return { label: "Finished Part", color: "bg-emerald-500/80" };
   };
   const [quoting, setQuoting] = useState(false);

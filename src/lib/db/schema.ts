@@ -287,6 +287,7 @@ export const scanArtifacts = pgTable("scan_artifacts", {
 export const partFileTypeEnum = pgEnum("part_file_type", [
   "photo_donor",
   "photo_finished",
+  "photo_mockup",
   "cad_step",
   "cad_fusion",
   "cad_solidworks",

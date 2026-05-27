@@ -394,8 +394,8 @@ function PhotoManager({ files, onChanged }: { files: PartFile[]; onChanged: () =
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-charcoal-200 truncate">{f.file_name}</p>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className={`text-[8px] px-1 rounded ${f.file_type === "photo_donor" ? "bg-gold-500/20 text-gold-400" : "bg-emerald-500/20 text-emerald-400"}`}>
-                {f.file_type === "photo_donor" ? "donor" : "finished"}
+              <span className={`text-[8px] px-1 rounded ${f.file_type === "photo_donor" ? "bg-gold-500/20 text-gold-400" : f.file_type === "photo_mockup" ? "bg-copper-500/20 text-copper-400" : "bg-emerald-500/20 text-emerald-400"}`}>
+                {f.file_type === "photo_donor" ? "original" : f.file_type === "photo_mockup" ? "3D mockup" : "finished"}
               </span>
               <span className="text-[8px] text-charcoal-600">#{f.display_order + 1}</span>
             </div>
@@ -524,6 +524,7 @@ function PartFileUpload({ partId, fileType, label, onUploaded }: { partId: strin
       fd.append("partId", partId);
       fd.append("fileType", fileType);
       fd.append("showInCatalog", fileType.startsWith("photo") ? "true" : "false");
+
       await fetch("/api/admin/parts/files", { method: "POST", body: fd });
       onUploaded();
     } catch { /* ignore */ }
@@ -652,6 +653,7 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
                 <div className="flex gap-2">
                   <PartFileUpload partId={part.id} fileType="photo_donor" label="+ Donor" onUploaded={handleFileUploaded} />
                   <PartFileUpload partId={part.id} fileType="photo_finished" label="+ Finished" onUploaded={handleFileUploaded} />
+                  <PartFileUpload partId={part.id} fileType="photo_mockup" label="+ Mockup" onUploaded={handleFileUploaded} />
                 </div>
               </div>
               <PhotoManager files={files.filter((f) => f.file_type.startsWith("photo")).sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))} onChanged={loadFiles} />

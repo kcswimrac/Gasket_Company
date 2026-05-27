@@ -1,0 +1,1 @@
+ALTER TYPE "public"."part_file_type" ADD VALUE 'photo_mockup' BEFORE 'cad_step';
