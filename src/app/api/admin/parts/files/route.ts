@@ -81,6 +81,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/** PATCH — toggle file properties */
+export async function PATCH(request: NextRequest) {
+  try {
+    const sql = getSQL();
+    const { fileId, showInCatalog, displayOrder } = await request.json();
+    if (!fileId) return NextResponse.json({ success: false, error: "fileId required" }, { status: 400 });
+
+    if (showInCatalog !== undefined) {
+      await sql`UPDATE part_files SET show_in_catalog = ${showInCatalog} WHERE id = ${fileId}`;
+    }
+    if (displayOrder !== undefined) {
+      await sql`UPDATE part_files SET display_order = ${displayOrder} WHERE id = ${fileId}`;
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });
+  }
+}
+
 /** DELETE — remove a file */
 export async function DELETE(request: NextRequest) {
   try {

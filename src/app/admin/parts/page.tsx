@@ -365,8 +365,20 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
                   <span className={`text-[9px] px-1 rounded ${f.file_type === "photo_donor" ? "bg-gold-500/10 text-gold-400" : "bg-emerald-500/10 text-emerald-400"}`}>
                     {f.file_type === "photo_donor" ? "donor" : "finished"}
                   </span>
-                  <a href={f.file_url} target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 truncate">{f.file_name}</a>
-                  {f.show_in_catalog && <span className="text-[9px] text-charcoal-500">catalog</span>}
+                  <a href={f.file_url} target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 truncate flex-1">{f.file_name}</a>
+                  <button
+                    onClick={async () => {
+                      await fetch("/api/admin/parts/files", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ fileId: f.id, showInCatalog: !f.show_in_catalog }),
+                      });
+                      loadFiles();
+                    }}
+                    className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${f.show_in_catalog ? "bg-emerald-500/15 text-emerald-400 hover:bg-red-500/10 hover:text-red-400" : "bg-charcoal-800 text-charcoal-500 hover:bg-emerald-500/10 hover:text-emerald-400"}`}
+                  >
+                    {f.show_in_catalog ? "visible" : "hidden"}
+                  </button>
                 </div>
               ))}
             </div>

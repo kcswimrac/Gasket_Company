@@ -48,6 +48,13 @@ interface CatalogPart {
   fitment_status: string;
   contributor_name: string | null;
   variants: Variant[];
+  files: Array<{
+    id: string;
+    file_type: string;
+    file_name: string;
+    file_url: string;
+    is_step_file: boolean;
+  }>;
 }
 
 interface CartQuote {
@@ -110,27 +117,51 @@ function PartCard({ part }: { part: CatalogPart }) {
     custom: "Custom",
   };
 
+  const photos = part.files?.filter((f) => f.file_type.startsWith("photo")) || [];
+  const heroPhoto = photos[0];
+
   return (
     <div className="bg-charcoal-900/40 border border-charcoal-800/60 rounded-2xl overflow-hidden hover:border-emerald-500/12 transition-all group">
-      {/* Header */}
-      <div className="bg-charcoal-950 border-b border-charcoal-800/40 p-5 relative">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">{part.name}</h3>
-            <p className="text-[11px] text-emerald-400/70 font-medium mt-0.5">
-              {part.make && <span>{part.make} </span>}
-              {part.model && <span>{part.model} </span>}
-              {yearDisplay && <span>({yearDisplay})</span>}
-            </p>
-            <p className="text-[11px] text-charcoal-500 mt-0.5">{part.application}</p>
+      {/* Photo or placeholder */}
+      {heroPhoto ? (
+        <div className="relative h-40 bg-charcoal-950 border-b border-charcoal-800/40 overflow-hidden">
+          <img src={heroPhoto.file_url} alt={part.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute top-2 right-2">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border backdrop-blur-sm ${FITMENT_COLORS[part.fitment_status] || ""}`}>
+              {FITMENT_LABELS[part.fitment_status] || part.fitment_status}
+            </span>
           </div>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${FITMENT_COLORS[part.fitment_status] || ""}`}>
-            {FITMENT_LABELS[part.fitment_status] || part.fitment_status}
-          </span>
+          {photos.length > 1 && (
+            <span className="absolute bottom-2 right-2 text-[9px] text-white/60 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded">
+              +{photos.length - 1} more
+            </span>
+          )}
         </div>
-      </div>
+      ) : (
+        <div className="h-32 bg-charcoal-950 border-b border-charcoal-800/40 flex items-center justify-center">
+          <svg width="48" height="48" viewBox="0 0 80 80" fill="none" className="text-charcoal-800">
+            <rect x="10" y="20" width="60" height="40" rx="4" stroke="currentColor" strokeWidth="1" strokeDasharray="4 3" />
+            <circle cx="40" cy="40" r="12" stroke="currentColor" strokeWidth="1" />
+          </svg>
+        </div>
+      )}
 
+      {/* Info */}
       <div className="p-5">
+        <div className="flex items-start justify-between mb-1">
+          <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">{part.name}</h3>
+          {!heroPhoto && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${FITMENT_COLORS[part.fitment_status] || ""}`}>
+              {FITMENT_LABELS[part.fitment_status] || part.fitment_status}
+            </span>
+          )}
+        </div>
+        <p className="text-[11px] text-emerald-400/70 font-medium">
+          {part.make && <span>{part.make} </span>}
+          {part.model && <span>{part.model} </span>}
+          {yearDisplay && <span>({yearDisplay})</span>}
+        </p>
+        <p className="text-[11px] text-charcoal-500 mt-0.5">{part.application}</p>
         {part.description && (
           <p className="text-xs text-charcoal-400 leading-relaxed mb-4 line-clamp-2">{part.description}</p>
         )}
