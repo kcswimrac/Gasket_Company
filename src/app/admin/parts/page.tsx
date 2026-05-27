@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 
 const CadViewer = dynamic(() => import("@/components/CadViewer"), { ssr: false });
+const RenderPreviewButton = dynamic(() => import("@/components/RenderPreviewButton"), { ssr: false });
 
 const SEGMENTS = [
   { id: "tractor", label: "Vintage Tractors" },
@@ -575,10 +576,21 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
                 <PartFileUpload partId={part.id} fileType="stl_preview" label="+ STL" onUploaded={handleFileUploaded} />
               </div>
               {cadOrStl ? (
-                <CadViewer
-                  url={`/api/files?url=${encodeURIComponent(cadOrStl.file_url)}`}
-                  fileName={cadOrStl.file_name}
-                />
+                <>
+                  <CadViewer
+                    url={`/api/files?url=${encodeURIComponent(cadOrStl.file_url)}`}
+                    fileName={cadOrStl.file_name}
+                  />
+                  <div className="mt-2 pt-2 border-t border-charcoal-800/30">
+                    <RenderPreviewButton
+                      fileUrl={`/api/files?url=${encodeURIComponent(cadOrStl.file_url)}`}
+                      fileName={cadOrStl.file_name}
+                      partId={part.id}
+                      onRendered={handleFileUploaded}
+                    />
+                    <p className="text-[9px] text-charcoal-600 mt-1">Renders 4 views and uploads as catalog images. CAD files are never exposed to customers.</p>
+                  </div>
+                </>
               ) : (
                 <p className="text-[10px] text-charcoal-600 py-4 text-center">Upload a STEP or STL file for 3D preview<br />(Front / Right / Top / Iso views)</p>
               )}

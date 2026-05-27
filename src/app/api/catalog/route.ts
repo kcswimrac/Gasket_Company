@@ -126,13 +126,15 @@ export async function GET(request: NextRequest) {
       });
 
       const pfiles = (filesByPart[p.id as string] || []).map((f) => {
-        const url = proxyUrl(f.file_url as string | null);
+        // Never expose CAD file URLs to the client — only serve rendered images
+        const isCadFile = f.is_step_file || (f.file_type as string).startsWith("cad") || f.file_type === "stl_preview";
+        const url = isCadFile ? null : proxyUrl(f.file_url as string | null);
         return { id: f.id, file_type: f.file_type, file_name: f.file_name, file_url: url, is_step_file: f.is_step_file, show_in_catalog: f.show_in_catalog };
-      });
+      }).filter((f) => f.file_url !== null);
 
       return {
         ...p,
-        cad_file_url: proxyUrl(p.cad_file_url as string | null),
+        cad_file_url: null,
         variants: pvariants,
         files: pfiles,
         hasStepFile: pfiles.some((f) => f.is_step_file as boolean) || !!(p.cad_file_url),

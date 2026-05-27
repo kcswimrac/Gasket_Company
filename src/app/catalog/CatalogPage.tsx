@@ -1,11 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import dynamic from "next/dynamic";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
-
-const CadViewer = dynamic(() => import("@/components/CadViewer"), { ssr: false });
 
 const SEGMENTS = [
   { id: "tractor", label: "Vintage Tractors" },
@@ -162,15 +159,6 @@ function PartCard({ part }: { part: CatalogPart }) {
               +{photos.length - 1} more
             </span>
           )}
-        </div>
-      ) : stepFile ? (
-        <div className="h-40 bg-white border-b border-charcoal-800/40 overflow-hidden relative">
-          <CadViewer url={stepFile.file_url} fileName={stepFile.file_name} className="h-full" />
-          <div className="absolute top-2 right-2">
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border backdrop-blur-sm ${FITMENT_COLORS[part.fitment_status] || ""}`}>
-              {FITMENT_LABELS[part.fitment_status] || part.fitment_status}
-            </span>
-          </div>
         </div>
       ) : (
         <div className="h-32 bg-charcoal-950 border-b border-charcoal-800/40 flex items-center justify-center">
@@ -384,8 +372,7 @@ function PartCard({ part }: { part: CatalogPart }) {
 
 /* ─── Part Detail Modal ─── */
 function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }) {
-  const photos = part.files?.filter((f) => f.file_type.startsWith("photo")) || [];
-  const stepFile = part.files?.find((f) => f.is_step_file) || null;
+  const photos = part.files?.filter((f) => f.file_type.startsWith("photo") && f.file_url) || [];
   const [activeTier, setActiveTier] = useState(0);
   const [quoting, setQuoting] = useState(false);
   const [quote, setQuote] = useState<CartQuote | null>(null);
@@ -431,22 +418,15 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
 
         <div className="p-6 space-y-6">
           {/* Photos + 3D view */}
-          {(photos.length > 0 || stepFile) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {photos.length > 0 && (
-                <div className="space-y-2">
-                  <img src={photos[0].file_url} alt={part.name} className="w-full rounded-lg object-cover max-h-64" />
-                  {photos.length > 1 && (
-                    <div className="flex gap-1.5 overflow-x-auto">
-                      {photos.slice(1).map((f) => (
-                        <img key={f.id} src={f.file_url} alt="" className="w-16 h-16 rounded object-cover flex-shrink-0" />
-                      ))}
-                    </div>
-                  )}
+          {photos.length > 0 && (
+            <div>
+              <img src={photos[0].file_url} alt={part.name} className="w-full rounded-lg object-cover max-h-72" />
+              {photos.length > 1 && (
+                <div className="flex gap-1.5 overflow-x-auto mt-2">
+                  {photos.slice(1).map((f) => (
+                    <img key={f.id} src={f.file_url!} alt="" className="w-20 h-20 rounded object-cover flex-shrink-0" />
+                  ))}
                 </div>
-              )}
-              {stepFile && (
-                <CadViewer url={stepFile.file_url} fileName={stepFile.file_name} />
               )}
             </div>
           )}
