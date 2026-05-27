@@ -15,5 +15,5 @@ declare module "occt-import-js" {
     ReadStepFile(data: Uint8Array, params: null): OcctResult;
   }
 
-  export default function (): Promise<OcctInstance>;
+  export default function (options?: { locateFile?: (file: string) => string }): Promise<OcctInstance>;
 }
