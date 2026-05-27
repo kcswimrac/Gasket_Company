@@ -281,6 +281,141 @@ function PartCard({ part }: { part: CatalogPart }) {
   );
 }
 
+/* ─── Part Detail Modal ─── */
+function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }) {
+  const [activeTier, setActiveTier] = useState(0);
+  const [quoting, setQuoting] = useState(false);
+  const [quote, setQuote] = useState<CartQuote | null>(null);
+  const [qty, setQty] = useState(1);
+  const variant = part.variants[activeTier];
+
+  const handleQuote = async () => {
+    if (!variant) return;
+    setQuoting(true); setQuote(null);
+    try {
+      const res = await fetch("/api/cart/quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ variantId: variant.id, quantity: qty }) });
+      const data = await res.json();
+      if (data.success) setQuote(data.quote);
+    } catch { /* fallback handled in PartCard */ }
+    finally { setQuoting(false); }
+  };
+
+  const yearDisplay = part.year_start && part.year_end ? `${part.year_start}–${part.year_end}` : part.year_start ? `${part.year_start}+` : "";
+  const tierLabels: Record<string, string> = { fitment_check: "3D Test-Fit", oem: "OEM Spec", improved: "Improved", custom: "Custom" };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-obsidian/80 backdrop-blur-sm" />
+      <div className="relative bg-charcoal-900 border border-charcoal-800/60 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto card-glow" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sticky top-0 bg-charcoal-900 border-b border-charcoal-800/50 px-6 py-4 flex items-start justify-between z-10">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-lg font-bold text-white">{part.name}</h2>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${FITMENT_COLORS[part.fitment_status] || ""}`}>
+                {FITMENT_LABELS[part.fitment_status]}
+              </span>
+            </div>
+            <p className="text-sm text-emerald-400/70">
+              {part.make && `${part.make} `}{part.model && `${part.model} `}{yearDisplay && `(${yearDisplay})`}
+            </p>
+            <p className="text-xs text-charcoal-500 mt-0.5">{part.application}</p>
+          </div>
+          <button onClick={onClose} className="text-charcoal-500 hover:text-charcoal-300 p-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Description */}
+          {part.description && <p className="text-sm text-charcoal-300 leading-relaxed">{part.description}</p>}
+
+          {/* Contributor credit */}
+          {part.contributor_name && (
+            <p className="text-xs text-charcoal-500 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-emerald-500/50" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+              Scanned from donor by {part.contributor_name}
+            </p>
+          )}
+
+          {/* Tier selector */}
+          {part.variants.length > 0 && (
+            <div>
+              <p className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold mb-3">Material Tiers</p>
+              <div className="space-y-2">
+                {part.variants.map((v, i) => (
+                  <button
+                    key={v.id}
+                    onClick={() => { setActiveTier(i); setQuote(null); }}
+                    className={`w-full text-left p-4 rounded-xl border transition-all ${activeTier === i ? "border-emerald-500/25 bg-emerald-500/3" : "border-charcoal-800/40 hover:border-charcoal-700/50"}`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-bold text-white">{tierLabels[v.tier] || v.tier}</span>
+                      <span className="text-sm font-bold text-white">
+                        {v.displayPrice ? (v.priceIsEstimate ? `est. $${v.displayPrice}` : `$${v.displayPrice}`) : "Request quote"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-charcoal-400">
+                      <span>{v.material}</span>
+                      <span>{v.process}</span>
+                    </div>
+                    {v.lead_time_days && <p className="text-[11px] text-charcoal-500 mt-1">{v.lead_time_days} day lead time</p>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quote + order section */}
+          {variant && (
+            <div className="bg-charcoal-950/40 rounded-xl p-5 border border-charcoal-800/30">
+              <div className="flex items-end justify-between mb-4">
+                <div>
+                  <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">
+                    {tierLabels[variant.tier]} — {variant.material}
+                  </p>
+                  {variant.displayPrice && (
+                    <p className="text-2xl font-bold text-white mt-1">
+                      {variant.priceIsEstimate ? "est. " : ""}${variant.displayPrice}
+                      <span className="text-xs text-charcoal-500 font-normal ml-1">/ unit</span>
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-[10px] text-charcoal-500 uppercase">Qty</label>
+                  <input type="number" min="1" value={qty} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-2 text-sm text-charcoal-100 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
+                </div>
+              </div>
+
+              {quote && (
+                <div className={`rounded-lg p-3 mb-4 ${quote.isEstimate ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
+                  {quote.unitPrice ? (
+                    <p className="text-lg font-bold text-white">${quote.totalPrice} <span className="text-xs text-charcoal-400 font-normal">(${quote.unitPrice} × {qty})</span></p>
+                  ) : (
+                    <p className="text-sm text-charcoal-400">Contact us for pricing</p>
+                  )}
+                  {quote.leadTimeDays && <p className="text-xs text-charcoal-400 mt-1">{quote.leadTimeDays} day lead time</p>}
+                  {quote.message && <p className="text-[11px] text-charcoal-500 mt-1">{quote.message}</p>}
+                </div>
+              )}
+
+              <button
+                onClick={handleQuote}
+                disabled={quoting}
+                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {quoting ? (
+                  <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Getting live price...</>
+                ) : quote ? "Update Quote" : "Get Live Price & Add to Cart"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main Catalog Page ─── */
 export default function CatalogPage() {
   const [parts, setParts] = useState<CatalogPart[]>([]);
@@ -289,6 +424,9 @@ export default function CatalogPage() {
   const [seg, setSeg] = useState("all");
   const [search, setSearch] = useState("");
   const [contributeSent, setContributeSent] = useState(false);
+  const [selectedPart, setSelectedPart] = useState<CatalogPart | null>(null);
+  const [contForm, setContForm] = useState({ partDescription: "", application: "", name: "", email: "" });
+  const [contSubmitting, setContSubmitting] = useState(false);
 
   const fetchParts = useCallback(async () => {
     setLoading(true);
@@ -378,7 +516,11 @@ export default function CatalogPage() {
               </div>
             ) : dbPartsExist ? (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {parts.map((part) => <PartCard key={part.id} part={part} />)}
+                {parts.map((part) => (
+                  <div key={part.id} onClick={() => setSelectedPart(part)} className="cursor-pointer">
+                    <PartCard part={part} />
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="text-center py-20">
@@ -412,24 +554,36 @@ export default function CatalogPage() {
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider">Submit a Donor Part</h3>
                     <div>
                       <label className="block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider">What Part?</label>
-                      <input type="text" placeholder="e.g., Battery tray, throttle bracket" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
+                      <input type="text" value={contForm.partDescription} onChange={(e) => setContForm((f) => ({ ...f, partDescription: e.target.value }))} placeholder="e.g., Battery tray, throttle bracket" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider">What Does It Fit?</label>
-                      <input type="text" placeholder="Year, make, model" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
+                      <input type="text" value={contForm.application} onChange={(e) => setContForm((f) => ({ ...f, application: e.target.value }))} placeholder="Year, make, model" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider">Name</label>
-                        <input type="text" placeholder="Name or shop" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
+                        <input type="text" value={contForm.name} onChange={(e) => setContForm((f) => ({ ...f, name: e.target.value }))} placeholder="Name or shop" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider">Email</label>
-                        <input type="email" placeholder="Email" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
+                        <input type="email" value={contForm.email} onChange={(e) => setContForm((f) => ({ ...f, email: e.target.value }))} placeholder="Email" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
                       </div>
                     </div>
-                    <button onClick={() => setContributeSent(true)} className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
-                      Submit Donor Part
+                    <button
+                      disabled={contSubmitting}
+                      onClick={async () => {
+                        setContSubmitting(true);
+                        try {
+                          const res = await fetch("/api/contribute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(contForm) });
+                          const data = await res.json();
+                          if (data.success) { setContributeSent(true); setContForm({ partDescription: "", application: "", name: "", email: "" }); }
+                        } catch { /* ignore */ }
+                        finally { setContSubmitting(false); }
+                      }}
+                      className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-emerald-500/10 uppercase tracking-wide disabled:opacity-50"
+                    >
+                      {contSubmitting ? "Submitting..." : "Submit Donor Part"}
                     </button>
                   </div>
                 ) : (
@@ -446,6 +600,8 @@ export default function CatalogPage() {
             </div>
           </div>
         </section>
+        {/* Part detail modal */}
+        {selectedPart && <PartModal part={selectedPart} onClose={() => setSelectedPart(null)} />}
       </main>
       <SiteFooter />
     </>

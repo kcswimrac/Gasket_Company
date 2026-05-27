@@ -20,6 +20,29 @@ export async function GET() {
       ORDER BY sq.received_at DESC
     `;
 
+    // Fetch artifacts for all items
+    const itemIds = items.map((i) => i.id);
+    let artifacts: Record<string, unknown>[] = [];
+    if (itemIds.length > 0) {
+      artifacts = await sql`
+        SELECT * FROM scan_artifacts
+        WHERE scan_queue_id = ANY(${itemIds})
+        ORDER BY artifact_type, version DESC
+      `;
+    }
+
+    const artifactsByItem: Record<string, typeof artifacts> = {};
+    for (const a of artifacts) {
+      const sid = a.scan_queue_id as string;
+      if (!artifactsByItem[sid]) artifactsByItem[sid] = [];
+      artifactsByItem[sid].push(a);
+    }
+
+    const itemsWithArtifacts = items.map((i) => ({
+      ...i,
+      artifacts: artifactsByItem[i.id as string] || [],
+    }));
+
     const counts = await sql`
       SELECT status, COUNT(*)::int as count
       FROM scan_queue
@@ -31,7 +54,7 @@ export async function GET() {
       pipeline[row.status as string] = row.count as number;
     }
 
-    return NextResponse.json({ success: true, items, pipeline });
+    return NextResponse.json({ success: true, items: itemsWithArtifacts, pipeline });
   } catch (e) {
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },

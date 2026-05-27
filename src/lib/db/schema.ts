@@ -238,7 +238,37 @@ export const scanQueue = pgTable("scan_queue", {
   photoUrls: jsonb("photo_urls"),
   partId: uuid("part_id").references(() => parts.id),
   notes: text("notes"),
+  currentScanVersion: integer("current_scan_version").default(0),
+  currentCadVersion: integer("current_cad_version").default(0),
+  needsCadUpdate: boolean("needs_cad_update").notNull().default(false),
   receivedAt: timestamp("received_at").notNull().defaultNow(),
   scannedAt: timestamp("scanned_at"),
   completedAt: timestamp("completed_at"),
+});
+
+/* ─── Scan Artifacts (versioned files per scan queue item) ─── */
+
+export const scanArtifactTypeEnum = pgEnum("scan_artifact_type", [
+  "scan_raw",
+  "scan_processed",
+  "cad_model",
+  "stl_preview",
+  "drawing_pdf",
+  "photo",
+  "other",
+]);
+
+export const scanArtifacts = pgTable("scan_artifacts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  scanQueueId: uuid("scan_queue_id")
+    .notNull()
+    .references(() => scanQueue.id, { onDelete: "cascade" }),
+  artifactType: scanArtifactTypeEnum("artifact_type").notNull(),
+  version: integer("version").notNull().default(1),
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  fileSize: integer("file_size"),
+  supersededBy: uuid("superseded_by"),
+  notes: text("notes"),
+  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
 });
