@@ -253,7 +253,7 @@ function ScanItemRow({ item, onRefresh, expanded, onToggle }: { item: ScanItem; 
             {item.status === "modeling" && (
               <span className="text-[10px] text-charcoal-500">Upload STL preview or mark complete to publish</span>
             )}
-            {item.status === "complete" && item.status !== "published" && (
+            {item.status === "complete" && (
               <button
                 onClick={async () => {
                   setPublishing(true);
