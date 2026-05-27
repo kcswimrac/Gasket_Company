@@ -87,13 +87,13 @@ export async function GET(request: NextRequest) {
       variantsByPart[pid].push(v);
     }
 
-    // Fetch catalog-visible files
+    // Fetch catalog-visible files (photos) + STEP files (for 3D viewer + quoting)
     let partFilesData: Record<string, unknown>[] = [];
     if (partIds.length > 0) {
       partFilesData = await sql`
-        SELECT id, part_id, file_type, file_name, file_url, is_step_file
+        SELECT id, part_id, file_type, file_name, file_url, is_step_file, show_in_catalog
         FROM part_files
-        WHERE part_id = ANY(${partIds}) AND show_in_catalog = true
+        WHERE part_id = ANY(${partIds}) AND (show_in_catalog = true OR is_step_file = true OR file_type = 'stl_preview')
         ORDER BY display_order
       `;
     }
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
 
       const pfiles = (filesByPart[p.id as string] || []).map((f) => {
         const url = proxyUrl(f.file_url as string | null);
-        return { id: f.id, file_type: f.file_type, file_name: f.file_name, file_url: url, is_step_file: f.is_step_file };
+        return { id: f.id, file_type: f.file_type, file_name: f.file_name, file_url: url, is_step_file: f.is_step_file, show_in_catalog: f.show_in_catalog };
       });
 
       return {
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
         cad_file_url: proxyUrl(p.cad_file_url as string | null),
         variants: pvariants,
         files: pfiles,
-        hasStepFile: pfiles.some((f) => f.is_step_file as boolean),
+        hasStepFile: pfiles.some((f) => f.is_step_file as boolean) || !!(p.cad_file_url),
       };
     });
 

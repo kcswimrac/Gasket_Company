@@ -59,6 +59,7 @@ interface CatalogPart {
     file_name: string;
     file_url: string;
     is_step_file: boolean;
+    show_in_catalog: boolean;
   }>;
 }
 
@@ -141,8 +142,9 @@ function PartCard({ part }: { part: CatalogPart }) {
     custom: "Custom",
   };
 
-  const photos = part.files?.filter((f) => f.file_type.startsWith("photo")) || [];
+  const photos = part.files?.filter((f) => f.file_type.startsWith("photo") && f.show_in_catalog) || [];
   const heroPhoto = photos[0];
+  const stepFile = part.files?.find((f) => f.is_step_file) || null;
 
   return (
     <div className="bg-charcoal-900/40 border border-charcoal-800/60 rounded-2xl overflow-hidden hover:border-emerald-500/12 transition-all group">
@@ -160,6 +162,15 @@ function PartCard({ part }: { part: CatalogPart }) {
               +{photos.length - 1} more
             </span>
           )}
+        </div>
+      ) : stepFile ? (
+        <div className="h-40 bg-white border-b border-charcoal-800/40 overflow-hidden relative">
+          <CadViewer url={stepFile.file_url} fileName={stepFile.file_name} className="h-full" />
+          <div className="absolute top-2 right-2">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border backdrop-blur-sm ${FITMENT_COLORS[part.fitment_status] || ""}`}>
+              {FITMENT_LABELS[part.fitment_status] || part.fitment_status}
+            </span>
+          </div>
         </div>
       ) : (
         <div className="h-32 bg-charcoal-950 border-b border-charcoal-800/40 flex items-center justify-center">
