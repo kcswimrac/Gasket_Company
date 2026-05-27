@@ -68,8 +68,8 @@ function PartCard({ part }: { part: CatalogPart }) {
   const [quote, setQuote] = useState<CartQuote | null>(null);
   const [qty, setQty] = useState(1);
 
-  const variant = part.variants[activeTier];
-  if (!variant) return null;
+  const variant = part.variants[activeTier] || null;
+  const hasVariants = part.variants.length > 0;
 
   const handleAddToCart = async () => {
     setQuoting(true);
@@ -136,7 +136,7 @@ function PartCard({ part }: { part: CatalogPart }) {
         )}
 
         {/* Tier tabs */}
-        {part.variants.length > 1 && (
+        {hasVariants && part.variants.length > 1 && (
           <div className="flex rounded-lg bg-charcoal-950/60 p-0.5 mb-4 border border-charcoal-800/30">
             {part.variants.map((v, i) => (
               <button
@@ -155,24 +155,30 @@ function PartCard({ part }: { part: CatalogPart }) {
         )}
 
         {/* Variant details */}
-        <div className="bg-charcoal-950/40 rounded-lg p-3 mb-4 border border-charcoal-800/30 space-y-1.5">
-          <div className="flex justify-between text-[11px]">
-            <span className="text-charcoal-500">Material</span>
-            <span className="text-charcoal-200 font-medium text-right max-w-[60%] truncate">{variant.material}</span>
-          </div>
-          <div className="flex justify-between text-[11px]">
-            <span className="text-charcoal-500">Process</span>
-            <span className="text-charcoal-200 font-medium text-right max-w-[60%] truncate">{variant.process}</span>
-          </div>
-          {variant.lead_time_days && (
+        {variant ? (
+          <div className="bg-charcoal-950/40 rounded-lg p-3 mb-4 border border-charcoal-800/30 space-y-1.5">
             <div className="flex justify-between text-[11px]">
-              <span className="text-charcoal-500">Lead Time</span>
-              <span className="text-charcoal-200 font-medium">{variant.lead_time_days} days</span>
+              <span className="text-charcoal-500">Material</span>
+              <span className="text-charcoal-200 font-medium text-right max-w-[60%] truncate">{variant.material}</span>
             </div>
-          )}
-        </div>
+            <div className="flex justify-between text-[11px]">
+              <span className="text-charcoal-500">Process</span>
+              <span className="text-charcoal-200 font-medium text-right max-w-[60%] truncate">{variant.process}</span>
+            </div>
+            {variant.lead_time_days && (
+              <div className="flex justify-between text-[11px]">
+                <span className="text-charcoal-500">Lead Time</span>
+                <span className="text-charcoal-200 font-medium">{variant.lead_time_days} days</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-charcoal-950/40 rounded-lg p-3 mb-4 border border-charcoal-800/30">
+            <p className="text-[11px] text-charcoal-500">Material tiers coming soon — contact us for pricing.</p>
+          </div>
+        )}
 
-        {variant.tier === "fitment_check" && (
+        {variant?.tier === "fitment_check" && (
           <div className="bg-blue-500/4 border border-blue-500/12 rounded-lg p-2.5 mb-4">
             <p className="text-[10px] text-blue-300/80 leading-relaxed">
               <strong className="text-blue-400">Test-Fit:</strong> 3D-printed mockup for dimensional check only.
@@ -188,7 +194,11 @@ function PartCard({ part }: { part: CatalogPart }) {
 
         {/* Price + Add to Cart */}
         <div className="pt-3 border-t border-charcoal-800/40">
-          {!quote ? (
+          {!variant ? (
+            <a href="/catalog#contribute" className="text-xs text-emerald-400 hover:text-emerald-300 uppercase tracking-wider font-medium">
+              Request a quote →
+            </a>
+          ) : !quote ? (
             <div className="flex items-end justify-between">
               <div>
                 {variant.displayPrice ? (
