@@ -67,6 +67,10 @@ export const parts = pgTable("parts", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   segment: segmentEnum("segment").notNull(),
+  make: text("make"),
+  model: text("model"),
+  yearStart: integer("year_start"),
+  yearEnd: integer("year_end"),
   application: text("application").notNull(),
   description: text("description"),
   fitmentStatus: fitmentStatusEnum("fitment_status")

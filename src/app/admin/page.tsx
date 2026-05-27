@@ -235,6 +235,126 @@ function MigrationsPanel() {
   );
 }
 
+interface AQMaterial {
+  code: string;
+  display_name: string;
+  processes: string[];
+}
+
+function AutoQuotePanel() {
+  const [status, setStatus] = useState<{
+    success: boolean;
+    status: string;
+    httpStatus?: number;
+    error?: string;
+    materials?: number;
+    rateCardVersion?: string;
+    materialList?: AQMaterial[];
+    baseUrl?: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showMaterials, setShowMaterials] = useState(false);
+
+  const test = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/autoquote");
+      setStatus(await res.json());
+    } catch {
+      setStatus({ success: false, status: "error", error: "Network error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const statusColor = status?.status === "connected" ? "bg-emerald-400" : status?.status === "not_configured" ? "bg-charcoal-600" : "bg-red-400";
+
+  return (
+    <div className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl overflow-hidden">
+      <div className="px-6 py-4 border-b border-charcoal-800/50 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className={`w-2 h-2 rounded-full ${status ? statusColor : "bg-charcoal-600"}`} />
+          <h3 className="text-sm font-bold text-white">AutoQuote Bridge</h3>
+          {status?.status === "connected" && (
+            <span className="text-[10px] text-emerald-400 font-mono">{status.materials} materials</span>
+          )}
+        </div>
+        <button
+          onClick={test}
+          disabled={loading}
+          className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium disabled:opacity-50"
+        >
+          {loading ? "Testing..." : "Test Connection"}
+        </button>
+      </div>
+
+      <div className="p-6">
+        {!status && !loading && (
+          <p className="text-xs text-charcoal-500">Click &quot;Test Connection&quot; to verify the AutoQuote bridge API.</p>
+        )}
+
+        {loading && (
+          <div className="flex items-center gap-3">
+            <svg className="animate-spin w-4 h-4 text-charcoal-500" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="text-sm text-charcoal-400">Calling GET /bridge/materials...</span>
+          </div>
+        )}
+
+        {status && !loading && (
+          <div className="space-y-3">
+            {status.success ? (
+              <>
+                <div className="flex items-center gap-2 text-sm text-emerald-400">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                  Connected — {status.materials} materials available
+                </div>
+                {status.rateCardVersion && (
+                  <p className="text-[11px] text-charcoal-500">Rate card: {status.rateCardVersion}</p>
+                )}
+                {status.materialList && status.materialList.length > 0 && (
+                  <div>
+                    <button onClick={() => setShowMaterials(!showMaterials)} className="text-[11px] text-charcoal-400 hover:text-charcoal-300 font-medium">
+                      {showMaterials ? "Hide" : "Show"} material list
+                    </button>
+                    {showMaterials && (
+                      <div className="mt-3 space-y-2">
+                        {status.materialList.map((m) => (
+                          <div key={m.code} className="flex items-center justify-between bg-charcoal-950/40 rounded-lg px-3 py-2 border border-charcoal-800/30">
+                            <div>
+                              <span className="text-xs font-mono text-charcoal-200">{m.code}</span>
+                              <span className="text-xs text-charcoal-500 ml-2">{m.display_name}</span>
+                            </div>
+                            <div className="flex gap-1.5">
+                              {m.processes.map((p) => (
+                                <span key={p} className="text-[9px] text-charcoal-500 bg-charcoal-800 px-1.5 py-0.5 rounded font-mono">{p}</span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div>
+                <p className="text-sm text-red-400 mb-1">
+                  {status.status === "not_configured" ? "Not configured" : status.status === "unreachable" ? "Unreachable" : `Error (HTTP ${status.httpStatus})`}
+                </p>
+                <p className="text-xs text-charcoal-400 font-mono bg-charcoal-950 rounded p-2 break-all">{status.error}</p>
+                {status.baseUrl && <p className="text-[10px] text-charcoal-600 mt-2">Base URL: {status.baseUrl}</p>}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const stats = [
     { label: "Active Parts", value: "15", change: "+3 this month" },
@@ -269,6 +389,14 @@ export default function AdminDashboard() {
           Database & Migrations
         </h2>
         <MigrationsPanel />
+      </div>
+
+      {/* AutoQuote Bridge */}
+      <div className="mb-10">
+        <h2 className="text-sm font-bold text-charcoal-300 uppercase tracking-wider mb-4">
+          AutoQuote Bridge
+        </h2>
+        <AutoQuotePanel />
       </div>
 
       {/* Quick actions */}
