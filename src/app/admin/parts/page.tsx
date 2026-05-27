@@ -146,6 +146,97 @@ function AddPartForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
+function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => void; onDelete: (id: string, name: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const yearDisplay = part.year_start && part.year_end ? `${part.year_start}–${part.year_end}` : part.year_start ? `${part.year_start}+` : "—";
+
+  return (
+    <div className="border-b border-charcoal-800/30">
+      <div className="flex items-center gap-4 py-3 px-4 hover:bg-charcoal-900/30 cursor-pointer transition-colors" onClick={() => setExpanded(!expanded)}>
+        <svg className={`w-3 h-3 text-charcoal-600 transition-transform shrink-0 ${expanded ? "rotate-90" : ""}`} fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+        </svg>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white truncate">{part.name}</p>
+          <p className="text-[11px] text-charcoal-500">{part.application}</p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs text-charcoal-400">{part.make || ""} {part.model || ""}</span>
+          <span className="text-xs text-charcoal-500">{yearDisplay}</span>
+          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${FITMENT_STATUSES.find((s) => s.id === part.fitment_status)?.color || ""}`}>
+            {FITMENT_STATUSES.find((s) => s.id === part.fitment_status)?.label || part.fitment_status}
+          </span>
+          <span className="text-[10px] text-charcoal-500">{part.variants.length} tiers</span>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-5 pl-11 space-y-4">
+          {/* Detail grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Segment</span>
+              <p className="text-xs text-charcoal-200 mt-0.5 capitalize">{SEGMENTS.find((s) => s.id === part.segment)?.label || part.segment}</p>
+            </div>
+            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Make / Model</span>
+              <p className="text-xs text-charcoal-200 mt-0.5">{part.make || "—"} {part.model || ""}</p>
+            </div>
+            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Years</span>
+              <p className="text-xs text-charcoal-200 mt-0.5">{yearDisplay}</p>
+            </div>
+            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Part Number</span>
+              <p className="text-xs text-charcoal-200 mt-0.5">{part.part_number || "—"}</p>
+            </div>
+          </div>
+
+          {part.description && (
+            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Description</span>
+              <p className="text-xs text-charcoal-200 mt-1 leading-relaxed">{part.description}</p>
+            </div>
+          )}
+
+          {/* Variants */}
+          {part.variants.length > 0 && (
+            <div>
+              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold">Material Tiers</span>
+              <div className="mt-2 space-y-2">
+                {part.variants.map((v) => (
+                  <div key={v.id} className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-medium text-charcoal-200 uppercase">{v.tier}</span>
+                      <span className="text-xs text-charcoal-500 ml-2">{v.material} — {v.process}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {v.last_quoted_price && <span className="text-xs text-charcoal-300">${v.last_quoted_price} <span className="text-charcoal-600">(quoted)</span></span>}
+                      {v.base_price && <span className="text-xs text-charcoal-400">${v.base_price} <span className="text-charcoal-600">(base)</span></span>}
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded ${v.available ? "bg-emerald-500/10 text-emerald-400" : "bg-charcoal-800 text-charcoal-500"}`}>
+                        {v.available ? "Available" : "Draft"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {part.contributor_name && (
+            <p className="text-[10px] text-charcoal-500">Contributor: {part.contributor_name}</p>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => onDelete(part.id, part.name)} className="text-[11px] text-red-400/60 hover:text-red-400 font-medium">Delete Part</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PartsAdmin() {
   const [parts, setParts] = useState<Part[]>([]);
   const [loading, setLoading] = useState(true);
@@ -250,60 +341,10 @@ export default function PartsAdmin() {
             <p className="text-sm text-charcoal-500">Click &quot;+ Add Part&quot; to add your first part to the catalog.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-charcoal-800/50">
-                  {["Part", "Make / Model", "Years", "Segment", "Fitment", "Variants", "Price", "Actions"].map((h) => (
-                    <th key={h} className="py-3 px-4 text-left text-[10px] font-semibold text-charcoal-500 uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {parts.map((part) => (
-                  <tr key={part.id} className="border-b border-charcoal-800/30 hover:bg-charcoal-900/30 transition-colors">
-                    <td className="py-3 px-4">
-                      <p className="text-sm font-medium text-white">{part.name}</p>
-                      <p className="text-[11px] text-charcoal-500 mt-0.5">{part.application}</p>
-                    </td>
-                    <td className="py-3 px-4">
-                      {part.make || part.model ? (
-                        <div>
-                          <span className="text-xs text-charcoal-200">{part.make}</span>
-                          {part.model && <span className="text-xs text-charcoal-400"> {part.model}</span>}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-charcoal-600">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-xs text-charcoal-400">{yearDisplay(part)}</td>
-                    <td className="py-3 px-4">
-                      <span className="text-xs text-charcoal-400 capitalize">
-                        {SEGMENTS.find((s) => s.id === part.segment)?.label || part.segment}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${FITMENT_STATUSES.find((s) => s.id === part.fitment_status)?.color || ""}`}>
-                        {FITMENT_STATUSES.find((s) => s.id === part.fitment_status)?.label || part.fitment_status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-xs text-charcoal-400">
-                      {part.variants.length} tier{part.variants.length !== 1 ? "s" : ""}
-                    </td>
-                    <td className="py-3 px-4">
-                      {part.variants.length > 0 ? (
-                        <span className="text-xs text-charcoal-300">{part.variants[0].base_price ? `$${part.variants[0].base_price}` : "—"}</span>
-                      ) : (
-                        <span className="text-xs text-charcoal-600">—</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <button onClick={() => handleDelete(part.id, part.name)} className="text-[11px] text-red-400/60 hover:text-red-400 font-medium">Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div>
+            {parts.map((part) => (
+              <PartRow key={part.id} part={part} onRefresh={fetchParts} onDelete={handleDelete} />
+            ))}
           </div>
         )}
       </div>

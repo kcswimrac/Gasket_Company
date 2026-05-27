@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const sql = getSQL();
     const body = await request.json();
 
-    const { partDescription, application, condition, contributorName, contributorEmail, notes } = body;
+    const { partDescription, application, segment, make, model, yearStart, yearEnd, condition, contributorName, contributorEmail, notes } = body;
 
     if (!partDescription || !application) {
       return NextResponse.json(
@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await sql`
-      INSERT INTO scan_queue (contributor_id, part_description, application, condition, notes)
-      VALUES (${contributorId}, ${partDescription}, ${application}, ${condition || null}, ${notes || null})
+      INSERT INTO scan_queue (contributor_id, part_description, application, segment, make, model, year_start, year_end, condition, notes)
+      VALUES (${contributorId}, ${partDescription}, ${application}, ${segment || null}, ${make || null}, ${model || null}, ${yearStart || null}, ${yearEnd || null}, ${condition || null}, ${notes || null})
       RETURNING *
     `;
 

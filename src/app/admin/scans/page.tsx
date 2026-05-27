@@ -18,6 +18,14 @@ interface ScanItem {
   id: string;
   part_description: string;
   application: string;
+  segment: string | null;
+  make: string | null;
+  model: string | null;
+  year_start: number | null;
+  year_end: number | null;
+  fitment_status: string | null;
+  dimensions: string | null;
+  part_number: string | null;
   condition: string | null;
   status: string;
   contributor_name: string | null;
@@ -25,6 +33,7 @@ interface ScanItem {
   current_scan_version: number;
   current_cad_version: number;
   needs_cad_update: boolean;
+  part_id: string | null;
   received_at: string;
   scanned_at: string | null;
   completed_at: string | null;
@@ -109,6 +118,7 @@ function ArtifactList({ artifacts, type }: { artifacts: Artifact[]; type: string
 
 function ScanItemRow({ item, onRefresh }: { item: ScanItem; onRefresh: () => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   const nextStatus = () => {
     const idx = STATUS_FLOW.indexOf(item.status);
@@ -215,7 +225,17 @@ function ScanItemRow({ item, onRefresh }: { item: ScanItem; onRefresh: () => voi
             </div>
           </div>
 
-          {/* Status actions — contextual based on what's uploaded */}
+          {/* Part info summary */}
+          <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
+              <div><span className="text-charcoal-500 block">Segment</span><span className="text-charcoal-200 capitalize">{item.segment || "—"}</span></div>
+              <div><span className="text-charcoal-500 block">Make / Model</span><span className="text-charcoal-200">{item.make || "—"} {item.model || ""}</span></div>
+              <div><span className="text-charcoal-500 block">Years</span><span className="text-charcoal-200">{item.year_start && item.year_end ? `${item.year_start}–${item.year_end}` : item.year_start || "—"}</span></div>
+              <div><span className="text-charcoal-500 block">Condition</span><span className="text-charcoal-200">{item.condition || "—"}</span></div>
+            </div>
+          </div>
+
+          {/* Status actions */}
           <div className="flex flex-wrap items-center gap-3">
             {item.status !== "complete" && cadArtifacts.length > 0 && (
               <button
@@ -234,11 +254,32 @@ function ScanItemRow({ item, onRefresh }: { item: ScanItem; onRefresh: () => voi
             {item.status === "modeling" && (
               <span className="text-[10px] text-charcoal-500">Upload STL preview or mark complete to publish</span>
             )}
-            {item.status === "complete" && (
+            {item.status === "complete" && !item.part_id && (
+              <button
+                onClick={async () => {
+                  setPublishing(true);
+                  try {
+                    const res = await fetch("/api/admin/scans/publish", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scanQueueId: item.id }) });
+                    const data = await res.json();
+                    if (data.success) { alert(`Published! Part created.`); onRefresh(); }
+                    else alert(data.error);
+                  } catch { alert("Failed"); }
+                  finally { setPublishing(false); }
+                }}
+                disabled={publishing}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white text-[11px] font-semibold rounded uppercase tracking-wider transition-colors disabled:opacity-50"
+              >
+                {publishing ? "Publishing..." : "Publish to Catalog"}
+              </button>
+            )}
+            {item.part_id && (
               <span className="text-[10px] text-emerald-400/70 flex items-center gap-1.5">
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
-                Complete — ready for catalog
+                Published to catalog
               </span>
+            )}
+            {item.status === "complete" && !item.part_id && !item.segment && (
+              <span className="text-[10px] text-gold-400">Set segment before publishing</span>
             )}
             {item.notes && <span className="text-[10px] text-charcoal-600 ml-auto">Notes: {item.notes}</span>}
           </div>
@@ -252,17 +293,17 @@ function AddScanForm({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState({ partDescription: "", application: "", condition: "Intact but worn", contributorName: "", contributorEmail: "", notes: "" });
+  const [form, setForm] = useState({ partDescription: "", application: "", segment: "automotive", make: "", model: "", yearStart: "", yearEnd: "", condition: "Intact but worn", contributorName: "", contributorEmail: "", notes: "" });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSubmit = async () => {
     if (!form.partDescription || !form.application) { setError("Part description and application required"); return; }
     setSaving(true); setError(null);
     try {
-      const res = await fetch("/api/admin/scans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const res = await fetch("/api/admin/scans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, yearStart: form.yearStart ? parseInt(form.yearStart) : null, yearEnd: form.yearEnd ? parseInt(form.yearEnd) : null }) });
       const data = await res.json();
       if (!data.success) { setError(data.error); return; }
-      setForm({ partDescription: "", application: "", condition: "Intact but worn", contributorName: "", contributorEmail: "", notes: "" });
+      setForm({ partDescription: "", application: "", segment: "automotive", make: "", model: "", yearStart: "", yearEnd: "", condition: "Intact but worn", contributorName: "", contributorEmail: "", notes: "" });
       setOpen(false); onCreated();
     } catch { setError("Network error"); } finally { setSaving(false); }
   };
@@ -279,11 +320,28 @@ function AddScanForm({ onCreated }: { onCreated: () => void }) {
         <button onClick={() => setOpen(false)} className="text-xs text-charcoal-500 hover:text-charcoal-300">Cancel</button>
       </div>
       {error && <div className="bg-red-500/5 border border-red-500/15 rounded-lg p-3 mb-4 text-xs text-red-400">{error}</div>}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="sm:col-span-2"><label className={labelCls}>Part Description *</label><input value={form.partDescription} onChange={(e) => set("partDescription", e.target.value)} placeholder="e.g., Battery tray" className={inputCls} /></div>
-        <div className="sm:col-span-2"><label className={labelCls}>Application *</label><input value={form.application} onChange={(e) => set("application", e.target.value)} placeholder="Year, make, model" className={inputCls} /></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="sm:col-span-2 lg:col-span-3"><label className={labelCls}>Part Name / Description *</label><input value={form.partDescription} onChange={(e) => set("partDescription", e.target.value)} placeholder="e.g., Battery Tray, Alternator Bracket" className={inputCls} /></div>
+        <div>
+          <label className={labelCls}>Segment</label>
+          <select value={form.segment} onChange={(e) => set("segment", e.target.value)} className={inputCls}>
+            <option value="automotive">Classic Automotive</option>
+            <option value="tractor">Vintage Tractors</option>
+            <option value="marine">Marine & Outboard</option>
+            <option value="motorcycle">Vintage Motorcycle</option>
+            <option value="industrial">Industrial & Machinery</option>
+          </select>
+        </div>
+        <div><label className={labelCls}>Make</label><input value={form.make} onChange={(e) => set("make", e.target.value)} placeholder="e.g., Ford" className={inputCls} /></div>
+        <div><label className={labelCls}>Model</label><input value={form.model} onChange={(e) => set("model", e.target.value)} placeholder="e.g., 8N" className={inputCls} /></div>
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className={labelCls}>Year Start</label><input type="number" value={form.yearStart} onChange={(e) => set("yearStart", e.target.value)} placeholder="1939" className={inputCls} /></div>
+          <div><label className={labelCls}>Year End</label><input type="number" value={form.yearEnd} onChange={(e) => set("yearEnd", e.target.value)} placeholder="1952" className={inputCls} /></div>
+        </div>
+        <div className="sm:col-span-2"><label className={labelCls}>Application / Fitment *</label><input value={form.application} onChange={(e) => set("application", e.target.value)} placeholder="e.g., 1939–1952 Ford 8N / 9N / 2N" className={inputCls} /></div>
         <div><label className={labelCls}>Condition</label><select value={form.condition} onChange={(e) => set("condition", e.target.value)} className={inputCls}><option>Intact but worn</option><option>Cracked or broken</option><option>Heavily corroded</option><option>Missing pieces</option></select></div>
-        <div><label className={labelCls}>Contributor</label><input value={form.contributorName} onChange={(e) => set("contributorName", e.target.value)} placeholder="Name" className={inputCls} /></div>
+        <div><label className={labelCls}>Contributor</label><input value={form.contributorName} onChange={(e) => set("contributorName", e.target.value)} placeholder="Name or shop" className={inputCls} /></div>
+        <div><label className={labelCls}>Email</label><input value={form.contributorEmail} onChange={(e) => set("contributorEmail", e.target.value)} placeholder="Email" className={inputCls} /></div>
       </div>
       <div className="mt-5 flex gap-3">
         <button onClick={handleSubmit} disabled={saving} className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded uppercase tracking-wider disabled:opacity-50">{saving ? "Saving..." : "Add"}</button>
