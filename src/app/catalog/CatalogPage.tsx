@@ -47,6 +47,8 @@ interface CatalogPart {
   description: string | null;
   fitment_status: string;
   contributor_name: string | null;
+  cad_file_url: string | null;
+  hasStepFile: boolean;
   variants: Variant[];
   files: Array<{
     id: string;
@@ -82,14 +84,33 @@ function PartCard({ part }: { part: CatalogPart }) {
     setQuoting(true);
     setQuote(null);
     try {
-      const res = await fetch("/api/cart/quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ variantId: variant.id, quantity: qty }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setQuote(data.quote);
+      let data;
+      if (variant) {
+        const res = await fetch("/api/cart/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ variantId: variant.id, quantity: qty }),
+        });
+        data = await res.json();
+        if (data.success) setQuote(data.quote);
+      } else if (part.hasStepFile) {
+        const res = await fetch("/api/cart/estimate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ partId: part.id, quantity: qty }),
+        });
+        data = await res.json();
+        if (data.success) {
+          setQuote({
+            variantId: "",
+            unitPrice: data.estimate.unitPrice,
+            totalPrice: data.estimate.totalPrice || data.estimate.unitPrice,
+            leadTimeDays: data.estimate.leadTimeDays || null,
+            isEstimate: true,
+            source: data.estimate.source || "autoquote",
+            message: data.estimate.message,
+          });
+        }
       }
     } catch {
       setQuote({
@@ -226,10 +247,34 @@ function PartCard({ part }: { part: CatalogPart }) {
         {/* Price + Add to Cart */}
         <div className="pt-3 border-t border-charcoal-800/40">
           {!variant ? (
-            <a href={`mailto:parts@backyardrestoration.com?subject=Quote request: ${encodeURIComponent(part.name)}&body=${encodeURIComponent(`Part: ${part.name}\nApplication: ${part.application}\nQuantity: 1\n\nPlease provide a quote for this part.`)}`} className="inline-flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 uppercase tracking-wider font-medium">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
-              Request a quote
-            </a>
+            <div>
+              {part.hasStepFile ? (
+                <button
+                  onClick={handleAddToCart}
+                  disabled={quoting}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[11px] rounded transition-all uppercase tracking-wider shadow-lg shadow-emerald-500/10 disabled:opacity-50"
+                >
+                  {quoting ? (
+                    <><svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Getting estimate...</>
+                  ) : "Get Estimate"}
+                </button>
+              ) : (
+                <a href={`mailto:parts@backyardrestoration.com?subject=Quote: ${encodeURIComponent(part.name)}`} className="inline-flex items-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 uppercase tracking-wider font-medium">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+                  Request a quote
+                </a>
+              )}
+              {quote && (
+                <div className={`mt-3 rounded-lg p-3 ${quote.isEstimate ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
+                  {quote.unitPrice ? (
+                    <p className="text-lg font-bold text-white">${quote.totalPrice}</p>
+                  ) : (
+                    <p className="text-sm text-charcoal-400">Contact us for pricing</p>
+                  )}
+                  {quote.message && <p className="text-[10px] text-charcoal-500 mt-1">{quote.message}</p>}
+                </div>
+              )}
+            </div>
           ) : !quote ? (
             <div className="flex items-end justify-between">
               <div>

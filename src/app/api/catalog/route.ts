@@ -105,6 +105,10 @@ export async function GET(request: NextRequest) {
       filesByPart[pid].push(f);
     }
 
+    // Helper to proxy private blob URLs
+    const proxyUrl = (url: string | null) =>
+      url ? `/api/files?url=${encodeURIComponent(url)}` : null;
+
     const result = parts.map((p) => {
       const pvariants = (variantsByPart[p.id as string] || []).map((v) => {
         const lastQuotedAt = v.last_quoted_at ? new Date(v.last_quoted_at as string) : null;
@@ -121,7 +125,18 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      return { ...p, variants: pvariants, files: filesByPart[p.id as string] || [] };
+      const pfiles = (filesByPart[p.id as string] || []).map((f) => {
+        const url = proxyUrl(f.file_url as string | null);
+        return { id: f.id, file_type: f.file_type, file_name: f.file_name, file_url: url, is_step_file: f.is_step_file };
+      });
+
+      return {
+        ...p,
+        cad_file_url: proxyUrl(p.cad_file_url as string | null),
+        variants: pvariants,
+        files: pfiles,
+        hasStepFile: pfiles.some((f) => f.is_step_file as boolean),
+      };
     });
 
     return NextResponse.json({ success: true, parts: result });
