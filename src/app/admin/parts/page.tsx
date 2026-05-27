@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
+
+const CadViewer = dynamic(() => import("@/components/CadViewer"), { ssr: false });
 
 const SEGMENTS = [
   { id: "tractor", label: "Vintage Tractors" },
@@ -160,6 +163,75 @@ function AddPartForm({ onCreated }: { onCreated: () => void }) {
   );
 }
 
+function EditablePartFields({ part, onSaved }: { part: Part; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: part.name, segment: part.segment, make: part.make || "",
+    model: part.model || "", yearStart: String(part.year_start || ""),
+    yearEnd: String(part.year_end || ""), application: part.application,
+    description: part.description || "", fitmentStatus: part.fitment_status,
+    dimensions: part.dimensions || "", partNumber: part.part_number || "",
+  });
+  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const inputCls = "w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-1.5 text-xs text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40";
+  const labelCls = "text-[9px] text-charcoal-500 uppercase tracking-wider";
+
+  const handleSave = async () => {
+    setSaving(true);
+    await fetch("/api/admin/parts", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: part.id, ...form, yearStart: form.yearStart ? parseInt(form.yearStart) : null, yearEnd: form.yearEnd ? parseInt(form.yearEnd) : null }),
+    });
+    setSaving(false); setEditing(false); onSaved();
+  };
+
+  if (!editing) {
+    return (
+      <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">Part Details</span>
+          <button onClick={() => setEditing(true)} className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium">Edit</button>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
+          <div><span className={labelCls}>Segment</span><p className="text-charcoal-200 capitalize">{SEGMENTS.find((s) => s.id === part.segment)?.label || part.segment}</p></div>
+          <div><span className={labelCls}>Make / Model</span><p className="text-charcoal-200">{part.make || "—"} {part.model || ""}</p></div>
+          <div><span className={labelCls}>Years</span><p className="text-charcoal-200">{part.year_start && part.year_end ? `${part.year_start}–${part.year_end}` : part.year_start || "—"}</p></div>
+          <div><span className={labelCls}>Fitment</span><p className="text-charcoal-200">{FITMENT_STATUSES.find((s) => s.id === part.fitment_status)?.label || part.fitment_status}</p></div>
+          <div><span className={labelCls}>Part Number</span><p className="text-charcoal-200">{part.part_number || "—"}</p></div>
+          <div><span className={labelCls}>Dimensions</span><p className="text-charcoal-200">{part.dimensions || "—"}</p></div>
+          {part.description && <div className="col-span-2"><span className={labelCls}>Description</span><p className="text-charcoal-200">{part.description}</p></div>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-charcoal-950/40 rounded-lg p-3 border border-emerald-500/20">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Editing Part</span>
+        <div className="flex gap-2">
+          <button onClick={handleSave} disabled={saving} className="text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
+          <button onClick={() => setEditing(false)} className="text-[11px] text-charcoal-500 hover:text-charcoal-300 font-medium">Cancel</button>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="col-span-2"><label className={labelCls}>Name</label><input value={form.name} onChange={(e) => set("name", e.target.value)} className={inputCls} /></div>
+        <div><label className={labelCls}>Segment</label><select value={form.segment} onChange={(e) => set("segment", e.target.value)} className={inputCls}>{SEGMENTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select></div>
+        <div><label className={labelCls}>Fitment</label><select value={form.fitmentStatus} onChange={(e) => set("fitmentStatus", e.target.value)} className={inputCls}>{FITMENT_STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select></div>
+        <div><label className={labelCls}>Make</label><input value={form.make} onChange={(e) => set("make", e.target.value)} className={inputCls} /></div>
+        <div><label className={labelCls}>Model</label><input value={form.model} onChange={(e) => set("model", e.target.value)} className={inputCls} /></div>
+        <div><label className={labelCls}>Year Start</label><input type="number" value={form.yearStart} onChange={(e) => set("yearStart", e.target.value)} className={inputCls} /></div>
+        <div><label className={labelCls}>Year End</label><input type="number" value={form.yearEnd} onChange={(e) => set("yearEnd", e.target.value)} className={inputCls} /></div>
+        <div className="col-span-2"><label className={labelCls}>Application</label><input value={form.application} onChange={(e) => set("application", e.target.value)} className={inputCls} /></div>
+        <div><label className={labelCls}>Dimensions</label><input value={form.dimensions} onChange={(e) => set("dimensions", e.target.value)} className={inputCls} /></div>
+        <div><label className={labelCls}>Part Number</label><input value={form.partNumber} onChange={(e) => set("partNumber", e.target.value)} className={inputCls} /></div>
+        <div className="col-span-2 sm:col-span-4"><label className={labelCls}>Description</label><textarea rows={2} value={form.description} onChange={(e) => set("description", e.target.value)} className={`${inputCls} resize-none`} /></div>
+      </div>
+    </div>
+  );
+}
+
 function PartFileUpload({ partId, fileType, label, onUploaded }: { partId: string; fileType: string; label: string; onUploaded: () => void }) {
   const [uploading, setUploading] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
@@ -264,6 +336,8 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
 
   const handleFileUploaded = () => { loadFiles(); onRefresh(); };
 
+  const cadOrStl = files.find((f) => f.file_type === "stl_preview") || files.find((f) => f.is_step_file);
+
   const yearDisplay = part.year_start && part.year_end ? `${part.year_start}–${part.year_end}` : part.year_start ? `${part.year_start}+` : "—";
 
   return (
@@ -288,32 +362,57 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
 
       {expanded && (
         <div className="px-4 pb-5 pl-11 space-y-4">
-          {/* Detail grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {/* Visual row: photos + 3D preview */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Photo gallery */}
             <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
-              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Segment</span>
-              <p className="text-xs text-charcoal-200 mt-0.5 capitalize">{SEGMENTS.find((s) => s.id === part.segment)?.label || part.segment}</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">Photos</span>
+                <div className="flex gap-2">
+                  <PartFileUpload partId={part.id} fileType="photo_donor" label="+ Donor" onUploaded={handleFileUploaded} />
+                  <PartFileUpload partId={part.id} fileType="photo_finished" label="+ Finished" onUploaded={handleFileUploaded} />
+                </div>
+              </div>
+              {files.filter((f) => f.file_type.startsWith("photo")).length > 0 ? (
+                <div className="grid grid-cols-2 gap-1.5">
+                  {files.filter((f) => f.file_type.startsWith("photo")).map((f) => (
+                    <div key={f.id} className="relative group/photo">
+                      <img src={`/api/files?url=${encodeURIComponent(f.file_url)}`} alt={f.file_name} className="w-full aspect-square object-cover rounded" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/photo:opacity-100 transition-opacity rounded flex items-center justify-center gap-2">
+                        <button onClick={async () => { await fetch("/api/admin/parts/files", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileId: f.id, showInCatalog: !f.show_in_catalog }) }); loadFiles(); }} className={`text-[9px] px-2 py-1 rounded font-semibold ${f.show_in_catalog ? "bg-emerald-500 text-white" : "bg-charcoal-700 text-charcoal-300"}`}>
+                          {f.show_in_catalog ? "Visible" : "Hidden"}
+                        </button>
+                      </div>
+                      <span className={`absolute top-1 left-1 text-[8px] px-1 rounded ${f.file_type === "photo_donor" ? "bg-gold-500/80 text-white" : "bg-emerald-500/80 text-white"}`}>
+                        {f.file_type === "photo_donor" ? "donor" : "finished"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[10px] text-charcoal-600 py-4 text-center">No photos uploaded</p>
+              )}
             </div>
+
+            {/* 3D STL Preview */}
             <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
-              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Make / Model</span>
-              <p className="text-xs text-charcoal-200 mt-0.5">{part.make || "—"} {part.model || ""}</p>
-            </div>
-            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
-              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Years</span>
-              <p className="text-xs text-charcoal-200 mt-0.5">{yearDisplay}</p>
-            </div>
-            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
-              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Part Number</span>
-              <p className="text-xs text-charcoal-200 mt-0.5">{part.part_number || "—"}</p>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">3D Preview</span>
+                <PartFileUpload partId={part.id} fileType="stl_preview" label="+ STL" onUploaded={handleFileUploaded} />
+              </div>
+              {cadOrStl ? (
+                <CadViewer
+                  url={`/api/files?url=${encodeURIComponent(cadOrStl.file_url)}`}
+                  fileName={cadOrStl.file_name}
+                />
+              ) : (
+                <p className="text-[10px] text-charcoal-600 py-4 text-center">Upload a STEP or STL file for 3D preview<br />(Front / Right / Top / Iso views)</p>
+              )}
             </div>
           </div>
 
-          {part.description && (
-            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
-              <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Description</span>
-              <p className="text-xs text-charcoal-200 mt-1 leading-relaxed">{part.description}</p>
-            </div>
-          )}
+          {/* Editable detail fields */}
+          <EditablePartFields part={part} onSaved={onRefresh} />
 
           {/* Variants */}
           {part.variants.length > 0 && (
@@ -327,8 +426,8 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
                       <span className="text-xs text-charcoal-500 ml-2">{v.material} — {v.process}</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      {v.last_quoted_price && <span className="text-xs text-charcoal-300">${v.last_quoted_price} <span className="text-charcoal-600">(quoted)</span></span>}
-                      {v.base_price && <span className="text-xs text-charcoal-400">${v.base_price} <span className="text-charcoal-600">(base)</span></span>}
+                      {v.last_quoted_price && <span className="text-xs text-charcoal-300">${v.last_quoted_price}</span>}
+                      {v.base_price && <span className="text-xs text-charcoal-400">${v.base_price} <span className="text-charcoal-600">base</span></span>}
                       <span className={`text-[10px] px-1.5 py-0.5 rounded ${v.available ? "bg-emerald-500/10 text-emerald-400" : "bg-charcoal-800 text-charcoal-500"}`}>
                         {v.available ? "Available" : "Draft"}
                       </span>
@@ -339,46 +438,8 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
             </div>
           )}
 
-          {part.contributor_name && (
-            <p className="text-[10px] text-charcoal-500">Contributor: {part.contributor_name}</p>
-          )}
-
-          {/* Files */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Photos */}
-            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">Photos</span>
-                <div className="flex gap-2">
-                  <PartFileUpload partId={part.id} fileType="photo_donor" label="+ Donor" onUploaded={handleFileUploaded} />
-                  <PartFileUpload partId={part.id} fileType="photo_finished" label="+ Finished" onUploaded={handleFileUploaded} />
-                </div>
-              </div>
-              {files.filter((f) => f.file_type.startsWith("photo")).length === 0 && <p className="text-[10px] text-charcoal-600">No photos</p>}
-              {files.filter((f) => f.file_type.startsWith("photo")).map((f) => (
-                <div key={f.id} className="flex items-center gap-2 text-[11px] py-1">
-                  <span className={`text-[9px] px-1 rounded ${f.file_type === "photo_donor" ? "bg-gold-500/10 text-gold-400" : "bg-emerald-500/10 text-emerald-400"}`}>
-                    {f.file_type === "photo_donor" ? "donor" : "finished"}
-                  </span>
-                  <a href={f.file_url} target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 truncate flex-1">{f.file_name}</a>
-                  <button
-                    onClick={async () => {
-                      await fetch("/api/admin/parts/files", {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ fileId: f.id, showInCatalog: !f.show_in_catalog }),
-                      });
-                      loadFiles();
-                    }}
-                    className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${f.show_in_catalog ? "bg-emerald-500/15 text-emerald-400 hover:bg-red-500/10 hover:text-red-400" : "bg-charcoal-800 text-charcoal-500 hover:bg-emerald-500/10 hover:text-emerald-400"}`}
-                  >
-                    {f.show_in_catalog ? "visible" : "hidden"}
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* CAD Files */}
+          {/* CAD + Other files */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">CAD Files</span>
@@ -387,42 +448,35 @@ function PartRow({ part, onRefresh, onDelete }: { part: Part; onRefresh: () => v
                   <PartFileUpload partId={part.id} fileType="cad_other" label="+ Other" onUploaded={handleFileUploaded} />
                 </div>
               </div>
-              {files.filter((f) => f.file_type.startsWith("cad")).length === 0 && <p className="text-[10px] text-charcoal-600">No CAD files</p>}
               {files.filter((f) => f.file_type.startsWith("cad")).map((f) => (
                 <div key={f.id} className="flex items-center gap-2 text-[11px] py-1">
                   {f.is_step_file && <span className="text-[9px] px-1 rounded bg-blue-500/10 text-blue-400">STEP</span>}
-                  <a href={f.file_url} target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 truncate">{f.file_name}</a>
+                  <a href={`/api/files?url=${encodeURIComponent(f.file_url)}`} target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 truncate">{f.file_name}</a>
                   {f.file_size && <span className="text-charcoal-600">{(f.file_size / 1024).toFixed(0)}KB</span>}
                 </div>
               ))}
+              {files.filter((f) => f.file_type.startsWith("cad")).length === 0 && <p className="text-[10px] text-charcoal-600">No CAD files</p>}
             </div>
-
-            {/* Other files */}
             <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">Other Files</span>
-                <div className="flex gap-2">
-                  <PartFileUpload partId={part.id} fileType="stl_preview" label="+ STL" onUploaded={handleFileUploaded} />
-                  <PartFileUpload partId={part.id} fileType="drawing_pdf" label="+ Drawing" onUploaded={handleFileUploaded} />
-                </div>
+                <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">Drawings</span>
+                <PartFileUpload partId={part.id} fileType="drawing_pdf" label="+ Drawing" onUploaded={handleFileUploaded} />
               </div>
-              {files.filter((f) => !f.file_type.startsWith("photo") && !f.file_type.startsWith("cad")).length === 0 && <p className="text-[10px] text-charcoal-600">No files</p>}
-              {files.filter((f) => !f.file_type.startsWith("photo") && !f.file_type.startsWith("cad")).map((f) => (
+              {files.filter((f) => f.file_type === "drawing_pdf").map((f) => (
                 <div key={f.id} className="flex items-center gap-2 text-[11px] py-1">
-                  <span className="text-[9px] px-1 rounded bg-charcoal-800 text-charcoal-400">{f.file_type}</span>
-                  <a href={f.file_url} target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 truncate">{f.file_name}</a>
+                  <a href={`/api/files?url=${encodeURIComponent(f.file_url)}`} target="_blank" rel="noopener" className="text-blue-400 hover:text-blue-300 truncate">{f.file_name}</a>
                 </div>
               ))}
+              {files.filter((f) => f.file_type === "drawing_pdf").length === 0 && <p className="text-[10px] text-charcoal-600">No drawings</p>}
             </div>
           </div>
 
           {/* Actions */}
           <div className="flex flex-wrap gap-3 pt-2">
             <NewScanVersionButton part={part} onCreated={onRefresh} />
-            {part.scan_queue_id && (
-              <a href="/admin/scans" className="text-[11px] text-blue-400 hover:text-blue-300 font-medium">View in Scan Queue</a>
-            )}
-            <button onClick={() => onDelete(part.id, part.name)} className="text-[11px] text-red-400/60 hover:text-red-400 font-medium">Delete Part</button>
+            {part.scan_queue_id && <a href="/admin/scans" className="text-[11px] text-blue-400 hover:text-blue-300 font-medium">View Scan Queue</a>}
+            {part.contributor_name && <span className="text-[10px] text-charcoal-500">Contributor: {part.contributor_name}</span>}
+            <button onClick={() => onDelete(part.id, part.name)} className="text-[11px] text-red-400/60 hover:text-red-400 font-medium ml-auto">Delete Part</button>
           </div>
         </div>
       )}

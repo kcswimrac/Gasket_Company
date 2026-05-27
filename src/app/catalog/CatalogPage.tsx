@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+
+const CadViewer = dynamic(() => import("@/components/CadViewer"), { ssr: false });
 
 const SEGMENTS = [
   { id: "tractor", label: "Vintage Tractors" },
@@ -370,6 +373,8 @@ function PartCard({ part }: { part: CatalogPart }) {
 
 /* ─── Part Detail Modal ─── */
 function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }) {
+  const photos = part.files?.filter((f) => f.file_type.startsWith("photo")) || [];
+  const stepFile = part.files?.find((f) => f.is_step_file) || null;
   const [activeTier, setActiveTier] = useState(0);
   const [quoting, setQuoting] = useState(false);
   const [quote, setQuote] = useState<CartQuote | null>(null);
@@ -414,8 +419,31 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Photos + 3D view */}
+          {(photos.length > 0 || stepFile) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {photos.length > 0 && (
+                <div className="space-y-2">
+                  <img src={photos[0].file_url} alt={part.name} className="w-full rounded-lg object-cover max-h-64" />
+                  {photos.length > 1 && (
+                    <div className="flex gap-1.5 overflow-x-auto">
+                      {photos.slice(1).map((f) => (
+                        <img key={f.id} src={f.file_url} alt="" className="w-16 h-16 rounded object-cover flex-shrink-0" />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {stepFile && (
+                <CadViewer url={stepFile.file_url} fileName={stepFile.file_name} />
+              )}
+            </div>
+          )}
+
           {/* Description */}
-          {part.description && <p className="text-sm text-charcoal-300 leading-relaxed">{part.description}</p>}
+          {part.description && !part.description.startsWith("Published") && !part.description.startsWith("New scan") && (
+            <p className="text-sm text-charcoal-300 leading-relaxed">{part.description}</p>
+          )}
 
           {/* Contributor credit */}
           {part.contributor_name && (
