@@ -11,6 +11,21 @@ const navItems = [
   { label: "FAQ", href: "/gaskets#faq" },
 ];
 
+function CartIcon({ count }: { count: number }) {
+  return (
+    <a href="/cart" className="relative p-2 text-charcoal-400 hover:text-white transition-colors">
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+      </svg>
+      {count > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+          {count}
+        </span>
+      )}
+    </a>
+  );
+}
+
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -49,35 +64,31 @@ export default function SiteHeader() {
             ))}
           </nav>
 
+          {/* Desktop: cart + CTA */}
           <div className="hidden md:flex items-center gap-3">
-            <a href="/cart" className="relative p-2 text-charcoal-400 hover:text-white transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-              </svg>
-              {count > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                  {count}
-                </span>
-              )}
-            </a>
+            <CartIcon count={count} />
             <a href="/gaskets#quote" className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[13px] rounded tracking-wide transition-all shadow-lg shadow-emerald-500/15 uppercase">
               Get a Quote
             </a>
           </div>
 
-          <button
-            onClick={() => setOpen(!open)}
-            className="md:hidden p-2 text-charcoal-400 hover:text-emerald-400"
-            aria-label="Menu"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-              {open ? (
-                <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
-              ) : (
-                <><line x1="3" y1="8" x2="21" y2="8" /><line x1="3" y1="16" x2="21" y2="16" /></>
-              )}
-            </svg>
-          </button>
+          {/* Mobile: cart + hamburger */}
+          <div className="flex items-center gap-1 md:hidden">
+            <CartIcon count={count} />
+            <button
+              onClick={() => setOpen(!open)}
+              className="p-2 text-charcoal-400 hover:text-emerald-400"
+              aria-label="Menu"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                {open ? (
+                  <><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>
+                ) : (
+                  <><line x1="3" y1="8" x2="21" y2="8" /><line x1="3" y1="16" x2="21" y2="16" /></>
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -94,6 +105,18 @@ export default function SiteHeader() {
                 {item.label}
               </a>
             ))}
+            <a
+              href="/cart"
+              onClick={() => setOpen(false)}
+              className="flex items-center justify-between text-lg text-charcoal-300 hover:text-emerald-400 py-4 border-b border-charcoal-800/40"
+            >
+              <span>Cart</span>
+              {count > 0 && (
+                <span className="w-5 h-5 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {count}
+                </span>
+              )}
+            </a>
             <div className="pt-6">
               <a
                 href="/gaskets#quote"
