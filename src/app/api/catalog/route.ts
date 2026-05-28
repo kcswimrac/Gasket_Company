@@ -121,10 +121,10 @@ export async function GET(request: NextRequest) {
         const hasFreshQuote = !isStale && !isExpired && !!v.last_quoted_price;
         const quotable = !!v.autoquote_material_code;
 
-        // Resolve price through the fallback chain once, server-side
+        // Per-variant price: own quoted price or base price only — never the part-level estimate
         const resolvedPrice = hasFreshQuote
           ? (v.last_quoted_price as string)
-          : (v.base_price as string | null) || partEstimatePrice || null;
+          : (v.base_price as string | null) || null;
 
         let pricingStatus: PriceStatus;
         if (hasFreshQuote) pricingStatus = "firm";
