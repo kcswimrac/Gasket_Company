@@ -874,7 +874,11 @@ export default function CatalogPage() {
   const [search, setSearch] = useState("");
   const [contributeSent, setContributeSent] = useState(false);
   const [selectedPart, setSelectedPart] = useState<CatalogPart | null>(null);
-  const [contForm, setContForm] = useState({ partDescription: "", application: "", name: "", email: "" });
+  const [contForm, setContForm] = useState({
+    partDescription: "", application: "", name: "", email: "", phone: "", company: "",
+    segment: "", make: "", model: "", year: "", condition: "", partNumber: "",
+  });
+  const [contPhotos, setContPhotos] = useState<File[]>([]);
   const [contSubmitting, setContSubmitting] = useState(false);
 
   const fetchParts = useCallback(async () => {
@@ -1001,32 +1005,116 @@ export default function CatalogPage() {
                 {!contributeSent ? (
                   <div className="space-y-5">
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider">Submit a Donor Part</h3>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider">What Part?</label>
-                      <input type="text" value={contForm.partDescription} onChange={(e) => setContForm((f) => ({ ...f, partDescription: e.target.value }))} placeholder="e.g., Battery tray, throttle bracket" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider">What Does It Fit?</label>
-                      <input type="text" value={contForm.application} onChange={(e) => setContForm((f) => ({ ...f, application: e.target.value }))} placeholder="Year, make, model" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider">Name</label>
-                        <input type="text" value={contForm.name} onChange={(e) => setContForm((f) => ({ ...f, name: e.target.value }))} placeholder="Name or shop" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider">Email</label>
-                        <input type="email" value={contForm.email} onChange={(e) => setContForm((f) => ({ ...f, email: e.target.value }))} placeholder="Email" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
-                      </div>
-                    </div>
+                    {(() => {
+                      const cSet = (k: string, v: string) => setContForm((f) => ({ ...f, [k]: v }));
+                      const inputCls = "w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40";
+                      const labelCls = "block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider";
+                      return (
+                        <>
+                          <div>
+                            <label className={labelCls}>Part Description *</label>
+                            <input type="text" value={contForm.partDescription} onChange={(e) => cSet("partDescription", e.target.value)} placeholder="e.g., Battery tray, throttle bracket" className={inputCls} />
+                          </div>
+                          <div>
+                            <label className={labelCls}>Application / Fitment *</label>
+                            <input type="text" value={contForm.application} onChange={(e) => cSet("application", e.target.value)} placeholder="What machine or vehicle does it fit?" className={inputCls} />
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <label className={labelCls}>Make</label>
+                              <input type="text" value={contForm.make} onChange={(e) => cSet("make", e.target.value)} placeholder="Ford" className={inputCls} />
+                            </div>
+                            <div>
+                              <label className={labelCls}>Model</label>
+                              <input type="text" value={contForm.model} onChange={(e) => cSet("model", e.target.value)} placeholder="8N" className={inputCls} />
+                            </div>
+                            <div>
+                              <label className={labelCls}>Year(s)</label>
+                              <input type="text" value={contForm.year} onChange={(e) => cSet("year", e.target.value)} placeholder="1948-1952" className={inputCls} />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className={labelCls}>Segment</label>
+                              <select value={contForm.segment} onChange={(e) => cSet("segment", e.target.value)} className={inputCls}>
+                                <option value="">Select...</option>
+                                {SEGMENTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className={labelCls}>Condition</label>
+                              <select value={contForm.condition} onChange={(e) => cSet("condition", e.target.value)} className={inputCls}>
+                                <option value="">Select...</option>
+                                <option value="good">Good — minor wear</option>
+                                <option value="fair">Fair — usable as reference</option>
+                                <option value="poor">Poor — damaged but scannable</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <label className={labelCls}>Part Number (if known)</label>
+                            <input type="text" value={contForm.partNumber} onChange={(e) => cSet("partNumber", e.target.value)} placeholder="OEM part number" className={inputCls} />
+                          </div>
+
+                          {/* Photo upload */}
+                          <div>
+                            <label className={labelCls}>Photos of the Part</label>
+                            <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-charcoal-700/50 rounded-lg cursor-pointer hover:border-emerald-500/30 transition-colors">
+                              <svg className="w-5 h-5 text-charcoal-500" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.04l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+                              <span className="text-sm text-charcoal-400">{contPhotos.length > 0 ? `${contPhotos.length} photo${contPhotos.length > 1 ? "s" : ""} selected` : "Add photos"}</span>
+                              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { if (e.target.files) setContPhotos(Array.from(e.target.files)); }} />
+                            </label>
+                            {contPhotos.length > 0 && (
+                              <div className="flex gap-2 mt-2 overflow-x-auto">
+                                {contPhotos.map((f, i) => (
+                                  <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-charcoal-800/50 shrink-0">
+                                    <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+                                    <button onClick={() => setContPhotos((p) => p.filter((_, j) => j !== i))} className="absolute top-0 right-0 bg-black/60 text-white w-4 h-4 text-[10px] flex items-center justify-center">×</button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="border-t border-charcoal-800/40 pt-5">
+                            <p className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold mb-3">Your Information</p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className={labelCls}>Name *</label>
+                                <input type="text" value={contForm.name} onChange={(e) => cSet("name", e.target.value)} placeholder="Name or shop" className={inputCls} />
+                              </div>
+                              <div>
+                                <label className={labelCls}>Email *</label>
+                                <input type="email" value={contForm.email} onChange={(e) => cSet("email", e.target.value)} placeholder="Email" className={inputCls} />
+                              </div>
+                              <div>
+                                <label className={labelCls}>Phone</label>
+                                <input type="tel" value={contForm.phone} onChange={(e) => cSet("phone", e.target.value)} placeholder="Phone" className={inputCls} />
+                              </div>
+                              <div>
+                                <label className={labelCls}>Company / Shop</label>
+                                <input type="text" value={contForm.company} onChange={(e) => cSet("company", e.target.value)} placeholder="Company (optional)" className={inputCls} />
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                     <button
-                      disabled={contSubmitting}
+                      disabled={contSubmitting || !contForm.partDescription || !contForm.application || !contForm.name || !contForm.email}
                       onClick={async () => {
                         setContSubmitting(true);
                         try {
-                          const res = await fetch("/api/contribute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(contForm) });
+                          const fd = new FormData();
+                          fd.append("data", JSON.stringify(contForm));
+                          contPhotos.forEach((f) => fd.append("photos", f));
+                          const res = await fetch("/api/contribute", { method: "POST", body: fd });
                           const data = await res.json();
-                          if (data.success) { setContributeSent(true); setContForm({ partDescription: "", application: "", name: "", email: "" }); }
+                          if (data.success) {
+                            setContributeSent(true);
+                            setContForm({ partDescription: "", application: "", name: "", email: "", phone: "", company: "", segment: "", make: "", model: "", year: "", condition: "", partNumber: "" });
+                            setContPhotos([]);
+                          }
                         } catch { /* ignore */ }
                         finally { setContSubmitting(false); }
                       }}
