@@ -509,7 +509,6 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
   const [materials, setMaterials] = useState<Array<{ code: string; name: string; processes: string[] }>>([]);
   const [materialsLoaded, setMaterialsLoaded] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState("");
-  const [selectedProcess, setSelectedProcess] = useState("");
 
   const variant = part.variants.length > 0 ? part.variants[activeTier] : null;
   const hasVariants = part.variants.length > 0;
@@ -550,7 +549,6 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
       if (data.success && data.materials.length > 0) {
         setMaterials(data.materials);
         setSelectedMaterial(data.materials[0].code);
-        if (data.materials[0].processes.length > 0) setSelectedProcess(data.materials[0].processes[0]);
       }
     } catch { /* ignore */ }
     setMaterialsLoaded(true);
@@ -584,7 +582,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
       partId: part.id, partName: part.name, variantId: customMode ? null : (variant?.id || null),
       tier: customMode ? "custom" : (variant?.tier || null),
       material: customMode ? (mat?.name || selectedMaterial) : (variant?.material || part.estimate?.material || "Default"),
-      process: customMode ? selectedProcess : (variant?.process || "TBD"), quantity: qty,
+      process: customMode ? "CNC_3AXIS" : (variant?.process || "TBD"), quantity: qty,
       unitPrice: quote.unitPrice, totalPrice: quote.totalPrice,
       leadTimeDays: quote.leadTimeDays, isEstimate: quote.priceStatus !== "firm",
       quoteId: quote.quoteId || null, quoteSource: quote.source,
@@ -735,39 +733,21 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
               {customMode && (
                 <div className="mt-2 p-4 bg-charcoal-950/40 rounded-xl border border-amber-500/15 space-y-3">
                   {materials.length > 0 ? (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-1 block">Material</label>
-                          <select
-                            value={selectedMaterial}
-                            onChange={(e) => {
-                              setSelectedMaterial(e.target.value);
-                              const m = materials.find((x) => x.code === e.target.value);
-                              if (m?.processes[0]) setSelectedProcess(m.processes[0]);
-                              setQuote(null); setAddedToCart(false);
-                            }}
-                            className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-3 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-amber-500/40"
-                          >
-                            {materials.map((m) => (
-                              <option key={m.code} value={m.code}>{m.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-1 block">Process</label>
-                          <select
-                            value={selectedProcess}
-                            onChange={(e) => { setSelectedProcess(e.target.value); setQuote(null); setAddedToCart(false); }}
-                            className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-3 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-amber-500/40"
-                          >
-                            {(materials.find((m) => m.code === selectedMaterial)?.processes || []).map((p) => (
-                              <option key={p} value={p}>{p}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </>
+                    <div>
+                      <label className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-1 block">Material</label>
+                      <select
+                        value={selectedMaterial}
+                        onChange={(e) => {
+                          setSelectedMaterial(e.target.value);
+                          setQuote(null); setAddedToCart(false);
+                        }}
+                        className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-3 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+                      >
+                        {materials.map((m) => (
+                          <option key={m.code} value={m.code}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   ) : materialsLoaded ? (
                     <p className="text-xs text-charcoal-500 text-center py-2">Materials unavailable — try again later.</p>
                   ) : (
