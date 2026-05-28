@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { isCachedPriceStale, type PriceStatus } from "@/lib/autoquote/client";
 
 export const runtime = "nodejs";
 
@@ -110,20 +111,33 @@ export async function GET(request: NextRequest) {
       url ? `/api/files?url=${encodeURIComponent(url)}` : null;
 
     const result = parts.map((p) => {
+      const partEstimatePrice = p.last_estimate_price as string | null;
+
       const pvariants = (variantsByPart[p.id as string] || []).map((v) => {
         const lastQuotedAt = v.last_quoted_at ? new Date(v.last_quoted_at as string) : null;
         const expiresAt = v.last_quote_expires_at ? new Date(v.last_quote_expires_at as string) : null;
-        const isStale = !lastQuotedAt || (Date.now() - lastQuotedAt.getTime() > 30 * 24 * 60 * 60 * 1000);
+        const isStale = isCachedPriceStale(lastQuotedAt);
         const isExpired = expiresAt ? expiresAt <= new Date() : false;
+        const hasFreshQuote = !isStale && !isExpired && !!v.last_quoted_price;
+        const quotable = !!v.autoquote_material_code;
+
+        // Resolve price through the fallback chain once, server-side
+        const resolvedPrice = hasFreshQuote
+          ? (v.last_quoted_price as string)
+          : (v.base_price as string | null) || partEstimatePrice || null;
+
+        let pricingStatus: PriceStatus;
+        if (hasFreshQuote) pricingStatus = "firm";
+        else if (resolvedPrice) pricingStatus = "estimate";
+        else if (quotable) pricingStatus = "unavailable";
+        else pricingStatus = "unavailable";
 
         const { autoquote_material_code, ...vPublic } = v;
         return {
           ...vPublic,
-          displayPrice: (!isStale && !isExpired && v.last_quoted_price)
-            ? v.last_quoted_price
-            : v.base_price || null,
-          priceIsEstimate: isStale || isExpired || !v.last_quoted_price,
-          canQuote: !!autoquote_material_code,
+          resolvedPrice,
+          pricingStatus,
+          quotable: quotable || undefined,
         };
       });
 
@@ -140,10 +154,9 @@ export async function GET(request: NextRequest) {
         return { id: f.id, file_type: f.file_type, file_name: f.file_name, file_url: url, thumbnail_url: thumbUrl, is_step_file: f.is_step_file, show_in_catalog: f.show_in_catalog, tier: f.tier || null };
       }).filter((f) => f.file_url !== null);
 
-      const estimateAge = p.last_estimate_at
-        ? Date.now() - new Date(p.last_estimate_at as string).getTime()
-        : null;
-      const estimateStale = !estimateAge || estimateAge > 30 * 24 * 60 * 60 * 1000;
+      const estimateStale = isCachedPriceStale(
+        p.last_estimate_at ? new Date(p.last_estimate_at as string) : null
+      );
 
       return {
         ...p,

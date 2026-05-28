@@ -66,6 +66,8 @@ function getPhotosForTier<T extends { tier: string | null }>(allPhotos: T[], tie
   return defaultPhotos.length > 0 ? defaultPhotos : allPhotos;
 }
 
+type PriceStatus = "firm" | "estimate" | "stale" | "needs_review" | "unavailable";
+
 interface Variant {
   id: string;
   tier: string;
@@ -74,9 +76,9 @@ interface Variant {
   base_price: string | null;
   lead_time_days: number | null;
   available: boolean;
-  displayPrice: string | null;
-  priceIsEstimate: boolean;
-  canQuote: boolean;
+  resolvedPrice: string | null;
+  pricingStatus: PriceStatus;
+  quotable?: boolean;
 }
 
 interface CatalogPart {
@@ -113,14 +115,14 @@ interface CatalogPart {
 }
 
 interface CartQuote {
-  variantId: string;
+  variantId: string | null;
+  quoteId: string | null;
   unitPrice: string | null;
   totalPrice: string | null;
   leadTimeDays: number | null;
-  isEstimate: boolean;
+  priceStatus: PriceStatus;
   source: string;
   message?: string;
-  quoteId?: string;
 }
 
 /* ─── Part Card ─── */
@@ -135,72 +137,31 @@ function PartCard({ part }: { part: CatalogPart }) {
   const variant = part.variants[activeTier] || null;
   const hasVariants = part.variants.length > 0;
 
-  const handleAddToCart = async () => {
+  const handleGetPrice = async () => {
     setQuoting(true);
     setQuote(null);
     try {
-      let data;
-      if (variant) {
-        const res = await fetch("/api/cart/quote", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ variantId: variant.id, quantity: qty }),
-        });
-        data = await res.json();
-        if (data.success && data.quote?.unitPrice) {
-          setQuote(data.quote);
-        } else {
-          const fp = variant.base_price || part.estimate?.price || null;
-          setQuote({
-            variantId: variant.id,
-            unitPrice: fp,
-            totalPrice: fp ? (parseFloat(fp) * qty).toFixed(2) : null,
-            leadTimeDays: variant.lead_time_days,
-            isEstimate: true,
-            source: "estimate",
-            message: fp ? "Estimate — final price confirmed after review." : undefined,
-          });
-        }
-      } else if (part.hasStepFile) {
-        const res = await fetch("/api/cart/estimate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ partId: part.id, quantity: qty }),
-        });
-        data = await res.json();
-        if (data.success && data.estimate?.unitPrice) {
-          setQuote({
-            variantId: "",
-            unitPrice: data.estimate.unitPrice,
-            totalPrice: data.estimate.totalPrice || data.estimate.unitPrice,
-            leadTimeDays: data.estimate.leadTimeDays || null,
-            isEstimate: true,
-            source: data.estimate.source || "autoquote",
-            message: data.estimate.message,
-          });
-        } else if (part.estimate) {
-          setQuote({
-            variantId: "",
-            unitPrice: part.estimate.price,
-            totalPrice: (parseFloat(part.estimate.price) * qty).toFixed(2),
-            leadTimeDays: null,
-            isEstimate: true,
-            source: "cached_estimate",
-            message: "Showing cached estimate.",
-          });
-        }
-      }
+      const res = await fetch("/api/cart/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          variantId: variant?.id || undefined,
+          partId: variant ? undefined : part.id,
+          quantity: qty,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) setQuote(data.quote);
     } catch {
-      const fallbackPrice = variant?.base_price || part.estimate?.price || null;
-      if (fallbackPrice) {
+      // Network error — show pre-loaded price from catalog
+      const fp = variant?.resolvedPrice || part.estimate?.price || null;
+      if (fp) {
         setQuote({
-          variantId: variant?.id || "",
-          unitPrice: fallbackPrice,
-          totalPrice: (parseFloat(fallbackPrice) * qty).toFixed(2),
+          variantId: variant?.id || null, quoteId: null,
+          unitPrice: fp, totalPrice: (parseFloat(fp) * qty).toFixed(2),
           leadTimeDays: variant?.lead_time_days || null,
-          isEstimate: true,
-          source: "error",
-          message: "Could not reach pricing service. Showing estimate.",
+          priceStatus: "estimate", source: "network_error",
+          message: "Could not reach pricing service.",
         });
       }
     } finally {
@@ -375,7 +336,7 @@ function PartCard({ part }: { part: CatalogPart }) {
                     </div>
                   </div>
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
+                    onClick={(e) => { e.stopPropagation(); handleGetPrice(); }}
                     disabled={quoting}
                     className="text-[10px] text-charcoal-500 hover:text-emerald-400 transition-colors"
                   >
@@ -384,7 +345,7 @@ function PartCard({ part }: { part: CatalogPart }) {
                 </div>
               ) : part.hasStepFile && !quote ? (
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
+                  onClick={(e) => { e.stopPropagation(); handleGetPrice(); }}
                   disabled={quoting}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[11px] rounded transition-all uppercase tracking-wider shadow-lg shadow-emerald-500/10 disabled:opacity-50"
                 >
@@ -399,7 +360,7 @@ function PartCard({ part }: { part: CatalogPart }) {
                 </a>
               ) : null}
               {quote && (
-                <div className={`mt-3 rounded-lg p-3 ${quote.isEstimate ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
+                <div className={`mt-3 rounded-lg p-3 ${quote.priceStatus !== "firm" ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
                   {quote.unitPrice ? (
                     <p className="text-lg font-bold text-white">${quote.totalPrice}</p>
                   ) : (
@@ -412,14 +373,14 @@ function PartCard({ part }: { part: CatalogPart }) {
           ) : !quote ? (
             <div className="flex items-end justify-between">
               <div>
-                {variant.displayPrice ? (
+                {variant.resolvedPrice ? (
                   <>
                     <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">
-                      {variant.priceIsEstimate ? "Est. from" : "Price"}
+                      {variant.pricingStatus !== "firm" ? "Est. from" : "Price"}
                     </span>
-                    <p className="text-lg font-bold text-white">${variant.displayPrice}</p>
+                    <p className="text-lg font-bold text-white">${variant.resolvedPrice}</p>
                   </>
-                ) : variant.canQuote ? (
+                ) : variant.quotable ? (
                   <span className="text-xs text-charcoal-400">Click to get price for {variant.material}</span>
                 ) : (
                   <span className="text-xs text-charcoal-500">Contact for pricing</span>
@@ -433,8 +394,8 @@ function PartCard({ part }: { part: CatalogPart }) {
                   onClick={(e) => e.stopPropagation()}
                 />
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
-                  disabled={quoting || (!variant.displayPrice && !variant.canQuote)}
+                  onClick={(e) => { e.stopPropagation(); handleGetPrice(); }}
+                  disabled={quoting || (!variant.resolvedPrice && !variant.quotable)}
                   className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[11px] rounded transition-all uppercase tracking-wider shadow-lg shadow-emerald-500/10 disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {quoting ? (
@@ -442,7 +403,7 @@ function PartCard({ part }: { part: CatalogPart }) {
                       <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                       Quoting...
                     </>
-                  ) : variant.displayPrice ? (
+                  ) : variant.resolvedPrice ? (
                     "Add to Cart"
                   ) : (
                     "Get Price"
@@ -453,11 +414,11 @@ function PartCard({ part }: { part: CatalogPart }) {
           ) : (
             <div className="space-y-3">
               {/* Live quote result */}
-              <div className={`rounded-lg p-3 ${quote.isEstimate ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
+              <div className={`rounded-lg p-3 ${quote.priceStatus !== "firm" ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
                 <div className="flex items-end justify-between mb-2">
                   <div>
                     <span className="text-[9px] uppercase tracking-wider text-charcoal-500">
-                      {quote.isEstimate ? "Estimated price" : "Quoted price"}
+                      {quote.priceStatus !== "firm" ? "Estimated price" : "Quoted price"}
                     </span>
                     {quote.unitPrice ? (
                       <p className="text-xl font-bold text-white">
@@ -479,7 +440,7 @@ function PartCard({ part }: { part: CatalogPart }) {
                   <p className="text-[11px] text-charcoal-400 leading-relaxed">{quote.message}</p>
                 )}
 
-                {!quote.isEstimate && (
+                {quote.priceStatus === "firm" && (
                   <p className="text-[10px] text-emerald-400/70 mt-1">
                     Live price from AutoQuote • {quote.source === "autoquote_cached" ? "Cached" : "Fresh"}
                   </p>
@@ -502,7 +463,7 @@ function PartCard({ part }: { part: CatalogPart }) {
                         unitPrice: quote.unitPrice,
                         totalPrice: quote.totalPrice,
                         leadTimeDays: quote.leadTimeDays,
-                        isEstimate: quote.isEstimate,
+                        isEstimate: quote.priceStatus !== "firm",
                         quoteId: quote.quoteId || null,
                         quoteSource: quote.source,
                       });
@@ -553,45 +514,25 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
   const handleQuote = async () => {
     setQuoting(true); setQuote(null);
     try {
-      if (variant) {
-        const res = await fetch("/api/cart/quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ variantId: variant.id, quantity: qty }) });
-        const data = await res.json();
-        if (data.success && data.quote?.unitPrice) {
-          setQuote(data.quote);
-        } else {
-          const fp = variant.base_price || part.estimate?.price || null;
-          setQuote({
-            variantId: variant.id, unitPrice: fp,
-            totalPrice: fp ? (parseFloat(fp) * qty).toFixed(2) : null,
-            leadTimeDays: variant.lead_time_days, isEstimate: true, source: "estimate",
-            message: fp ? "Estimate — final price confirmed after review." : undefined,
-          });
-        }
-      } else if (part.hasStepFile) {
-        const res = await fetch("/api/cart/estimate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ partId: part.id, quantity: qty }) });
-        const data = await res.json();
-        if (data.success && data.estimate?.unitPrice) {
-          setQuote({
-            variantId: "", unitPrice: data.estimate.unitPrice, totalPrice: data.estimate.totalPrice || data.estimate.unitPrice,
-            leadTimeDays: data.estimate.leadTimeDays || null, isEstimate: true, source: data.estimate.source || "autoquote", message: data.estimate.message,
-          });
-        } else if (part.estimate) {
-          setQuote({
-            variantId: "", unitPrice: part.estimate.price,
-            totalPrice: (parseFloat(part.estimate.price) * qty).toFixed(2),
-            leadTimeDays: null, isEstimate: true, source: "cached_estimate",
-            message: "Showing cached estimate.",
-          });
-        }
-      }
+      const res = await fetch("/api/cart/quote", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          variantId: variant?.id || undefined,
+          partId: variant ? undefined : part.id,
+          quantity: qty,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) setQuote(data.quote);
     } catch {
-      const fallbackPrice = variant?.base_price || part.estimate?.price || null;
-      if (fallbackPrice) {
+      const fp = variant?.resolvedPrice || part.estimate?.price || null;
+      if (fp) {
         setQuote({
-          variantId: variant?.id || "", unitPrice: fallbackPrice,
-          totalPrice: (parseFloat(fallbackPrice) * qty).toFixed(2),
-          leadTimeDays: variant?.lead_time_days || null, isEstimate: true, source: "error",
-          message: "Could not reach pricing service. Showing estimate.",
+          variantId: variant?.id || null, quoteId: null,
+          unitPrice: fp, totalPrice: (parseFloat(fp) * qty).toFixed(2),
+          leadTimeDays: variant?.lead_time_days || null,
+          priceStatus: "estimate", source: "network_error",
+          message: "Could not reach pricing service.",
         });
       }
     }
@@ -605,7 +546,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
       tier: variant?.tier || null, material: variant?.material || part.estimate?.material || "Default",
       process: variant?.process || "TBD", quantity: qty,
       unitPrice: quote.unitPrice, totalPrice: quote.totalPrice,
-      leadTimeDays: quote.leadTimeDays, isEstimate: quote.isEstimate,
+      leadTimeDays: quote.leadTimeDays, isEstimate: quote.priceStatus !== "firm",
       quoteId: quote.quoteId || null, quoteSource: quote.source,
     });
     setAddedToCart(true);
@@ -716,8 +657,8 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-bold text-white">{TIER_LABELS_FULL[v.tier] || v.tier}</span>
-                      <span className={`text-sm font-bold ${v.displayPrice ? "text-white" : "text-charcoal-500"}`}>
-                        {v.displayPrice ? (v.priceIsEstimate ? `est. $${v.displayPrice}` : `$${v.displayPrice}`) : v.canQuote ? "Get price" : "Contact us"}
+                      <span className={`text-sm font-bold ${v.resolvedPrice ? "text-white" : "text-charcoal-500"}`}>
+                        {v.resolvedPrice ? (v.pricingStatus !== "firm" ? `est. $${v.resolvedPrice}` : `$${v.resolvedPrice}`) : v.quotable ? "Get price" : "Contact us"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-charcoal-400">
@@ -739,18 +680,18 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                   const tierLabel = variant
                     ? `${TIER_LABELS_FULL[variant.tier] || variant.tier} — ${variant.material}`
                     : "Estimate";
-                  if (variant?.displayPrice) {
+                  if (variant?.resolvedPrice) {
                     return (
                       <>
                         <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">{tierLabel}</p>
                         <p className="text-2xl font-bold text-white mt-1">
-                          {variant.priceIsEstimate ? "est. " : ""}${variant.displayPrice}
+                          {variant.pricingStatus !== "firm" ? "est. " : ""}${variant.resolvedPrice}
                           <span className="text-xs text-charcoal-500 font-normal ml-1">/ unit</span>
                         </p>
                       </>
                     );
                   }
-                  if (variant?.canQuote) {
+                  if (variant?.quotable) {
                     return (
                       <>
                         <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">{tierLabel}</p>
@@ -780,7 +721,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
 
             {/* Quote result */}
             {quote && (
-              <div className={`rounded-lg p-3 mb-4 ${quote.isEstimate ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
+              <div className={`rounded-lg p-3 mb-4 ${quote.priceStatus !== "firm" ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
                 {quote.unitPrice ? (
                   <p className="text-lg font-bold text-white">${quote.totalPrice} <span className="text-xs text-charcoal-400 font-normal">(${quote.unitPrice} × {qty})</span></p>
                 ) : (

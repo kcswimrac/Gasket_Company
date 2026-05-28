@@ -14,7 +14,7 @@ export interface CartItem {
   unitPrice: string | null;
   totalPrice: string | null;
   leadTimeDays: number | null;
-  isEstimate: boolean;
+  isEstimate: boolean; // true for any non-firm price
   quoteId: string | null;
   quoteSource: string;
   addedAt: string;

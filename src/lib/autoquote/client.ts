@@ -3,6 +3,7 @@ import type {
   QuoteSubmitResponse,
   QuoteResponse,
 } from "./types";
+import type { NeonQueryFunction } from "@neondatabase/serverless";
 
 function getConfig() {
   const baseUrl = process.env.AUTOQUOTE_BASE_URL;
@@ -178,4 +179,107 @@ export async function quoteAndWait(params: {
   throw new Error(
     `AutoQuote timeout: quote ${quote_id} still DRAFT after ${maxWait}ms`
   );
+}
+
+/* ─── Shared helpers used by API routes ─── */
+
+/** Fetch a file from Vercel Blob private storage, retrying auth strategies */
+export async function fetchBlob(url: string): Promise<Blob> {
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+  let res = await fetch(url, {
+    headers: blobToken ? { Authorization: `Bearer ${blobToken}` } : {},
+  });
+  if (!res.ok && blobToken) {
+    res = await fetch(`${url}?token=${blobToken}`);
+  }
+  if (!res.ok) {
+    res = await fetch(url);
+  }
+  if (!res.ok) throw new Error("Failed to fetch file from blob storage");
+  return res.blob();
+}
+
+/** Look up the CAD (STEP) file URL for a part — parts.cad_file_url, then part_files */
+export async function findCadUrl(
+  sql: NeonQueryFunction<false, false>,
+  partId: string,
+  directUrl: string | null
+): Promise<string | null> {
+  if (directUrl) return directUrl;
+  const rows = await sql`
+    SELECT file_url FROM part_files
+    WHERE part_id = ${partId} AND (is_step_file = true OR file_type = 'cad_step')
+    ORDER BY uploaded_at DESC LIMIT 1
+  `;
+  return rows.length > 0 ? (rows[0].file_url as string) : null;
+}
+
+/** Price status values — a unified enum for catalog + quote APIs */
+export type PriceStatus =
+  | "firm"
+  | "estimate"
+  | "stale"
+  | "needs_review"
+  | "unavailable";
+
+/** Standard quote result shape returned to the client */
+export interface QuoteResult {
+  variantId: string | null;
+  quoteId: string | null;
+  unitPrice: string | null;
+  totalPrice: string | null;
+  leadTimeDays: number | null;
+  priceStatus: PriceStatus;
+  source: string;
+  message?: string;
+}
+
+/** Extract price from a terminal AutoQuote response */
+export function extractPrice(
+  quote: QuoteResponse
+): { price: string; hasPrice: true } | { price: null; hasPrice: false } {
+  const p = quote.unit_price_usd || quote.total_price_usd;
+  if (p && p !== "0" && p !== "0.00") return { price: p, hasPrice: true };
+  return { price: null, hasPrice: false };
+}
+
+/** Determine PriceStatus from an AutoQuote terminal response */
+export function quoteStatus(quote: QuoteResponse): PriceStatus {
+  const { hasPrice } = extractPrice(quote);
+  if (!hasPrice) return "unavailable";
+  if (quote.status === "OFFERED" && quote.buyable) return "firm";
+  return "needs_review";
+}
+
+/** Build a QuoteResult from a terminal AutoQuote response + fallback info */
+export function buildQuoteResult(
+  quote: QuoteResponse,
+  opts: { variantId: string | null; quantity: number; fallbackPrice: string | null; fallbackLeadDays: number | null }
+): QuoteResult {
+  const { price, hasPrice } = extractPrice(quote);
+  const status = quoteStatus(quote);
+
+  if (hasPrice) {
+    return {
+      variantId: opts.variantId,
+      quoteId: quote.id,
+      unitPrice: price,
+      totalPrice: quote.total_price_usd || (parseFloat(price!) * opts.quantity).toFixed(2),
+      leadTimeDays: quote.lead_time_days,
+      priceStatus: status,
+      source: status === "firm" ? "autoquote_live" : "autoquote_review",
+      message: status === "needs_review" ? "Estimate — final price confirmed after review." : undefined,
+    };
+  }
+
+  return {
+    variantId: opts.variantId,
+    quoteId: null,
+    unitPrice: opts.fallbackPrice,
+    totalPrice: opts.fallbackPrice ? (parseFloat(opts.fallbackPrice) * opts.quantity).toFixed(2) : null,
+    leadTimeDays: opts.fallbackLeadDays,
+    priceStatus: "unavailable",
+    source: quote.status.toLowerCase(),
+    message: `This part needs manual review (${quote.status}). We'll follow up within 24 hours.`,
+  };
 }

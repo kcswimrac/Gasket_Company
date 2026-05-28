@@ -1,175 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-function getSQL() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL not set");
-  return neon(url);
-}
-
 /**
- * POST /api/cart/estimate
- * Get an estimate for a part that has a STEP file but no variants yet.
- * Submits the STEP file to AutoQuote with a default material.
- * Stores the result on the part for future display.
+ * POST /api/cart/estimate — thin wrapper around /api/cart/quote for
+ * backward compatibility. Translates { quote } → { estimate } shape.
  */
 export async function POST(request: NextRequest) {
   try {
-    const sql = getSQL();
     const { partId, material, quantity = 1 } = await request.json();
 
-    if (!partId) {
-      return NextResponse.json({ success: false, error: "partId required" }, { status: 400 });
+    const quoteRes = await fetch(new URL("/api/cart/quote", request.url), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ partId, material, quantity }),
+    });
+    const data = await quoteRes.json();
+
+    if (!data.success) {
+      return NextResponse.json(data, { status: quoteRes.status });
     }
 
-    const parts = await sql`SELECT id, name, cad_file_url FROM parts WHERE id = ${partId}`;
-    if (parts.length === 0) {
-      return NextResponse.json({ success: false, error: "Part not found" }, { status: 404 });
-    }
-
-    const part = parts[0];
-
-    // Find CAD file URL — check parts.cad_file_url first, then part_files
-    let cadUrl = part.cad_file_url as string | null;
-    if (!cadUrl) {
-      const cadFiles = await sql`
-        SELECT file_url FROM part_files
-        WHERE part_id = ${partId} AND (is_step_file = true OR file_type = 'cad_step')
-        ORDER BY uploaded_at DESC LIMIT 1
-      `;
-      if (cadFiles.length > 0) cadUrl = cadFiles[0].file_url as string;
-    }
-
-    if (!cadUrl) {
-      return NextResponse.json({
-        success: true,
-        estimate: { unitPrice: null, message: "No CAD file attached. Contact us for pricing." },
-      });
-    }
-
-    const baseUrl = process.env.AUTOQUOTE_BASE_URL?.replace(/\/$/, "");
-    const token = process.env.AUTOQUOTE_BRIDGE_TOKEN;
-
-    if (!baseUrl || !token) {
-      return NextResponse.json({
-        success: true,
-        estimate: { unitPrice: null, message: "Pricing service not configured. Contact us for a quote." },
-      });
-    }
-
-    // Use AL_6061 as default material if none specified
-    const materialCode = material || "AL_6061";
-
-    try {
-      // Fetch the CAD file from private blob storage with auth
-      const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-      let cadRes = await fetch(cadUrl, {
-        headers: blobToken ? { Authorization: `Bearer ${blobToken}` } : {},
-      });
-
-      // Try with token as query param if header auth fails
-      if (!cadRes.ok && blobToken) {
-        cadRes = await fetch(`${cadUrl}?token=${blobToken}`);
-      }
-
-      // Last resort: direct fetch (works if URL is pre-signed or public)
-      if (!cadRes.ok) {
-        cadRes = await fetch(cadUrl);
-      }
-
-      if (!cadRes.ok) throw new Error("Failed to fetch CAD file from storage");
-      const cadBlob = await cadRes.blob();
-      const fileName = cadUrl.split("/").pop()?.split("?")[0] || "part.step";
-
-      const formData = new FormData();
-      formData.append("file", cadBlob, fileName);
-      formData.append("material", materialCode);
-      formData.append("quantity", String(quantity));
-
-      const submitRes = await fetch(`${baseUrl}/bridge/quote-from-file`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-
-      if (!submitRes.ok) {
-        const err = await submitRes.json().catch(() => ({ detail: submitRes.statusText }));
-        throw new Error(err.detail);
-      }
-
-      const { quote_id } = await submitRes.json();
-
-      // Poll
-      const deadline = Date.now() + 60_000;
-      const terminal = new Set(["OFFERED", "REJECTED", "NEEDS_REVIEW", "EXPIRED"]);
-
-      while (Date.now() < deadline) {
-        const pollRes = await fetch(`${baseUrl}/bridge/quote/${quote_id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!pollRes.ok) throw new Error("Poll failed");
-        const quote = await pollRes.json();
-
-        if (terminal.has(quote.status)) {
-          // Always show price if available, regardless of status or buyable flag
-          const price = quote.unit_price_usd || quote.total_price_usd;
-
-          if (price && price !== "0" && price !== "0.00") {
-            // Store estimate on the part for catalog display
-            await sql`
-              UPDATE parts SET
-                last_estimate_price = ${quote.unit_price_usd || price},
-                last_estimate_at = NOW(),
-                last_estimate_material = ${materialCode},
-                updated_at = NOW()
-              WHERE id = ${partId}
-            `;
-
-            const needsReview = !quote.buyable || quote.status === "NEEDS_REVIEW" || quote.status === "REJECTED";
-            return NextResponse.json({
-              success: true,
-              estimate: {
-                unitPrice: quote.unit_price_usd || price,
-                totalPrice: quote.total_price_usd || price,
-                leadTimeDays: quote.lead_time_days,
-                material: materialCode,
-                source: needsReview ? "autoquote_review" : "autoquote",
-                message: needsReview ? "Estimate — final price confirmed after review." : undefined,
-              },
-            });
-          }
-
-          // Genuinely no price in the response
-          return NextResponse.json({
-            success: true,
-            estimate: {
-              unitPrice: null,
-              message: `This part needs manual review (${quote.status}). We'll follow up within 24 hours.`,
-              source: quote.status.toLowerCase(),
-            },
-          });
-        }
-
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-
-      return NextResponse.json({
-        success: true,
-        estimate: { unitPrice: null, message: "Quote is processing. We'll email you when ready.", source: "timeout" },
-      });
-    } catch (e) {
-      return NextResponse.json({
-        success: true,
-        estimate: {
-          unitPrice: null,
-          message: `Pricing unavailable: ${e instanceof Error ? e.message : "unknown error"}`,
-          source: "error",
-        },
-      });
-    }
+    const q = data.quote;
+    return NextResponse.json({
+      success: true,
+      estimate: {
+        unitPrice: q.unitPrice,
+        totalPrice: q.totalPrice,
+        leadTimeDays: q.leadTimeDays,
+        material: material || "AL_6061",
+        source: q.source,
+        message: q.message,
+      },
+    });
   } catch (e) {
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },
