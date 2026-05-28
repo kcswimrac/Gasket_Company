@@ -34,6 +34,7 @@ interface Variant {
   available: boolean;
   displayPrice: string | null;
   priceIsEstimate: boolean;
+  canQuote: boolean;
 }
 
 interface CatalogPart {
@@ -402,15 +403,10 @@ function PartCard({ part }: { part: CatalogPart }) {
                     </span>
                     <p className="text-lg font-bold text-white">${variant.displayPrice}</p>
                   </>
-                ) : part.estimate ? (
-                  <>
-                    <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">
-                      Est. from
-                    </span>
-                    <p className="text-lg font-bold text-white">${part.estimate.price}</p>
-                  </>
+                ) : variant.canQuote ? (
+                  <span className="text-xs text-charcoal-400">Click to get price for {variant.material}</span>
                 ) : (
-                  <span className="text-xs text-charcoal-500">Get estimate</span>
+                  <span className="text-xs text-charcoal-500">Contact for pricing</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -422,7 +418,7 @@ function PartCard({ part }: { part: CatalogPart }) {
                 />
                 <button
                   onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
-                  disabled={quoting}
+                  disabled={quoting || (!variant.displayPrice && !variant.canQuote)}
                   className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[11px] rounded transition-all uppercase tracking-wider shadow-lg shadow-emerald-500/10 disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {quoting ? (
@@ -430,8 +426,10 @@ function PartCard({ part }: { part: CatalogPart }) {
                       <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                       Quoting...
                     </>
-                  ) : (
+                  ) : variant.displayPrice ? (
                     "Add to Cart"
+                  ) : (
+                    "Get Price"
                   )}
                 </button>
               </div>
@@ -721,8 +719,8 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-bold text-white">{v.tier === "fitment_check" ? "3D Test-Fit" : v.tier === "oem" ? "OEM Spec" : v.tier === "improved" ? "Improved" : "Custom"}</span>
-                      <span className="text-sm font-bold text-white">
-                        {v.displayPrice ? (v.priceIsEstimate ? `est. $${v.displayPrice}` : `$${v.displayPrice}`) : part.estimate ? `est. $${part.estimate.price}` : "Get quote"}
+                      <span className={`text-sm font-bold ${v.displayPrice ? "text-white" : "text-charcoal-500"}`}>
+                        {v.displayPrice ? (v.priceIsEstimate ? `est. $${v.displayPrice}` : `$${v.displayPrice}`) : v.canQuote ? "Get price" : "Contact us"}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-charcoal-400">
@@ -741,21 +739,40 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
             <div className="flex items-end justify-between mb-4">
               <div>
                 {(() => {
-                  const showPrice = variant?.displayPrice || part.estimate?.price || null;
                   const tierLabel = variant
                     ? `${variant.tier === "oem" ? "OEM Spec" : variant.tier === "improved" ? "Improved" : variant.tier === "fitment_check" ? "3D Fit" : variant.tier} — ${variant.material}`
-                    : part.estimate?.material ? `Estimate — ${part.estimate.material}` : "Estimate";
-                  return showPrice ? (
-                    <>
-                      <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">{tierLabel}</p>
-                      <p className="text-2xl font-bold text-white mt-1">
-                        {(variant?.priceIsEstimate || !variant?.displayPrice) ? "est. " : ""}${showPrice}
-                        <span className="text-xs text-charcoal-500 font-normal ml-1">/ unit</span>
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-charcoal-400">Get a price estimate</p>
-                  );
+                    : "Estimate";
+                  if (variant?.displayPrice) {
+                    return (
+                      <>
+                        <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">{tierLabel}</p>
+                        <p className="text-2xl font-bold text-white mt-1">
+                          {variant.priceIsEstimate ? "est. " : ""}${variant.displayPrice}
+                          <span className="text-xs text-charcoal-500 font-normal ml-1">/ unit</span>
+                        </p>
+                      </>
+                    );
+                  }
+                  if (variant?.canQuote) {
+                    return (
+                      <>
+                        <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">{tierLabel}</p>
+                        <p className="text-sm text-charcoal-400 mt-1">Click &quot;Get Live Price&quot; to quote this material</p>
+                      </>
+                    );
+                  }
+                  if (!variant && part.estimate) {
+                    return (
+                      <>
+                        <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">Estimate{part.estimate.material ? ` — ${part.estimate.material}` : ""}</p>
+                        <p className="text-2xl font-bold text-white mt-1">
+                          est. ${part.estimate.price}
+                          <span className="text-xs text-charcoal-500 font-normal ml-1">/ unit</span>
+                        </p>
+                      </>
+                    );
+                  }
+                  return <p className="text-sm text-charcoal-400">Get a price estimate</p>;
                 })()}
               </div>
               <div className="flex items-center gap-2">

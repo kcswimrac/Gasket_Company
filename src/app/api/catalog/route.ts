@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       variants = await sql`
         SELECT id, part_id, tier, material, process, base_price,
                lead_time_days, available, last_quoted_price, last_quoted_at,
-               last_quote_expires_at
+               last_quote_expires_at, autoquote_material_code
         FROM part_variants
         WHERE part_id = ANY(${partIds})
         ORDER BY
@@ -116,12 +116,14 @@ export async function GET(request: NextRequest) {
         const isStale = !lastQuotedAt || (Date.now() - lastQuotedAt.getTime() > 30 * 24 * 60 * 60 * 1000);
         const isExpired = expiresAt ? expiresAt <= new Date() : true;
 
+        const { autoquote_material_code, ...vPublic } = v;
         return {
-          ...v,
+          ...vPublic,
           displayPrice: (!isStale && !isExpired && v.last_quoted_price)
             ? v.last_quoted_price
             : v.base_price || null,
           priceIsEstimate: isStale || isExpired || !v.last_quoted_price,
+          canQuote: !!autoquote_material_code,
         };
       });
 

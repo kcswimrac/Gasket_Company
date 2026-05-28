@@ -51,6 +51,17 @@ export async function POST(request: NextRequest) {
     const variant = variants[0];
     const { baseUrl, token } = getAQConfig();
 
+    // Find CAD file URL — check parts.cad_file_url first, then part_files
+    let cadFileUrl = variant.cad_file_url as string | null;
+    if (!cadFileUrl) {
+      const cadFiles = await sql`
+        SELECT file_url FROM part_files
+        WHERE part_id = ${variant.part_id} AND (is_step_file = true OR file_type = 'cad_step')
+        ORDER BY uploaded_at DESC LIMIT 1
+      `;
+      if (cadFiles.length > 0) cadFileUrl = cadFiles[0].file_url as string;
+    }
+
     // If AutoQuote not configured, return base price with estimate flag
     if (!baseUrl || !token) {
       return NextResponse.json({
@@ -102,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // No valid cache — try fresh quote if we have a CAD file
-    if (!variant.cad_file_url) {
+    if (!cadFileUrl) {
       return NextResponse.json({
         success: true,
         quote: {
@@ -135,7 +146,6 @@ export async function POST(request: NextRequest) {
 
     try {
       // Fetch the CAD file from private blob storage with auth
-      const cadFileUrl = variant.cad_file_url as string;
       const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
       let cadRes = await fetch(cadFileUrl, {
         headers: blobToken ? { Authorization: `Bearer ${blobToken}` } : {},
@@ -185,11 +195,14 @@ export async function POST(request: NextRequest) {
         const quote = await pollRes.json();
 
         if (terminalStatuses.has(quote.status)) {
-          // Cache the result
-          if (quote.status === "OFFERED" && quote.buyable && quote.unit_price_usd) {
+          const price = quote.unit_price_usd || quote.total_price_usd;
+          const hasPrice = price && price !== "0" && price !== "0.00";
+
+          // Store price on variant whenever we have one, regardless of status
+          if (hasPrice) {
             await sql`
               UPDATE part_variants SET
-                last_quoted_price = ${quote.unit_price_usd},
+                last_quoted_price = ${quote.unit_price_usd || price},
                 last_quoted_at = NOW(),
                 last_quote_id = ${quote.id},
                 last_quote_expires_at = ${quote.expires_at || null}
@@ -203,49 +216,36 @@ export async function POST(request: NextRequest) {
             VALUES (${variantId}, ${quote.id}, ${quote.status.toLowerCase()}, ${quote.unit_price_usd || null}, ${quote.total_price_usd || null}, ${quote.lead_time_days || null}, ${quote.confidence || null}, ${quote.buyable}, ${JSON.stringify(quote.dfm_issues || [])}, ${JSON.stringify(quote.cost_breakdown || {})}, ${JSON.stringify(quote.routing || [])}, ${variant.autoquote_material_code}, ${quantity}, ${quote.expires_at || null}, ${quote.quote_url || null})
           `;
 
-          if (quote.status === "OFFERED" && quote.buyable) {
+          if (hasPrice) {
+            const needsReview = !quote.buyable || quote.status === "NEEDS_REVIEW" || quote.status === "REJECTED";
             return NextResponse.json({
               success: true,
               quote: {
                 variantId,
                 quoteId: quote.id,
-                unitPrice: quote.unit_price_usd,
-                totalPrice: quote.total_price_usd,
+                unitPrice: quote.unit_price_usd || price,
+                totalPrice: quote.total_price_usd || (parseFloat(price) * quantity).toFixed(2),
                 leadTimeDays: quote.lead_time_days,
                 confidence: quote.confidence,
-                isEstimate: false,
-                source: "autoquote_live",
+                isEstimate: needsReview,
+                source: needsReview ? "autoquote_review" : "autoquote_live",
                 expiresAt: quote.expires_at,
+                message: needsReview ? "Estimate — final price confirmed after review." : undefined,
               },
             });
           }
 
-          if (quote.status === "NEEDS_REVIEW" || !quote.buyable) {
-            return NextResponse.json({
-              success: true,
-              quote: {
-                variantId,
-                unitPrice: variant.base_price || null,
-                totalPrice: variant.base_price ? (parseFloat(variant.base_price as string) * quantity).toFixed(2) : null,
-                leadTimeDays: null,
-                isEstimate: true,
-                source: "needs_review",
-                message: "This part needs manual review. We'll get back to you within 24 hours with a firm quote.",
-              },
-            });
-          }
-
-          // REJECTED or EXPIRED
+          // No price at all
           return NextResponse.json({
             success: true,
             quote: {
               variantId,
-              unitPrice: null,
-              totalPrice: null,
-              leadTimeDays: null,
+              unitPrice: variant.base_price || null,
+              totalPrice: variant.base_price ? (parseFloat(variant.base_price as string) * quantity).toFixed(2) : null,
+              leadTimeDays: variant.lead_time_days || null,
               isEstimate: true,
-              source: "rejected",
-              message: "Unable to auto-quote this part. Contact us directly for pricing.",
+              source: quote.status.toLowerCase(),
+              message: `This part needs manual review (${quote.status}). We'll follow up within 24 hours.`,
             },
           });
         }
