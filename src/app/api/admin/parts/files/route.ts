@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const sql = getSQL();
-    const { fileId, showInCatalog, displayOrder } = await request.json();
+    const { fileId, showInCatalog, displayOrder, tier } = await request.json();
     if (!fileId) return NextResponse.json({ success: false, error: "fileId required" }, { status: 400 });
 
     if (showInCatalog !== undefined) {
@@ -115,6 +115,9 @@ export async function PATCH(request: NextRequest) {
     }
     if (displayOrder !== undefined) {
       await sql`UPDATE part_files SET display_order = ${displayOrder} WHERE id = ${fileId}`;
+    }
+    if (tier !== undefined) {
+      await sql`UPDATE part_files SET tier = ${tier || null} WHERE id = ${fileId}`;
     }
 
     return NextResponse.json({ success: true });

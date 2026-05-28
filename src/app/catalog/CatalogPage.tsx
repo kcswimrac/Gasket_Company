@@ -65,6 +65,7 @@ interface CatalogPart {
     thumbnail_url: string | null;
     is_step_file: boolean;
     show_in_catalog: boolean;
+    tier: string | null;
   }>;
 }
 
@@ -149,7 +150,11 @@ function PartCard({ part }: { part: CatalogPart }) {
     custom: "Custom",
   };
 
-  const photos = part.files?.filter((f) => f.file_type.startsWith("photo") && f.show_in_catalog) || [];
+  const allPhotos = part.files?.filter((f) => f.file_type.startsWith("photo") && f.show_in_catalog) || [];
+  const activeTierName = variant?.tier || null;
+  const tierPhotos = activeTierName ? allPhotos.filter((f) => f.tier === activeTierName) : [];
+  const defaultPhotos = allPhotos.filter((f) => !f.tier);
+  const photos = tierPhotos.length > 0 ? tierPhotos : defaultPhotos.length > 0 ? defaultPhotos : allPhotos;
   const heroPhoto = photos[0];
 
   const photoChip = (fileType: string, fileName: string) => {
@@ -159,16 +164,32 @@ function PartCard({ part }: { part: CatalogPart }) {
     return { label: "Finished Part", color: "bg-emerald-500/80" };
   };
 
+  const tierChip = (tier: string | null) => {
+    if (!tier) return null;
+    const map: Record<string, { label: string; color: string }> = {
+      fitment_check: { label: "3D Fit", color: "bg-blue-500/80" },
+      oem: { label: "OEM", color: "bg-charcoal-600/90" },
+      improved: { label: "Improved", color: "bg-purple-500/80" },
+      custom: { label: "Custom", color: "bg-amber-500/80" },
+    };
+    return map[tier] || null;
+  };
+
   return (
     <div className="bg-charcoal-900/40 border border-charcoal-800/60 rounded-2xl overflow-hidden hover:border-emerald-500/12 transition-all group">
       {/* Photo or placeholder */}
       {heroPhoto ? (
         <div className="relative h-40 bg-charcoal-950 border-b border-charcoal-800/40 overflow-hidden">
           <img src={heroPhoto.thumbnail_url || heroPhoto.file_url} alt={part.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" loading="lazy" />
-          <div className="absolute top-2 left-2">
+          <div className="absolute top-2 left-2 flex gap-1">
             <span className={`${photoChip(heroPhoto.file_type, heroPhoto.file_name).color} text-white text-[8px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm`}>
               {photoChip(heroPhoto.file_type, heroPhoto.file_name).label}
             </span>
+            {tierChip(heroPhoto.tier) && (
+              <span className={`${tierChip(heroPhoto.tier)!.color} text-white text-[8px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm`}>
+                {tierChip(heroPhoto.tier)!.label}
+              </span>
+            )}
           </div>
           <div className="absolute top-2 right-2">
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border backdrop-blur-sm ${FITMENT_COLORS[part.fitment_status] || ""}`}>
@@ -449,7 +470,7 @@ function PartCard({ part }: { part: CatalogPart }) {
 
 /* ─── Part Detail Modal ─── */
 function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }) {
-  const photos = part.files?.filter((f) => f.file_type.startsWith("photo") && f.file_url) || [];
+  const allPhotos = part.files?.filter((f) => f.file_type.startsWith("photo") && f.file_url) || [];
   const [activeTier, setActiveTier] = useState(0);
   const [activePhoto, setActivePhoto] = useState(0);
   const [quoting, setQuoting] = useState(false);
@@ -461,11 +482,27 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
   const variant = part.variants.length > 0 ? part.variants[activeTier] : null;
   const hasVariants = part.variants.length > 0;
 
+  const activeTierName = variant?.tier || null;
+  const tierPhotos = activeTierName ? allPhotos.filter((f) => f.tier === activeTierName) : [];
+  const defaultPhotos = allPhotos.filter((f) => !f.tier);
+  const photos = tierPhotos.length > 0 ? tierPhotos : defaultPhotos.length > 0 ? defaultPhotos : allPhotos;
+
   const chipLabel = (fileType: string, fileName: string) => {
     if (fileName.startsWith("preview_")) return { label: "CAD Render", color: "bg-blue-500/80" };
     if (fileType === "photo_donor") return { label: "Original Part", color: "bg-gold-500/80" };
     if (fileType === "photo_mockup") return { label: "3D Print Mockup", color: "bg-copper-500/80" };
     return { label: "Finished Part", color: "bg-emerald-500/80" };
+  };
+
+  const tierChip = (tier: string | null) => {
+    if (!tier) return null;
+    const map: Record<string, { label: string; color: string }> = {
+      fitment_check: { label: "3D Fit", color: "bg-blue-500/80" },
+      oem: { label: "OEM", color: "bg-charcoal-600/90" },
+      improved: { label: "Improved", color: "bg-purple-500/80" },
+      custom: { label: "Custom", color: "bg-amber-500/80" },
+    };
+    return map[tier] || null;
   };
 
   const handleQuote = async () => {
@@ -533,22 +570,47 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
             <div>
               {/* Main photo */}
               <div className="relative">
-                <img src={photos[activePhoto]?.file_url || photos[0].file_url} alt={part.name} className="w-full rounded-lg object-cover max-h-80" />
-                <span className={`absolute top-2 left-2 ${chipLabel(photos[activePhoto]?.file_type || photos[0].file_type, photos[activePhoto]?.file_name || photos[0].file_name).color} text-white text-[9px] font-semibold px-2 py-0.5 rounded backdrop-blur-sm`}>
-                  {chipLabel(photos[activePhoto]?.file_type || photos[0].file_type, photos[activePhoto]?.file_name || photos[0].file_name).label}
-                </span>
+                {(() => {
+                  const p = photos[activePhoto] || photos[0];
+                  const tc = tierChip(p.tier);
+                  return (
+                    <>
+                      <img src={p.file_url} alt={part.name} className="w-full rounded-lg object-cover max-h-80" />
+                      <div className="absolute top-2 left-2 flex gap-1">
+                        <span className={`${chipLabel(p.file_type, p.file_name).color} text-white text-[9px] font-semibold px-2 py-0.5 rounded backdrop-blur-sm`}>
+                          {chipLabel(p.file_type, p.file_name).label}
+                        </span>
+                        {tc && (
+                          <span className={`${tc.color} text-white text-[9px] font-semibold px-2 py-0.5 rounded backdrop-blur-sm`}>
+                            {tc.label}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
               {/* Thumbnails */}
               {photos.length > 1 && (
                 <div className="flex gap-1.5 overflow-x-auto mt-2">
-                  {photos.map((f, i) => (
-                    <button key={f.id} onClick={() => setActivePhoto(i)} className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-colors ${activePhoto === i ? "border-emerald-500" : "border-transparent hover:border-charcoal-600"}`}>
-                      <img src={f.thumbnail_url || f.file_url!} alt="" className="w-16 h-16 object-cover" loading="lazy" />
-                      <span className={`absolute bottom-0 left-0 right-0 ${chipLabel(f.file_type, f.file_name).color} text-white text-[7px] font-semibold text-center py-px`}>
-                        {chipLabel(f.file_type, f.file_name).label}
-                      </span>
-                    </button>
-                  ))}
+                  {photos.map((f, i) => {
+                    const tc = tierChip(f.tier);
+                    return (
+                      <button key={f.id} onClick={() => setActivePhoto(i)} className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-colors ${activePhoto === i ? "border-emerald-500" : "border-transparent hover:border-charcoal-600"}`}>
+                        <img src={f.thumbnail_url || f.file_url!} alt="" className="w-16 h-16 object-cover" loading="lazy" />
+                        <div className="absolute bottom-0 left-0 right-0 flex">
+                          <span className={`flex-1 ${chipLabel(f.file_type, f.file_name).color} text-white text-[7px] font-semibold text-center py-px`}>
+                            {chipLabel(f.file_type, f.file_name).label}
+                          </span>
+                          {tc && (
+                            <span className={`${tc.color} text-white text-[7px] font-semibold text-center px-1 py-px`}>
+                              {tc.label}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -575,7 +637,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                 {part.variants.map((v, i) => (
                   <button
                     key={v.id}
-                    onClick={() => { setActiveTier(i); setQuote(null); setAddedToCart(false); }}
+                    onClick={() => { setActiveTier(i); setActivePhoto(0); setQuote(null); setAddedToCart(false); }}
                     className={`w-full text-left p-4 rounded-xl border transition-all ${activeTier === i ? "border-emerald-500/25 bg-emerald-500/3" : "border-charcoal-800/40 hover:border-charcoal-700/50"}`}
                   >
                     <div className="flex items-center justify-between mb-1">

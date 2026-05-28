@@ -29,6 +29,7 @@ interface PartFile {
   display_order: number;
   show_in_catalog: boolean;
   is_step_file: boolean;
+  tier: string | null;
   notes: string | null;
   uploaded_at: string;
 }
@@ -400,6 +401,20 @@ function PhotoManager({ files, onChanged }: { files: PartFile[]; onChanged: () =
               <span className="text-[8px] text-charcoal-600">#{f.display_order + 1}</span>
             </div>
           </div>
+
+          {/* Tier assignment */}
+          <select
+            value={f.tier || ""}
+            onChange={(e) => patchFile(f.id, { tier: e.target.value || null })}
+            className="bg-charcoal-950 border border-charcoal-700/50 rounded text-[9px] text-charcoal-300 px-1 py-0.5 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+            title="Assign to tier (blank = all tiers)"
+          >
+            <option value="">All tiers</option>
+            <option value="fitment_check">3D Fit</option>
+            <option value="oem">OEM</option>
+            <option value="improved">Improved</option>
+            <option value="custom">Custom</option>
+          </select>
 
           {/* Reorder */}
           <div className="flex flex-col gap-0.5">

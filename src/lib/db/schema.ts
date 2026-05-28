@@ -314,6 +314,7 @@ export const partFiles = pgTable("part_files", {
   showInCatalog: boolean("show_in_catalog").notNull().default(false),
   isStepFile: boolean("is_step_file").notNull().default(false),
   thumbnailUrl: text("thumbnail_url"),
+  tier: text("tier"),
   notes: text("notes"),
   uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
 });
