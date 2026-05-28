@@ -51,17 +51,6 @@ export async function POST(request: NextRequest) {
     const variant = variants[0];
     const { baseUrl, token } = getAQConfig();
 
-    // Find CAD file URL — check parts.cad_file_url first, then part_files
-    let cadFileUrl = variant.cad_file_url as string | null;
-    if (!cadFileUrl) {
-      const cadFiles = await sql`
-        SELECT file_url FROM part_files
-        WHERE part_id = ${variant.part_id} AND (is_step_file = true OR file_type = 'cad_step')
-        ORDER BY uploaded_at DESC LIMIT 1
-      `;
-      if (cadFiles.length > 0) cadFileUrl = cadFiles[0].file_url as string;
-    }
-
     // If AutoQuote not configured, return base price with estimate flag
     if (!baseUrl || !token) {
       return NextResponse.json({
@@ -112,7 +101,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // No valid cache — try fresh quote if we have a CAD file
+    // No valid cache — find the CAD file (parts.cad_file_url first, then part_files)
+    let cadFileUrl = variant.cad_file_url as string | null;
+    if (!cadFileUrl) {
+      const cadFiles = await sql`
+        SELECT file_url FROM part_files
+        WHERE part_id = ${variant.part_id} AND (is_step_file = true OR file_type = 'cad_step')
+        ORDER BY uploaded_at DESC LIMIT 1
+      `;
+      if (cadFiles.length > 0) cadFileUrl = cadFiles[0].file_url as string;
+    }
+
+    // Try fresh quote only if we have a CAD file
     if (!cadFileUrl) {
       return NextResponse.json({
         success: true,
