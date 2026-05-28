@@ -56,9 +56,8 @@ export async function POST(request: NextRequest) {
     }
 
     const sql = getSQL();
-    const stripe = getStripe();
     const hasEstimates = items.some((i) => i.isEstimate);
-    const allPriced = items.every((i) => i.unitPrice && parseFloat(i.unitPrice) > 0);
+    const allPriced = !hasEstimates && items.every((i) => i.unitPrice && parseFloat(i.unitPrice) > 0);
 
     // Find or create customer in our DB
     const existing = await sql`SELECT id FROM customers WHERE email = ${customer.email} LIMIT 1`;
@@ -109,6 +108,7 @@ export async function POST(request: NextRequest) {
 
     // If all items have firm prices, create Stripe Checkout Session
     if (allPriced) {
+      const stripe = getStripe();
       const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item) => ({
         price_data: {
           currency: "usd",
