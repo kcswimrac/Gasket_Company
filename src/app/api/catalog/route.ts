@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
         const lastQuotedAt = v.last_quoted_at ? new Date(v.last_quoted_at as string) : null;
         const expiresAt = v.last_quote_expires_at ? new Date(v.last_quote_expires_at as string) : null;
         const isStale = !lastQuotedAt || (Date.now() - lastQuotedAt.getTime() > 30 * 24 * 60 * 60 * 1000);
-        const isExpired = expiresAt ? expiresAt <= new Date() : true;
+        const isExpired = expiresAt ? expiresAt <= new Date() : false;
 
         const { autoquote_material_code, ...vPublic } = v;
         return {
