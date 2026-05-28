@@ -125,15 +125,27 @@ function PartCard({ part }: { part: CatalogPart }) {
         }
       }
     } catch {
-      setQuote({
-        variantId: variant.id,
-        unitPrice: variant.base_price,
-        totalPrice: variant.base_price ? (parseFloat(variant.base_price) * qty).toFixed(2) : null,
-        leadTimeDays: variant.lead_time_days,
-        isEstimate: true,
-        source: "error",
-        message: "Could not reach pricing service. Showing estimate.",
-      });
+      if (variant) {
+        setQuote({
+          variantId: variant.id,
+          unitPrice: variant.base_price,
+          totalPrice: variant.base_price ? (parseFloat(variant.base_price) * qty).toFixed(2) : null,
+          leadTimeDays: variant.lead_time_days,
+          isEstimate: true,
+          source: "error",
+          message: "Could not reach pricing service. Showing estimate.",
+        });
+      } else if (part.estimate) {
+        setQuote({
+          variantId: "",
+          unitPrice: part.estimate.price,
+          totalPrice: (parseFloat(part.estimate.price) * qty).toFixed(2),
+          leadTimeDays: null,
+          isEstimate: true,
+          source: "error",
+          message: "Could not reach pricing service. Showing cached estimate.",
+        });
+      }
     } finally {
       setQuoting(false);
     }
@@ -304,13 +316,31 @@ function PartCard({ part }: { part: CatalogPart }) {
                     </div>
                     <div className="flex items-center gap-2">
                       <input type="number" min="1" max="999" value={qty} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-14 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-1.5 text-xs text-charcoal-100 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/40" onClick={(e) => e.stopPropagation()} />
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
-                        disabled={quoting}
-                        className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[10px] rounded uppercase tracking-wider transition-colors disabled:opacity-50"
-                      >
-                        {quoting ? "..." : "Add to Cart"}
-                      </button>
+                      {!addedToCart ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addItem({
+                              partId: part.id, partName: part.name, variantId: null,
+                              tier: null, material: part.estimate!.material || "Default",
+                              process: "TBD", quantity: qty,
+                              unitPrice: part.estimate!.price,
+                              totalPrice: (parseFloat(part.estimate!.price) * qty).toFixed(2),
+                              leadTimeDays: null, isEstimate: true,
+                              quoteId: null, quoteSource: "cached_estimate",
+                            });
+                            setAddedToCart(true);
+                          }}
+                          className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[10px] rounded uppercase tracking-wider transition-colors"
+                        >
+                          Add to Cart
+                        </button>
+                      ) : (
+                        <a href="/cart" onClick={(e) => e.stopPropagation()} className="px-3 py-1.5 bg-charcoal-800 hover:bg-charcoal-700 text-emerald-400 font-bold text-[10px] rounded uppercase tracking-wider transition-colors flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                          View Cart
+                        </a>
+                      )}
                     </div>
                   </div>
                   <button
@@ -522,7 +552,23 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
           });
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      if (variant) {
+        setQuote({
+          variantId: variant.id, unitPrice: variant.base_price,
+          totalPrice: variant.base_price ? (parseFloat(variant.base_price) * qty).toFixed(2) : null,
+          leadTimeDays: variant.lead_time_days, isEstimate: true, source: "error",
+          message: "Could not reach pricing service. Showing estimate.",
+        });
+      } else if (part.estimate) {
+        setQuote({
+          variantId: "", unitPrice: part.estimate.price,
+          totalPrice: (parseFloat(part.estimate.price) * qty).toFixed(2),
+          leadTimeDays: null, isEstimate: true, source: "error",
+          message: "Could not reach pricing service. Showing cached estimate.",
+        });
+      }
+    }
     finally { setQuoting(false); }
   };
 
