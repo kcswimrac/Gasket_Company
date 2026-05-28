@@ -20,7 +20,7 @@ export default function CheckoutPage() {
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const hasEstimates = items.some((i) => i.isEstimate);
-  const allPriced = items.every((i) => i.unitPrice && parseFloat(i.unitPrice) > 0);
+  const allFirmPriced = !hasEstimates && items.every((i) => i.unitPrice && parseFloat(i.unitPrice) > 0);
 
   const handleSubmit = async () => {
     if (!form.name || !form.email) return;
@@ -167,7 +167,7 @@ export default function CheckoutPage() {
               {/* Payment info */}
               <div className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl p-6">
                 <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Payment</h2>
-                {allPriced ? (
+                {allFirmPriced ? (
                   <div className="bg-emerald-500/3 border border-emerald-500/15 rounded-lg p-4 flex items-start gap-3">
                     <svg className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -241,12 +241,12 @@ export default function CheckoutPage() {
                   className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting ? (
-                    <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> {allPriced ? "Redirecting to Stripe..." : "Submitting..."}</>
-                  ) : allPriced ? "Pay with Stripe" : "Submit for Review"}
+                    <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> {allFirmPriced ? "Redirecting to Stripe..." : "Submitting..."}</>
+                  ) : allFirmPriced ? "Pay with Stripe" : "Submit for Review"}
                 </button>
 
                 <p className="text-[10px] text-charcoal-600 text-center mt-3">
-                  {allPriced
+                  {allFirmPriced
                     ? "You’ll be redirected to Stripe’s secure checkout."
                     : "No payment now. We’ll confirm pricing and send a payment link."}
                 </p>
