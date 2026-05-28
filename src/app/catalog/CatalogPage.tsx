@@ -504,6 +504,13 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
   const [addedToCart, setAddedToCart] = useState(false);
   const { addItem } = useCart();
 
+  // Custom material state
+  const [customMode, setCustomMode] = useState(false);
+  const [materials, setMaterials] = useState<Array<{ code: string; name: string; processes: string[] }>>([]);
+  const [materialsLoaded, setMaterialsLoaded] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState("");
+  const [selectedProcess, setSelectedProcess] = useState("");
+
   const variant = part.variants.length > 0 ? part.variants[activeTier] : null;
   const hasVariants = part.variants.length > 0;
 
@@ -535,12 +542,49 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
     finally { setQuoting(false); }
   };
 
+  const loadMaterials = async () => {
+    if (materialsLoaded) return;
+    try {
+      const res = await fetch("/api/materials");
+      const data = await res.json();
+      if (data.success && data.materials.length > 0) {
+        setMaterials(data.materials);
+        setSelectedMaterial(data.materials[0].code);
+        if (data.materials[0].processes.length > 0) setSelectedProcess(data.materials[0].processes[0]);
+      }
+    } catch { /* ignore */ }
+    setMaterialsLoaded(true);
+  };
+
+  const handleCustomQuote = async () => {
+    if (!selectedMaterial) return;
+    setQuoting(true); setQuote(null);
+    try {
+      const res = await fetch("/api/cart/quote", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partId: part.id, material: selectedMaterial, quantity: qty }),
+      });
+      const data = await res.json();
+      if (data.success) setQuote(data.quote);
+    } catch {
+      setQuote({
+        variantId: null, quoteId: null, unitPrice: null, totalPrice: null,
+        leadTimeDays: null, priceStatus: "unavailable", source: "network_error",
+        message: "Could not reach pricing service.",
+      });
+    } finally { setQuoting(false); }
+  };
+
   const handleAddToCart = () => {
     if (!quote?.unitPrice) return;
+    const mat = customMode
+      ? materials.find((m) => m.code === selectedMaterial)
+      : null;
     addItem({
-      partId: part.id, partName: part.name, variantId: variant?.id || null,
-      tier: variant?.tier || null, material: variant?.material || part.estimate?.material || "Default",
-      process: variant?.process || "TBD", quantity: qty,
+      partId: part.id, partName: part.name, variantId: customMode ? null : (variant?.id || null),
+      tier: customMode ? "custom" : (variant?.tier || null),
+      material: customMode ? (mat?.name || selectedMaterial) : (variant?.material || part.estimate?.material || "Default"),
+      process: customMode ? selectedProcess : (variant?.process || "TBD"), quantity: qty,
       unitPrice: quote.unitPrice, totalPrice: quote.totalPrice,
       leadTimeDays: quote.leadTimeDays, isEstimate: quote.priceStatus !== "firm",
       quoteId: quote.quoteId || null, quoteSource: quote.source,
@@ -648,7 +692,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                 {part.variants.map((v, i) => (
                   <button
                     key={v.id}
-                    onClick={() => { setActiveTier(i); setActivePhoto(0); setQuote(null); setAddedToCart(false); }}
+                    onClick={() => { setActiveTier(i); setActivePhoto(0); setQuote(null); setAddedToCart(false); setCustomMode(false); }}
                     className={`w-full text-left p-4 rounded-xl border transition-all ${activeTier === i ? "border-emerald-500/25 bg-emerald-500/3" : "border-charcoal-800/40 hover:border-charcoal-700/50"}`}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -668,11 +712,89 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
             </div>
           )}
 
+          {/* Custom Material Option */}
+          {part.hasStepFile && (
+            <div>
+              <button
+                onClick={() => {
+                  setCustomMode(!customMode);
+                  setQuote(null); setAddedToCart(false);
+                  if (!materialsLoaded) loadMaterials();
+                }}
+                className={`w-full text-left p-4 rounded-xl border transition-all ${customMode ? "border-amber-500/25 bg-amber-500/3" : "border-charcoal-800/40 hover:border-charcoal-700/50"}`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm font-bold text-white">Custom Material</span>
+                    <p className="text-xs text-charcoal-400 mt-0.5">Choose any material from our shop and get a live quote</p>
+                  </div>
+                  <svg className={`w-4 h-4 text-charcoal-400 transition-transform ${customMode ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                </div>
+              </button>
+
+              {customMode && (
+                <div className="mt-2 p-4 bg-charcoal-950/40 rounded-xl border border-amber-500/15 space-y-3">
+                  {materials.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-1 block">Material</label>
+                          <select
+                            value={selectedMaterial}
+                            onChange={(e) => {
+                              setSelectedMaterial(e.target.value);
+                              const m = materials.find((x) => x.code === e.target.value);
+                              if (m?.processes[0]) setSelectedProcess(m.processes[0]);
+                              setQuote(null); setAddedToCart(false);
+                            }}
+                            className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-3 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+                          >
+                            {materials.map((m) => (
+                              <option key={m.code} value={m.code}>{m.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-1 block">Process</label>
+                          <select
+                            value={selectedProcess}
+                            onChange={(e) => { setSelectedProcess(e.target.value); setQuote(null); setAddedToCart(false); }}
+                            className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-3 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+                          >
+                            {(materials.find((m) => m.code === selectedMaterial)?.processes || []).map((p) => (
+                              <option key={p} value={p}>{p}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </>
+                  ) : materialsLoaded ? (
+                    <p className="text-xs text-charcoal-500 text-center py-2">Materials unavailable — try again later.</p>
+                  ) : (
+                    <div className="flex items-center justify-center py-3 gap-2">
+                      <svg className="animate-spin w-4 h-4 text-charcoal-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                      <span className="text-xs text-charcoal-400">Loading materials...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Pricing + Add to Cart */}
           <div className="bg-charcoal-950/40 rounded-xl p-5 border border-charcoal-800/30">
             <div className="flex items-end justify-between mb-4">
               <div>
                 {(() => {
+                  if (customMode) {
+                    const matName = materials.find((m) => m.code === selectedMaterial)?.name || selectedMaterial;
+                    return (
+                      <>
+                        <p className="text-[10px] text-amber-400/80 uppercase tracking-wider">Custom — {matName}</p>
+                        <p className="text-sm text-charcoal-400 mt-1">{selectedMaterial ? "Click below to get a live quote" : "Select a material above"}</p>
+                      </>
+                    );
+                  }
                   const tierLabel = variant
                     ? `${TIER_LABELS_FULL[variant.tier] || variant.tier} — ${variant.material}`
                     : "Estimate";
@@ -732,9 +854,9 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
             {!addedToCart ? (
               <div className="flex gap-2">
                 <button
-                  onClick={handleQuote}
-                  disabled={quoting}
-                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  onClick={customMode ? handleCustomQuote : handleQuote}
+                  disabled={quoting || (customMode && !selectedMaterial)}
+                  className={`flex-1 py-3 ${customMode ? "bg-amber-500 hover:bg-amber-400" : "bg-emerald-500 hover:bg-emerald-400"} text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2`}
                 >
                   {quoting ? (
                     <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Getting price...</>
