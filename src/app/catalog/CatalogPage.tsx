@@ -153,17 +153,15 @@ function PartCard({ part }: { part: CatalogPart }) {
       const data = await res.json();
       if (data.success) setQuote(data.quote);
     } catch {
-      // Network error — show pre-loaded price from catalog
-      const fp = variant?.resolvedPrice || part.estimate?.price || null;
-      if (fp) {
-        setQuote({
-          variantId: variant?.id || null, quoteId: null,
-          unitPrice: fp, totalPrice: (parseFloat(fp) * qty).toFixed(2),
-          leadTimeDays: variant?.lead_time_days || null,
-          priceStatus: "estimate", source: "network_error",
-          message: "Could not reach pricing service.",
-        });
-      }
+      // Network error — show pre-loaded price from catalog (variant's own price only)
+      const fp = variant ? variant.resolvedPrice : part.estimate?.price || null;
+      setQuote({
+        variantId: variant?.id || null, quoteId: null,
+        unitPrice: fp, totalPrice: fp ? (parseFloat(fp) * qty).toFixed(2) : null,
+        leadTimeDays: variant?.lead_time_days || null,
+        priceStatus: fp ? "estimate" : "unavailable", source: "network_error",
+        message: "Could not reach pricing service.",
+      });
     } finally {
       setQuoting(false);
     }
@@ -525,16 +523,14 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
       const data = await res.json();
       if (data.success) setQuote(data.quote);
     } catch {
-      const fp = variant?.resolvedPrice || part.estimate?.price || null;
-      if (fp) {
-        setQuote({
-          variantId: variant?.id || null, quoteId: null,
-          unitPrice: fp, totalPrice: (parseFloat(fp) * qty).toFixed(2),
-          leadTimeDays: variant?.lead_time_days || null,
-          priceStatus: "estimate", source: "network_error",
-          message: "Could not reach pricing service.",
-        });
-      }
+      const fp = variant ? variant.resolvedPrice : part.estimate?.price || null;
+      setQuote({
+        variantId: variant?.id || null, quoteId: null,
+        unitPrice: fp, totalPrice: fp ? (parseFloat(fp) * qty).toFixed(2) : null,
+        leadTimeDays: variant?.lead_time_days || null,
+        priceStatus: fp ? "estimate" : "unavailable", source: "network_error",
+        message: "Could not reach pricing service.",
+      });
     }
     finally { setQuoting(false); }
   };
