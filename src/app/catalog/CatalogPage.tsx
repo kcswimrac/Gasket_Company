@@ -452,6 +452,14 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
   const photos = part.files?.filter((f) => f.file_type.startsWith("photo") && f.file_url) || [];
   const [activeTier, setActiveTier] = useState(0);
   const [activePhoto, setActivePhoto] = useState(0);
+  const [quoting, setQuoting] = useState(false);
+  const [quote, setQuote] = useState<CartQuote | null>(null);
+  const [qty, setQty] = useState(1);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const { addItem } = useCart();
+
+  const variant = part.variants.length > 0 ? part.variants[activeTier] : null;
+  const hasVariants = part.variants.length > 0;
 
   const chipLabel = (fileType: string, fileName: string) => {
     if (fileName.startsWith("preview_")) return { label: "CAD Render", color: "bg-blue-500/80" };
@@ -459,24 +467,42 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
     if (fileType === "photo_mockup") return { label: "3D Print Mockup", color: "bg-copper-500/80" };
     return { label: "Finished Part", color: "bg-emerald-500/80" };
   };
-  const [quoting, setQuoting] = useState(false);
-  const [quote, setQuote] = useState<CartQuote | null>(null);
-  const [qty, setQty] = useState(1);
-  const variant = part.variants[activeTier];
 
   const handleQuote = async () => {
-    if (!variant) return;
     setQuoting(true); setQuote(null);
     try {
-      const res = await fetch("/api/cart/quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ variantId: variant.id, quantity: qty }) });
-      const data = await res.json();
-      if (data.success) setQuote(data.quote);
-    } catch { /* fallback handled in PartCard */ }
+      if (variant) {
+        const res = await fetch("/api/cart/quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ variantId: variant.id, quantity: qty }) });
+        const data = await res.json();
+        if (data.success) setQuote(data.quote);
+      } else if (part.hasStepFile) {
+        const res = await fetch("/api/cart/estimate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ partId: part.id, quantity: qty }) });
+        const data = await res.json();
+        if (data.success) {
+          setQuote({
+            variantId: "", unitPrice: data.estimate.unitPrice, totalPrice: data.estimate.totalPrice || data.estimate.unitPrice,
+            leadTimeDays: data.estimate.leadTimeDays || null, isEstimate: true, source: data.estimate.source || "autoquote", message: data.estimate.message,
+          });
+        }
+      }
+    } catch { /* ignore */ }
     finally { setQuoting(false); }
   };
 
+  const handleAddToCart = () => {
+    if (!quote?.unitPrice) return;
+    addItem({
+      partId: part.id, partName: part.name, variantId: variant?.id || null,
+      tier: variant?.tier || null, material: variant?.material || part.estimate?.material || "Default",
+      process: variant?.process || "TBD", quantity: qty,
+      unitPrice: quote.unitPrice, totalPrice: quote.totalPrice,
+      leadTimeDays: quote.leadTimeDays, isEstimate: quote.isEstimate,
+      quoteId: quote.quoteId || null, quoteSource: quote.source,
+    });
+    setAddedToCart(true);
+  };
+
   const yearDisplay = part.year_start && part.year_end ? `${part.year_start}–${part.year_end}` : part.year_start ? `${part.year_start}+` : "";
-  const tierLabels: Record<string, string> = { fitment_check: "3D Test-Fit", oem: "OEM Spec", improved: "Improved", custom: "Custom" };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -542,18 +568,18 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
           )}
 
           {/* Tier selector */}
-          {part.variants.length > 0 && (
+          {hasVariants && (
             <div>
               <p className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold mb-3">Material Tiers</p>
               <div className="space-y-2">
                 {part.variants.map((v, i) => (
                   <button
                     key={v.id}
-                    onClick={() => { setActiveTier(i); setQuote(null); }}
+                    onClick={() => { setActiveTier(i); setQuote(null); setAddedToCart(false); }}
                     className={`w-full text-left p-4 rounded-xl border transition-all ${activeTier === i ? "border-emerald-500/25 bg-emerald-500/3" : "border-charcoal-800/40 hover:border-charcoal-700/50"}`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-bold text-white">{tierLabels[v.tier] || v.tier}</span>
+                      <span className="text-sm font-bold text-white">{v.tier === "fitment_check" ? "3D Test-Fit" : v.tier === "oem" ? "OEM Spec" : v.tier === "improved" ? "Improved" : "Custom"}</span>
                       <span className="text-sm font-bold text-white">
                         {v.displayPrice ? (v.priceIsEstimate ? `est. $${v.displayPrice}` : `$${v.displayPrice}`) : "Request quote"}
                       </span>
@@ -569,50 +595,84 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
             </div>
           )}
 
-          {/* Quote + order section */}
-          {variant && (
-            <div className="bg-charcoal-950/40 rounded-xl p-5 border border-charcoal-800/30">
-              <div className="flex items-end justify-between mb-4">
-                <div>
-                  <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">
-                    {tierLabels[variant.tier]} — {variant.material}
-                  </p>
-                  {variant.displayPrice && (
+          {/* Pricing + Add to Cart */}
+          <div className="bg-charcoal-950/40 rounded-xl p-5 border border-charcoal-800/30">
+            <div className="flex items-end justify-between mb-4">
+              <div>
+                {variant ? (
+                  <>
+                    <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">
+                      {variant.tier === "oem" ? "OEM Spec" : variant.tier === "improved" ? "Improved" : variant.tier} — {variant.material}
+                    </p>
+                    {variant.displayPrice && (
+                      <p className="text-2xl font-bold text-white mt-1">
+                        {variant.priceIsEstimate ? "est. " : ""}${variant.displayPrice}
+                        <span className="text-xs text-charcoal-500 font-normal ml-1">/ unit</span>
+                      </p>
+                    )}
+                  </>
+                ) : part.estimate ? (
+                  <>
+                    <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">
+                      Estimate{part.estimate.material ? ` — ${part.estimate.material}` : ""}
+                    </p>
                     <p className="text-2xl font-bold text-white mt-1">
-                      {variant.priceIsEstimate ? "est. " : ""}${variant.displayPrice}
+                      est. ${part.estimate.price}
                       <span className="text-xs text-charcoal-500 font-normal ml-1">/ unit</span>
                     </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-[10px] text-charcoal-500 uppercase">Qty</label>
-                  <input type="number" min="1" value={qty} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-2 text-sm text-charcoal-100 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
-                </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-charcoal-400">Get a price estimate</p>
+                )}
               </div>
-
-              {quote && (
-                <div className={`rounded-lg p-3 mb-4 ${quote.isEstimate ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
-                  {quote.unitPrice ? (
-                    <p className="text-lg font-bold text-white">${quote.totalPrice} <span className="text-xs text-charcoal-400 font-normal">(${quote.unitPrice} × {qty})</span></p>
-                  ) : (
-                    <p className="text-sm text-charcoal-400">Contact us for pricing</p>
-                  )}
-                  {quote.leadTimeDays && <p className="text-xs text-charcoal-400 mt-1">{quote.leadTimeDays} day lead time</p>}
-                  {quote.message && <p className="text-[11px] text-charcoal-500 mt-1">{quote.message}</p>}
-                </div>
-              )}
-
-              <button
-                onClick={handleQuote}
-                disabled={quoting}
-                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {quoting ? (
-                  <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Getting live price...</>
-                ) : quote ? "Update Quote" : "Get Live Price & Add to Cart"}
-              </button>
+              <div className="flex items-center gap-2">
+                <label className="text-[10px] text-charcoal-500 uppercase">Qty</label>
+                <input type="number" min="1" value={qty} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-2 text-sm text-charcoal-100 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
+              </div>
             </div>
-          )}
+
+            {/* Quote result */}
+            {quote && (
+              <div className={`rounded-lg p-3 mb-4 ${quote.isEstimate ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
+                {quote.unitPrice ? (
+                  <p className="text-lg font-bold text-white">${quote.totalPrice} <span className="text-xs text-charcoal-400 font-normal">(${quote.unitPrice} × {qty})</span></p>
+                ) : (
+                  <p className="text-sm text-charcoal-400">Contact us for pricing</p>
+                )}
+                {quote.leadTimeDays && <p className="text-xs text-charcoal-400 mt-1">{quote.leadTimeDays} day lead time</p>}
+                {quote.message && <p className="text-[11px] text-charcoal-500 mt-1">{quote.message}</p>}
+              </div>
+            )}
+
+            {/* Action buttons */}
+            {!addedToCart ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleQuote}
+                  disabled={quoting}
+                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {quoting ? (
+                    <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Getting price...</>
+                  ) : quote?.unitPrice ? "Update Price" : "Get Live Price"}
+                </button>
+                {quote?.unitPrice && (
+                  <button
+                    onClick={handleAddToCart}
+                    className="flex-1 py-3 bg-charcoal-800 hover:bg-charcoal-700 text-emerald-400 font-bold text-sm rounded-lg uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>
+                    Add to Cart
+                  </button>
+                )}
+              </div>
+            ) : (
+              <a href="/cart" className="block w-full py-3 bg-charcoal-800 hover:bg-charcoal-700 text-emerald-400 font-bold text-sm rounded-lg uppercase tracking-wider transition-colors text-center flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                Added — View Cart
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>
