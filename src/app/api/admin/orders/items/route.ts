@@ -45,3 +45,33 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const sql = getSQL();
+    const { id, unitPrice, quantity } = await request.json();
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "id required" }, { status: 400 });
+    }
+
+    const total = unitPrice && quantity
+      ? (parseFloat(unitPrice) * quantity).toFixed(2)
+      : null;
+
+    await sql`
+      UPDATE order_line_items SET
+        unit_price = COALESCE(${unitPrice || null}, unit_price),
+        total_price = COALESCE(${total}, total_price),
+        quantity = COALESCE(${quantity || null}, quantity)
+      WHERE id = ${id}
+    `;
+
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    return NextResponse.json(
+      { success: false, error: e instanceof Error ? e.message : "Unknown error" },
+      { status: 500 }
+    );
+  }
+}

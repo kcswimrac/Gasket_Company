@@ -170,9 +170,11 @@ function SummaryBar({ stats, loading }: { stats: Stats | null; loading: boolean 
 
 /* ─── Line Items Detail ─── */
 
-function LineItemsDetail({ orderId }: { orderId: string }) {
+function LineItemsDetail({ orderId, editable, onPricesChanged }: { orderId: string; editable: boolean; onPricesChanged?: () => void }) {
   const [items, setItems] = useState<LineItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editPrices, setEditPrices] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -224,48 +226,93 @@ function LineItemsDetail({ orderId }: { orderId: string }) {
     );
   }
 
+  const savePrice = async (itemId: string, qty: number) => {
+    const price = editPrices[itemId];
+    if (!price) return;
+    setSaving(itemId);
+    try {
+      await fetch("/api/admin/orders/items", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: itemId, unitPrice: price, quantity: qty }),
+      });
+      setItems((prev) => prev.map((i) => i.id === itemId ? { ...i, unit_price: price, total_price: (parseFloat(price) * qty).toFixed(2) } : i));
+      onPricesChanged?.();
+    } catch { /* ignore */ }
+    finally { setSaving(null); }
+  };
+
   return (
     <div className="space-y-2">
-      {items.map((item) => (
-        <div
-          key={item.id}
-          className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30"
-        >
-          <div className="flex items-start justify-between gap-3 mb-1.5">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-charcoal-200 font-medium">
-                {item.part_name || "Unknown Part"}
-              </p>
-              <p className="text-[10px] text-charcoal-500 truncate">
-                {item.application || item.part_number || "—"}
-              </p>
+      {items.map((item) => {
+        const currentPrice = editPrices[item.id] ?? item.unit_price ?? "";
+        const isEdited = editPrices[item.id] !== undefined && editPrices[item.id] !== (item.unit_price ?? "");
+        return (
+          <div
+            key={item.id}
+            className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30"
+          >
+            <div className="flex items-start justify-between gap-3 mb-1.5">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-charcoal-200 font-medium">
+                  {item.part_name || item.notes || "Unknown Part"}
+                </p>
+                <p className="text-[10px] text-charcoal-500 truncate">
+                  {item.application || item.part_number || "—"}
+                </p>
+              </div>
+              {editable ? (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] text-charcoal-500">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={currentPrice}
+                    onChange={(e) => setEditPrices((p) => ({ ...p, [item.id]: e.target.value }))}
+                    className="w-24 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-1 text-sm text-charcoal-100 text-right focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                    placeholder="0.00"
+                  />
+                  {isEdited && (
+                    <button
+                      onClick={() => savePrice(item.id, item.quantity)}
+                      disabled={saving === item.id}
+                      className="text-[9px] px-2 py-1 bg-emerald-500 text-white rounded font-semibold uppercase disabled:opacity-50"
+                    >
+                      {saving === item.id ? "..." : "Save"}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-charcoal-200 font-medium shrink-0">
+                  {formatCurrency(item.total_price)}
+                </p>
+              )}
             </div>
-            <p className="text-sm text-charcoal-200 font-medium shrink-0">
-              {formatCurrency(item.total_price)}
-            </p>
+            <div className="flex flex-wrap items-center gap-2 text-[10px]">
+              {item.tier && (
+                <span
+                  className={`px-1.5 py-0.5 rounded font-semibold uppercase ${
+                    item.tier === "oem"
+                      ? "bg-blue-500/10 text-blue-400"
+                      : item.tier === "improved"
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : item.tier === "fitment_check"
+                          ? "bg-gold-500/10 text-gold-400"
+                          : "bg-charcoal-800 text-charcoal-400"
+                  }`}
+                >
+                  {item.tier === "fitment_check" ? "3D Fit" : item.tier}
+                </span>
+              )}
+              <span className="text-charcoal-400">{item.material || "—"}</span>
+              <span className="text-charcoal-500">× {item.quantity}</span>
+              {!editable && <span className="text-charcoal-500">{formatCurrency(item.unit_price)}/ea</span>}
+              {editable && item.unit_price && <span className="text-charcoal-500">current: {formatCurrency(item.unit_price)}/ea → ${currentPrice ? (parseFloat(currentPrice) * item.quantity).toFixed(2) : "0.00"} total</span>}
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-[10px]">
-            {item.tier && (
-              <span
-                className={`px-1.5 py-0.5 rounded font-semibold uppercase ${
-                  item.tier === "oem"
-                    ? "bg-blue-500/10 text-blue-400"
-                    : item.tier === "improved"
-                      ? "bg-emerald-500/10 text-emerald-400"
-                      : item.tier === "fitment_check"
-                        ? "bg-gold-500/10 text-gold-400"
-                        : "bg-charcoal-800 text-charcoal-400"
-                }`}
-              >
-                {item.tier === "fitment_check" ? "3D Fit" : item.tier}
-              </span>
-            )}
-            <span className="text-charcoal-400">{item.material || "—"}</span>
-            <span className="text-charcoal-500">× {item.quantity}</span>
-            <span className="text-charcoal-500">{formatCurrency(item.unit_price)}/ea</span>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -287,6 +334,11 @@ function OrderRow({
   const [showTrackingField, setShowTrackingField] = useState(
     order.status === "shipped" || order.status === "delivered"
   );
+  const [confirming, setConfirming] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  const isPending = order.status === "pending_quote" || order.status === "quoted";
 
   // Sync local state when order prop changes
   useEffect(() => {
@@ -347,6 +399,29 @@ function OrderRow({
       /* ignore */
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleConfirmPricing = async () => {
+    setConfirming(true);
+    setConfirmError(null);
+    try {
+      const res = await fetch("/api/admin/orders/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.paymentUrl) setPaymentUrl(data.paymentUrl);
+        onUpdated();
+      } else {
+        setConfirmError(data.error);
+      }
+    } catch {
+      setConfirmError("Failed to confirm pricing");
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -516,11 +591,74 @@ function OrderRow({
 
           {/* Line items */}
           <div>
-            <p className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">
-              Line Items ({order.item_count})
-            </p>
-            <LineItemsDetail orderId={order.id} />
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">
+                Line Items ({order.item_count})
+              </p>
+              {isPending && (
+                <span className="text-[9px] text-gold-400/80">Edit prices below, then confirm</span>
+              )}
+            </div>
+            <LineItemsDetail orderId={order.id} editable={isPending} onPricesChanged={onUpdated} />
           </div>
+
+          {/* Confirm pricing + payment link */}
+          {isPending && (
+            <div className="bg-gold-500/3 border border-gold-500/15 rounded-xl p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-gold-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-charcoal-200">Confirm Pricing</p>
+                  <p className="text-xs text-charcoal-500 mt-0.5">Review and set final prices above, then confirm to generate a Stripe payment link for the customer.</p>
+                </div>
+              </div>
+              {confirmError && (
+                <div className="bg-red-500/5 border border-red-500/15 rounded-lg p-2">
+                  <p className="text-[11px] text-red-400">{confirmError}</p>
+                </div>
+              )}
+              <button
+                onClick={handleConfirmPricing}
+                disabled={confirming}
+                className="w-full py-3 bg-gold-500 hover:bg-gold-400 text-charcoal-950 font-bold text-sm rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {confirming ? (
+                  <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Generating payment link...</>
+                ) : "Confirm Pricing & Generate Payment Link"}
+              </button>
+            </div>
+          )}
+
+          {/* Payment link display */}
+          {paymentUrl && (
+            <div className="bg-emerald-500/3 border border-emerald-500/15 rounded-xl p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-emerald-300">Payment Link Ready</p>
+                  <p className="text-xs text-charcoal-500 mt-0.5">Send this link to {order.customer_email || "the customer"} to collect payment.</p>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      readOnly
+                      value={paymentUrl}
+                      className="flex-1 bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-1.5 text-xs text-charcoal-300 font-mono truncate focus:outline-none"
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                    />
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(paymentUrl); }}
+                      className="px-3 py-1.5 bg-emerald-500 text-white text-[10px] font-bold rounded uppercase tracking-wider shrink-0"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
