@@ -10,6 +10,8 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const [form, setForm] = useState({
     name: "", email: "", phone: "", company: "",
     address: "", city: "", state: "", zip: "",
@@ -17,24 +19,41 @@ export default function CheckoutPage() {
   });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
+  const hasEstimates = items.some((i) => i.isEstimate);
+  const allPriced = items.every((i) => i.unitPrice && parseFloat(i.unitPrice) > 0);
+
   const handleSubmit = async () => {
     if (!form.name || !form.email) return;
     setSubmitting(true);
+    setError(null);
 
-    // TODO: Replace with Stripe Checkout session creation
-    // const res = await fetch("/api/checkout", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({ items, customer: form }),
-    // });
-    // const { url } = await res.json();
-    // window.location.href = url; // Redirect to Stripe
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, customer: form }),
+      });
+      const data = await res.json();
 
-    // For now: simulate order submission
-    await new Promise((r) => setTimeout(r, 1500));
-    setSubmitted(true);
-    setSubmitting(false);
-    clearCart();
+      if (!data.success) {
+        setError(data.error || "Failed to submit order");
+        setSubmitting(false);
+        return;
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      // No Stripe URL — estimates need review first
+      setSubmitted(true);
+      setSubmitting(false);
+      clearCart();
+    } catch {
+      setError("Network error. Please try again.");
+      setSubmitting(false);
+    }
   };
 
   const inputCls = "w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40";
@@ -145,16 +164,30 @@ export default function CheckoutPage() {
                 <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} placeholder="Special instructions, application details, or anything we should know..." className={`${inputCls} resize-none`} />
               </div>
 
-              {/* Payment stub */}
+              {/* Payment info */}
               <div className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl p-6">
                 <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Payment</h2>
-                <div className="bg-charcoal-950/40 border border-charcoal-800/30 rounded-lg p-6 text-center">
-                  <svg className="w-8 h-8 text-charcoal-600 mx-auto mb-3" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-                  </svg>
-                  <p className="text-sm text-charcoal-400 mb-1">Stripe payment integration coming soon</p>
-                  <p className="text-xs text-charcoal-500">For now, submit your order and we&apos;ll send an invoice via email.</p>
-                </div>
+                {allPriced ? (
+                  <div className="bg-emerald-500/3 border border-emerald-500/15 rounded-lg p-4 flex items-start gap-3">
+                    <svg className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm text-charcoal-200">Secure payment via Stripe</p>
+                      <p className="text-xs text-charcoal-500 mt-0.5">You&apos;ll be redirected to Stripe&apos;s secure checkout to complete payment.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gold-500/3 border border-gold-500/15 rounded-lg p-4 flex items-start gap-3">
+                    <svg className="w-5 h-5 text-gold-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm text-charcoal-200">Pricing review required</p>
+                      <p className="text-xs text-charcoal-500 mt-0.5">Some items have estimated prices. We&apos;ll confirm final pricing and send a payment link via email.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -190,9 +223,15 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {items.some((i) => i.isEstimate) && (
+                {hasEstimates && (
                   <div className="bg-gold-500/5 border border-gold-500/15 rounded-lg p-3 mb-4">
                     <p className="text-[10px] text-gold-300/80">Some prices are estimates and will be confirmed via email before payment is collected.</p>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="bg-red-500/5 border border-red-500/15 rounded-lg p-3 mb-4">
+                    <p className="text-[10px] text-red-400">{error}</p>
                   </div>
                 )}
 
@@ -202,12 +241,14 @@ export default function CheckoutPage() {
                   className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {submitting ? (
-                    <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Submitting...</>
-                  ) : "Submit Order"}
+                    <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> {allPriced ? "Redirecting to Stripe..." : "Submitting..."}</>
+                  ) : allPriced ? "Pay with Stripe" : "Submit for Review"}
                 </button>
 
                 <p className="text-[10px] text-charcoal-600 text-center mt-3">
-                  No payment collected now. We&apos;ll confirm pricing and send an invoice.
+                  {allPriced
+                    ? "You’ll be redirected to Stripe’s secure checkout."
+                    : "No payment now. We’ll confirm pricing and send a payment link."}
                 </p>
               </div>
             </div>
