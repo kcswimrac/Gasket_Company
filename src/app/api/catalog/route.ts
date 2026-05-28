@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     if (segment && search) {
       parts = await sql`
         SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
-               p.application, p.description, p.fitment_status, p.dimensions,
+               p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
                c.public_credit_name as contributor_name
         FROM parts p
         LEFT JOIN contributors c ON p.contributor_id = c.id
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     } else if (segment) {
       parts = await sql`
         SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
-               p.application, p.description, p.fitment_status, p.dimensions,
+               p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
                c.public_credit_name as contributor_name
         FROM parts p
         LEFT JOIN contributors c ON p.contributor_id = c.id
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     } else if (search) {
       parts = await sql`
         SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
-               p.application, p.description, p.fitment_status, p.dimensions,
+               p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
                c.public_credit_name as contributor_name
         FROM parts p
         LEFT JOIN contributors c ON p.contributor_id = c.id
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     } else {
       parts = await sql`
         SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
-               p.application, p.description, p.fitment_status, p.dimensions,
+               p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
                c.public_credit_name as contributor_name
         FROM parts p
         LEFT JOIN contributors c ON p.contributor_id = c.id
