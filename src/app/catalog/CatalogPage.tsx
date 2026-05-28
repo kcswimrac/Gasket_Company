@@ -216,7 +216,7 @@ function PartCard({ part }: { part: CatalogPart }) {
             {part.variants.map((v, i) => (
               <button
                 key={v.id}
-                onClick={() => { setActiveTier(i); setQuote(null); }}
+                onClick={(e) => { e.stopPropagation(); setActiveTier(i); setQuote(null); }}
                 className={`flex-1 py-1.5 text-[10px] font-semibold rounded-md uppercase tracking-wider transition-all ${
                   activeTier === i
                     ? v.tier === "fitment_check" ? "bg-blue-500/15 text-blue-400" : "bg-charcoal-800 text-white"
