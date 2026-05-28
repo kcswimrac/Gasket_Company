@@ -225,52 +225,45 @@ function LineItemsDetail({ orderId }: { orderId: string }) {
   }
 
   return (
-    <div className="space-y-1.5">
-      <div className="grid grid-cols-[1fr_80px_80px_80px_80px] gap-2 text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold px-3 pb-1">
-        <span>Part</span>
-        <span>Material</span>
-        <span className="text-right">Qty</span>
-        <span className="text-right">Unit $</span>
-        <span className="text-right">Total</span>
-      </div>
+    <div className="space-y-2">
       {items.map((item) => (
         <div
           key={item.id}
-          className="grid grid-cols-[1fr_80px_80px_80px_80px] gap-2 bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30 items-center"
+          className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30"
         >
-          <div className="min-w-0">
-            <p className="text-xs text-charcoal-200 truncate">
-              {item.part_name || "Unknown Part"}
-            </p>
-            <p className="text-[10px] text-charcoal-500 truncate">
-              {item.application || item.part_number || "—"}
+          <div className="flex items-start justify-between gap-3 mb-1.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-charcoal-200 font-medium">
+                {item.part_name || "Unknown Part"}
+              </p>
+              <p className="text-[10px] text-charcoal-500 truncate">
+                {item.application || item.part_number || "—"}
+              </p>
+            </div>
+            <p className="text-sm text-charcoal-200 font-medium shrink-0">
+              {formatCurrency(item.total_price)}
             </p>
           </div>
-          <div>
+          <div className="flex flex-wrap items-center gap-2 text-[10px]">
             {item.tier && (
               <span
-                className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${
+                className={`px-1.5 py-0.5 rounded font-semibold uppercase ${
                   item.tier === "oem"
                     ? "bg-blue-500/10 text-blue-400"
                     : item.tier === "improved"
                       ? "bg-emerald-500/10 text-emerald-400"
-                      : "bg-charcoal-800 text-charcoal-400"
+                      : item.tier === "fitment_check"
+                        ? "bg-gold-500/10 text-gold-400"
+                        : "bg-charcoal-800 text-charcoal-400"
                 }`}
               >
-                {item.tier}
+                {item.tier === "fitment_check" ? "3D Fit" : item.tier}
               </span>
             )}
-            <p className="text-[10px] text-charcoal-500 mt-0.5 truncate">
-              {item.material || "—"}
-            </p>
+            <span className="text-charcoal-400">{item.material || "—"}</span>
+            <span className="text-charcoal-500">× {item.quantity}</span>
+            <span className="text-charcoal-500">{formatCurrency(item.unit_price)}/ea</span>
           </div>
-          <p className="text-xs text-charcoal-200 text-right">{item.quantity}</p>
-          <p className="text-xs text-charcoal-400 text-right">
-            {formatCurrency(item.unit_price)}
-          </p>
-          <p className="text-xs text-charcoal-200 text-right font-medium">
-            {formatCurrency(item.total_price)}
-          </p>
         </div>
       ))}
     </div>
@@ -366,75 +359,61 @@ function OrderRow({
     <div className="border-b border-charcoal-800/30">
       {/* Collapsed row */}
       <div
-        className="flex items-center gap-4 py-3 px-4 hover:bg-charcoal-900/30 cursor-pointer transition-colors"
+        className="py-3 px-4 hover:bg-charcoal-900/30 cursor-pointer transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
-        <svg
-          className={`w-3 h-3 text-charcoal-600 transition-transform shrink-0 ${expanded ? "rotate-90" : ""}`}
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path
-            fillRule="evenodd"
-            d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-            clipRule="evenodd"
-          />
-        </svg>
+        {/* Mobile card layout */}
+        <div className="flex items-start gap-3">
+          <svg
+            className={`w-3 h-3 text-charcoal-600 transition-transform shrink-0 mt-1.5 ${expanded ? "rotate-90" : ""}`}
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+              clipRule="evenodd"
+            />
+          </svg>
 
-        {/* Order number */}
-        <div className="w-24 shrink-0">
-          <p className="text-sm font-mono font-medium text-white">
-            #{shortId(order.id)}
-          </p>
-          {order.rush_order && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 font-semibold uppercase">
-              Rush
-            </span>
-          )}
-        </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <p className="text-sm font-mono font-medium text-white">
+                  #{shortId(order.id)}
+                </p>
+                {order.rush_order && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 font-semibold uppercase">
+                    Rush
+                  </span>
+                )}
+              </div>
+              <span
+                className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase border shrink-0 ${statusColor(order.status)}`}
+              >
+                {statusLabel(order.status)}
+              </span>
+            </div>
 
-        {/* Customer */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-charcoal-200 truncate">
-            {order.customer_name || "Walk-in"}
-          </p>
-          <p className="text-[11px] text-charcoal-500 truncate">
-            {order.customer_email || order.customer_company || "—"}
-          </p>
-        </div>
+            <p className="text-sm text-charcoal-200 truncate">
+              {order.customer_name || "Walk-in"}
+            </p>
+            <p className="text-[11px] text-charcoal-500 truncate">
+              {order.customer_email || order.customer_company || "—"}
+            </p>
 
-        {/* Status badge */}
-        <span
-          className={`px-2.5 py-1 rounded text-[10px] font-semibold uppercase border shrink-0 ${statusColor(order.status)}`}
-        >
-          {statusLabel(order.status)}
-        </span>
-
-        {/* Items */}
-        <div className="w-16 text-right shrink-0">
-          <p className="text-xs text-charcoal-300">
-            {order.item_count} item{order.item_count !== 1 ? "s" : ""}
-          </p>
-        </div>
-
-        {/* Total */}
-        <div className="w-24 text-right shrink-0">
-          <p className="text-sm font-medium text-charcoal-200">
-            {formatCurrency(order.total_price)}
-          </p>
-        </div>
-
-        {/* Date */}
-        <div className="w-28 text-right shrink-0">
-          <p className="text-xs text-charcoal-400">
-            {formatDate(order.created_at)}
-          </p>
+            <div className="flex items-center gap-4 mt-1.5 text-xs text-charcoal-400">
+              <span>{order.item_count} item{order.item_count !== 1 ? "s" : ""}</span>
+              <span className="font-medium text-charcoal-200">{formatCurrency(order.total_price)}</span>
+              <span className="hidden sm:inline">{formatDate(order.created_at)}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Expanded detail */}
       {expanded && (
-        <div className="px-4 pb-5 pl-11 space-y-4">
+        <div className="px-4 pb-5 sm:pl-11 space-y-4">
           {/* Status + tracking controls */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -495,7 +474,7 @@ function OrderRow({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
             <div>
               <p className={labelCls}>Order ID</p>
-              <p className="text-[11px] text-charcoal-300 font-mono">
+              <p className="text-[11px] text-charcoal-300 font-mono break-all">
                 {order.id}
               </p>
             </div>
@@ -617,7 +596,7 @@ export default function OrdersAdmin() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by customer, email, order ID..."
-          className="bg-charcoal-900 border border-charcoal-800/50 rounded-lg px-3 py-2 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 w-72"
+          className="bg-charcoal-900 border border-charcoal-800/50 rounded-lg px-3 py-2 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 w-full sm:w-72"
         />
         <div className="flex gap-1.5 flex-wrap">
           {STATUS_FILTERS.map((f) => (
