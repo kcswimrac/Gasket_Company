@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     let customQuotesData: Record<string, unknown>[] = [];
 
     if (partIds.length > 0) {
-      [variants, partFilesData, customQuotesData] = await Promise.all([
+      [variants, partFilesData] = await Promise.all([
         sql`
           SELECT id, part_id, tier, material, process, base_price,
                  lead_time_days, available, last_quoted_price, last_quoted_at,
@@ -80,7 +80,11 @@ export async function GET(request: NextRequest) {
           WHERE part_id = ANY(${partIds}) AND (show_in_catalog = true OR is_step_file = true OR file_type = 'stl_preview')
           ORDER BY display_order
         `,
-        sql`
+      ]);
+
+      // Fetch cached custom material quotes (non-fatal — table/column may not exist yet)
+      try {
+        customQuotesData = await sql`
           SELECT DISTINCT ON (part_id, material_code)
             part_id, material_code, unit_price, lead_time_days, expires_at, created_at
           FROM autoquote_cache
@@ -88,8 +92,8 @@ export async function GET(request: NextRequest) {
             AND (expires_at IS NULL OR expires_at > NOW())
             AND created_at > NOW() - INTERVAL '30 days'
           ORDER BY part_id, material_code, created_at DESC
-        `,
-      ]);
+        `;
+      } catch { /* part_id column may not exist if migration 0013 not applied */ }
     }
 
     const variantsByPart: Record<string, typeof variants> = {};

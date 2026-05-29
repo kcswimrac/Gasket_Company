@@ -214,13 +214,13 @@ export async function POST(request: NextRequest) {
             updated_at = NOW()
           WHERE id = ${partId}
         `;
-      }
 
-      // Cache per-material quote for the custom material section
-      await sql`
-        INSERT INTO autoquote_cache (part_id, quote_id, quote_status, unit_price, total_price, lead_time_days, confidence, buyable, material_code, quantity, expires_at)
-        VALUES (${partId}, ${quote.id}, ${quote.status.toLowerCase()}, ${quote.unit_price_usd || null}, ${quote.total_price_usd || null}, ${quote.lead_time_days || null}, ${quote.confidence || null}, ${quote.buyable}, ${materialCode}, ${quantity}, ${quote.expires_at || null})
-      `;
+        // Cache per-material quote (non-blocking — don't let cache failure kill the response)
+        sql`
+          INSERT INTO autoquote_cache (part_id, quote_id, quote_status, unit_price, total_price, lead_time_days, confidence, buyable, material_code, quantity, expires_at)
+          VALUES (${partId}, ${quote.id}, ${quote.status.toLowerCase()}, ${quote.unit_price_usd || null}, ${quote.total_price_usd || null}, ${quote.lead_time_days || null}, ${quote.confidence || null}, ${quote.buyable}, ${materialCode}, ${quantity}, ${quote.expires_at || null})
+        `.catch(() => {});
+      }
 
       return ok(result);
     } catch (e) {
