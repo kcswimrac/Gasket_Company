@@ -206,8 +206,11 @@ export async function POST(request: NextRequest) {
 
       // Store on part for catalog caching
       if (result.unitPrice) {
-        // Update last estimate + append to custom_quotes jsonb array
-        const quoteEntry = JSON.stringify({
+        // Read current custom quotes, update in JS, write back
+        const partRows = await sql`SELECT custom_quotes FROM parts WHERE id = ${partId}`;
+        const existing = Array.isArray(partRows[0]?.custom_quotes) ? partRows[0].custom_quotes as Array<Record<string, unknown>> : [];
+        const filtered = existing.filter((q) => q.material !== materialCode);
+        filtered.push({
           material: materialCode,
           unitPrice: result.unitPrice,
           leadTimeDays: quote.lead_time_days || null,
@@ -219,11 +222,7 @@ export async function POST(request: NextRequest) {
             last_estimate_price = ${result.unitPrice},
             last_estimate_at = NOW(),
             last_estimate_material = ${materialCode},
-            custom_quotes = (
-              SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
-              FROM jsonb_array_elements(COALESCE(custom_quotes, '[]'::jsonb)) elem
-              WHERE elem->>'material' != ${materialCode}
-            ) || ${quoteEntry}::jsonb,
+            custom_quotes = ${JSON.stringify(filtered)}::jsonb,
             updated_at = NOW()
           WHERE id = ${partId}
         `;

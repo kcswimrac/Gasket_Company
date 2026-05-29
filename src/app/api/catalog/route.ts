@@ -170,7 +170,12 @@ export async function GET(request: NextRequest) {
           isStale: estimateStale,
           quotedAt: p.last_estimate_at as string | null,
         } : null,
-        customQuotes: (p.custom_quotes as Array<{ material: string; unitPrice: string; leadTimeDays: number | null; quotedAt: string }>) || [],
+        customQuotes: (() => {
+          const raw = p.custom_quotes;
+          if (Array.isArray(raw)) return raw as Array<{ material: string; unitPrice: string; leadTimeDays: number | null; quotedAt: string }>;
+          if (typeof raw === "string") { try { return JSON.parse(raw); } catch { return []; } }
+          return [];
+        })(),
       };
     });
 
