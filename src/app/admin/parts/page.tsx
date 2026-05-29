@@ -49,6 +49,7 @@ interface Part {
   part_number: string | null;
   cad_file_url: string | null;
   scan_queue_id: string | null;
+  notes: string | null;
   active: boolean;
   created_at: string;
   contributor_name: string | null;
@@ -468,6 +469,7 @@ function EditablePartFields({ part, onSaved }: { part: Part; onSaved: () => void
     yearEnd: String(part.year_end || ""), application: part.application,
     description: part.description || "", fitmentStatus: part.fitment_status,
     dimensions: part.dimensions || "", partNumber: part.part_number || "",
+    notes: part.notes || "",
   });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
   const inputCls = "w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-1.5 text-xs text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40";
@@ -489,6 +491,10 @@ function EditablePartFields({ part, onSaved }: { part: Part; onSaved: () => void
           <span className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold">Part Details</span>
           <button onClick={() => setEditing(true)} className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium">Edit</button>
         </div>
+        <div className="mb-2">
+          <span className={labelCls}>Name</span>
+          <p className="text-sm font-medium text-white">{part.name}</p>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
           <div><span className={labelCls}>Segment</span><p className="text-charcoal-200 capitalize">{SEGMENTS.find((s) => s.id === part.segment)?.label || part.segment}</p></div>
           <div><span className={labelCls}>Make / Model</span><p className="text-charcoal-200">{part.make || "—"} {part.model || ""}</p></div>
@@ -497,6 +503,7 @@ function EditablePartFields({ part, onSaved }: { part: Part; onSaved: () => void
           <div><span className={labelCls}>Part Number</span><p className="text-charcoal-200">{part.part_number || "—"}</p></div>
           <div><span className={labelCls}>Dimensions</span><p className="text-charcoal-200">{part.dimensions || "—"}</p></div>
           {part.description && <div className="col-span-2"><span className={labelCls}>Description</span><p className="text-charcoal-200">{part.description}</p></div>}
+          {part.notes && <div className="col-span-2 sm:col-span-4"><span className={labelCls}>Notes</span><p className="text-charcoal-200">{part.notes}</p></div>}
         </div>
       </div>
     );
@@ -523,6 +530,7 @@ function EditablePartFields({ part, onSaved }: { part: Part; onSaved: () => void
         <div><label className={labelCls}>Dimensions</label><input value={form.dimensions} onChange={(e) => set("dimensions", e.target.value)} className={inputCls} /></div>
         <div><label className={labelCls}>Part Number</label><input value={form.partNumber} onChange={(e) => set("partNumber", e.target.value)} className={inputCls} /></div>
         <div className="col-span-2 sm:col-span-4"><label className={labelCls}>Description</label><textarea rows={2} value={form.description} onChange={(e) => set("description", e.target.value)} className={`${inputCls} resize-none`} /></div>
+        <div className="col-span-2 sm:col-span-4"><label className={labelCls}>Internal Notes</label><textarea rows={2} value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Internal notes — not shown to customers" className={`${inputCls} resize-none`} /></div>
       </div>
     </div>
   );
