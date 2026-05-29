@@ -421,11 +421,25 @@ function PricingSettingsPanel() {
 }
 
 export default function AdminDashboard() {
-  const stats = [
-    { label: "Active Parts", value: "15", change: "+3 this month" },
-    { label: "Open Orders", value: "0", change: "—" },
-    { label: "Scan Queue", value: "4", change: "2 awaiting scan" },
-    { label: "Contributors", value: "8", change: "+2 this month" },
+  const [stats, setStats] = useState<{
+    activeParts: number; recentParts: number;
+    openOrders: number; pendingOrders: number;
+    scanQueue: number; awaitingScan: number;
+    contributors: number;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/stats")
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setStats(d.stats); })
+      .catch(() => {});
+  }, []);
+
+  const cards = [
+    { label: "Active Parts", value: stats?.activeParts ?? "—", change: stats ? `+${stats.recentParts} this month` : "Loading..." },
+    { label: "Open Orders", value: stats?.openOrders ?? "—", change: stats?.pendingOrders ? `${stats.pendingOrders} pending quote` : "—" },
+    { label: "Scan Queue", value: stats?.scanQueue ?? "—", change: stats?.awaitingScan ? `${stats.awaitingScan} awaiting scan` : "—" },
+    { label: "Contributors", value: stats?.contributors ?? "—", change: "" },
   ];
 
   return (
@@ -439,11 +453,11 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        {stats.map((s) => (
+        {cards.map((s) => (
           <div key={s.label} className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl p-5">
             <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">{s.label}</p>
             <p className="text-3xl font-extrabold text-white mt-1">{s.value}</p>
-            <p className="text-[11px] text-charcoal-500 mt-1">{s.change}</p>
+            {s.change && <p className="text-[11px] text-charcoal-500 mt-1">{s.change}</p>}
           </div>
         ))}
       </div>
