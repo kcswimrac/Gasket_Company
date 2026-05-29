@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       WHERE p.active IS NOT false
       ${segment ? sql`AND p.segment = ${segment}` : sql``}
       ${make ? sql`AND EXISTS (SELECT 1 FROM unnest(string_to_array(p.make, ',')) m WHERE trim(m) = ${make})` : sql``}
-      ${model ? sql`AND p.model = ${model}` : sql``}
+      ${model ? sql`AND EXISTS (SELECT 1 FROM unnest(string_to_array(p.model, ',')) m WHERE trim(m) = ${model})` : sql``}
       ${yearNum ? sql`AND p.year_start <= ${yearNum} AND COALESCE(p.year_end, p.year_start) >= ${yearNum}` : sql``}
       ${search ? sql`AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})` : sql``}
       ${orderClause}

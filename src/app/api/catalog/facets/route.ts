@@ -35,17 +35,19 @@ export async function GET(request: NextRequest) {
     const modelsQuery = make
       ? segment
         ? sql`
-          SELECT DISTINCT model, COUNT(*)::int as part_count
-          FROM parts WHERE active IS NOT false AND model IS NOT NULL
-          AND EXISTS (SELECT 1 FROM unnest(string_to_array(make, ',')) m WHERE trim(m) = ${make})
-          AND segment = ${segment}
-          GROUP BY model ORDER BY model
+          SELECT trim(mdl)::text as model, COUNT(DISTINCT p.id)::int as part_count
+          FROM parts p, unnest(string_to_array(p.model, ',')) as mdl
+          WHERE p.active IS NOT false AND p.model IS NOT NULL
+          AND EXISTS (SELECT 1 FROM unnest(string_to_array(p.make, ',')) m WHERE trim(m) = ${make})
+          AND p.segment = ${segment}
+          GROUP BY trim(mdl) ORDER BY trim(mdl)
         `
         : sql`
-          SELECT DISTINCT model, COUNT(*)::int as part_count
-          FROM parts WHERE active IS NOT false AND model IS NOT NULL
-          AND EXISTS (SELECT 1 FROM unnest(string_to_array(make, ',')) m WHERE trim(m) = ${make})
-          GROUP BY model ORDER BY model
+          SELECT trim(mdl)::text as model, COUNT(DISTINCT p.id)::int as part_count
+          FROM parts p, unnest(string_to_array(p.model, ',')) as mdl
+          WHERE p.active IS NOT false AND p.model IS NOT NULL
+          AND EXISTS (SELECT 1 FROM unnest(string_to_array(p.make, ',')) m WHERE trim(m) = ${make})
+          GROUP BY trim(mdl) ORDER BY trim(mdl)
         `
       : Promise.resolve([]);
 
