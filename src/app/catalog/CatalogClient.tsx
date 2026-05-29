@@ -846,16 +846,19 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
 }
 
 /* ─── Main Catalog Client ─── */
-export default function CatalogClient() {
-  const [parts, setParts] = useState<CatalogPart[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function CatalogClient({ initialParts, initialFacets }: {
+  initialParts?: CatalogPart[];
+  initialFacets?: { makes: Array<{ name: string; count: number }>; models: Array<{ name: string; count: number }>; years: Array<{ start: number; end: number | null; label: string }> };
+}) {
+  const [parts, setParts] = useState<CatalogPart[]>(initialParts || []);
+  const [loading, setLoading] = useState(!initialParts);
   const [error, setError] = useState<string | null>(null);
   const [seg, setSeg] = useState("all");
   const [search, setSearch] = useState("");
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
-  const [facets, setFacets] = useState<{ makes: Array<{ name: string; count: number }>; models: Array<{ name: string; count: number }>; years: Array<{ start: number; end: number | null; label: string }> }>({ makes: [], models: [], years: [] });
+  const [facets, setFacets] = useState<{ makes: Array<{ name: string; count: number }>; models: Array<{ name: string; count: number }>; years: Array<{ start: number; end: number | null; label: string }> }>(initialFacets || { makes: [], models: [], years: [] });
   const [contributeSent, setContributeSent] = useState(false);
   const [selectedPart, setSelectedPart] = useState<CatalogPart | null>(null);
   const [contForm, setContForm] = useState({

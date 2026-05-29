@@ -2,7 +2,29 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import CatalogClient from "./CatalogClient";
 
-export default function CatalogPage() {
+async function fetchInitialData() {
+  const base = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+  try {
+    const [catalogRes, facetsRes] = await Promise.all([
+      fetch(`${base}/api/catalog`, { next: { revalidate: 60 } }),
+      fetch(`${base}/api/catalog/facets`, { next: { revalidate: 120 } }),
+    ]);
+    const [catalog, facets] = await Promise.all([catalogRes.json(), facetsRes.json()]);
+    return {
+      parts: catalog.success ? catalog.parts : [],
+      facets: facets.success ? facets : { makes: [], models: [], years: [] },
+    };
+  } catch {
+    return { parts: [], facets: { makes: [], models: [], years: [] } };
+  }
+}
+
+export default async function CatalogPage() {
+  const { parts, facets } = await fetchInitialData();
+
   return (
     <>
       <SiteHeader />
@@ -18,13 +40,16 @@ export default function CatalogPage() {
                 <br /><span className="text-emerald-400">We Do.</span>
               </h1>
               <p className="mt-6 text-base text-charcoal-400 max-w-xl leading-relaxed">
-                3D-scanned from originals. OEM, Improved, or Custom tiers. New parts added as we scan.
+                {parts.length > 0
+                  ? `${parts.length} parts in the library. 3D-scanned from originals. OEM, Improved, or Custom tiers.`
+                  : "Our parts library is being built. Check back soon or submit a part request below."
+                }
               </p>
             </div>
           </div>
         </section>
 
-        <CatalogClient />
+        <CatalogClient initialParts={parts} initialFacets={facets} />
       </main>
       <SiteFooter />
     </>
