@@ -78,8 +78,11 @@ export async function POST(request: NextRequest) {
         }, quantity));
       }
 
-      // Cheap cache validation
-      if (variant.last_quote_id) {
+      // Cheap cache validation — skip if quantity changed (cached quote may have volume pricing)
+      const cachedQty = await sql`SELECT quantity FROM autoquote_cache WHERE variant_id = ${variantId} ORDER BY created_at DESC LIMIT 1`;
+      const cachedQuantityMatches = cachedQty.length === 0 || (cachedQty[0].quantity as number) === quantity;
+
+      if (variant.last_quote_id && cachedQuantityMatches) {
         try {
           const cached = await validateCachedQuote(
             variant.last_quote_id as string,
@@ -204,13 +207,9 @@ export async function POST(request: NextRequest) {
         fallbackLeadDays: null,
       });
 
-      // Store on part for catalog caching
+      // Store on part for catalog caching (atomic — no read-modify-write race)
       if (result.unitPrice) {
-        // Read current custom quotes, update in JS, write back
-        const partRows = await sql`SELECT custom_quotes FROM parts WHERE id = ${partId}`;
-        const existing = Array.isArray(partRows[0]?.custom_quotes) ? partRows[0].custom_quotes as Array<Record<string, unknown>> : [];
-        const filtered = existing.filter((q) => q.material !== materialCode);
-        filtered.push({
+        const newEntry = JSON.stringify({
           material: materialCode,
           unitPrice: result.unitPrice,
           leadTimeDays: quote.lead_time_days || null,
@@ -222,7 +221,11 @@ export async function POST(request: NextRequest) {
             last_estimate_price = ${result.unitPrice},
             last_estimate_at = NOW(),
             last_estimate_material = ${materialCode},
-            custom_quotes = ${JSON.stringify(filtered)}::jsonb,
+            custom_quotes = (
+              SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+              FROM jsonb_array_elements(COALESCE(custom_quotes, '[]'::jsonb)) elem
+              WHERE elem->>'material' IS DISTINCT FROM ${materialCode}
+            ) || ${newEntry}::jsonb,
             updated_at = NOW()
           WHERE id = ${partId}
         `;

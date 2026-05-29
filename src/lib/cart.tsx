@@ -63,10 +63,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
       );
       if (existing) {
         const newQty = existing.quantity + item.quantity;
-        const unitPrice = parseFloat(existing.unitPrice || "0");
+        const latestUnitPrice = item.unitPrice || existing.unitPrice;
+        const unitPriceNum = parseFloat(latestUnitPrice || "0");
         return prev.map((i) =>
           i.id === existing.id
-            ? { ...i, quantity: newQty, totalPrice: (unitPrice * newQty).toFixed(2) }
+            ? {
+                ...i,
+                quantity: newQty,
+                unitPrice: latestUnitPrice,
+                totalPrice: (unitPriceNum * newQty).toFixed(2),
+                isEstimate: item.isEstimate,
+                quoteId: item.quoteId || i.quoteId,
+                quoteSource: item.quoteSource,
+              }
             : i
         );
       }

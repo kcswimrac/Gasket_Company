@@ -113,6 +113,7 @@ export interface CatalogPart {
   }>;
 }
 
+// Mirrors QuoteResult from @/lib/autoquote/client — keep in sync
 export interface CartQuote {
   variantId: string | null;
   quoteId: string | null;

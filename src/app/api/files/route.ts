@@ -14,6 +14,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "url parameter required" }, { status: 400 });
   }
 
+  // Validate hostname to prevent SSRF — only allow Vercel Blob Storage
+  try {
+    const parsed = new URL(blobUrl);
+    const hostname = parsed.hostname.toLowerCase();
+    if (
+      !hostname.endsWith(".blob.vercel-storage.com") &&
+      !hostname.endsWith(".public.blob.vercel-storage.com")
+    ) {
+      return NextResponse.json(
+        { error: "Invalid URL: only Vercel Blob Storage URLs are allowed" },
+        { status: 400 }
+      );
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  }
+
   try {
     // For Vercel Blob private stores, we need to append the token
     const token = process.env.BLOB_READ_WRITE_TOKEN;

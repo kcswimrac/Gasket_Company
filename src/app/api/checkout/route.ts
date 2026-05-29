@@ -56,6 +56,66 @@ export async function POST(request: NextRequest) {
     }
 
     const sql = getSQL();
+
+    // ── Price trust validation: verify client prices against DB ──
+    for (const item of items) {
+      if (!item.unitPrice || parseFloat(item.unitPrice) <= 0) continue;
+
+      const clientPrice = parseFloat(item.unitPrice);
+      let dbPrice: number | null = null;
+
+      if (item.variantId) {
+        // Look up variant price: prefer last_quoted_price, fall back to base_price
+        const rows = await sql`
+          SELECT last_quoted_price, base_price
+          FROM part_variants
+          WHERE id = ${item.variantId}
+          LIMIT 1
+        `;
+        if (rows.length > 0) {
+          const row = rows[0];
+          const quoted = row.last_quoted_price != null ? parseFloat(row.last_quoted_price as string) : null;
+          const base = row.base_price != null ? parseFloat(row.base_price as string) : null;
+          dbPrice = quoted ?? base;
+        }
+      } else if (item.partId) {
+        // Look up part-level estimate price
+        const rows = await sql`
+          SELECT last_estimate_price
+          FROM parts
+          WHERE id = ${item.partId}
+          LIMIT 1
+        `;
+        if (rows.length > 0 && rows[0].last_estimate_price != null) {
+          dbPrice = parseFloat(rows[0].last_estimate_price as string);
+        }
+      }
+
+      // If we found a DB price and the client price is below it, reject the order
+      if (dbPrice !== null && dbPrice > 0) {
+        if (clientPrice < dbPrice) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Price mismatch for "${item.partName}": submitted price $${clientPrice.toFixed(2)} is below the actual price $${dbPrice.toFixed(2)}. Please refresh your cart.`,
+            },
+            { status: 400 }
+          );
+        }
+        // Allow prices up to 5% above DB price (markup buffer) but no higher
+        const maxAllowed = dbPrice * 1.05;
+        if (clientPrice > maxAllowed) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Price mismatch for "${item.partName}": submitted price $${clientPrice.toFixed(2)} exceeds expected range. Please refresh your cart.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     const hasEstimates = items.some((i) => i.isEstimate);
     const allPriced = !hasEstimates && items.every((i) => i.unitPrice && parseFloat(i.unitPrice) > 0);
 
@@ -84,7 +144,7 @@ export async function POST(request: NextRequest) {
     const totalPrice = items.reduce((s, i) => s + parseFloat(i.totalPrice || "0"), 0);
     const orderRows = await sql`
       INSERT INTO orders (customer_id, status, total_price, notes)
-      VALUES (${customerId}, ${hasEstimates ? "pending_quote" : "pending_quote"}, ${totalPrice.toFixed(2)}, ${customer.notes || null})
+      VALUES (${customerId}, ${allPriced ? "quoted" : "pending_quote"}, ${totalPrice.toFixed(2)}, ${customer.notes || null})
       RETURNING id
     `;
     const orderId = orderRows[0].id as string;
@@ -100,7 +160,7 @@ export async function POST(request: NextRequest) {
           ${item.unitPrice || null},
           ${item.totalPrice || null},
           ${item.quoteId || null},
-          ${item.isEstimate ? "pending_quote" : "pending_quote"},
+          ${item.isEstimate ? "pending_quote" : "quoted"},
           ${`${item.partName} — ${item.material} (${item.process})`}
         )
       `;
