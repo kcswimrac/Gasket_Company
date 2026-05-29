@@ -39,7 +39,7 @@ export default function CartPage() {
             <div className="space-y-4">
               {/* Items */}
               {items.map((item) => (
-                <div key={item.id} className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl p-5 flex items-start gap-5">
+                <div key={item.id} className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl p-5 flex flex-col sm:flex-row items-start gap-5">
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-bold text-white">{item.partName}</h3>
                     <div className="flex flex-wrap gap-2 mt-1.5">
@@ -57,39 +57,42 @@ export default function CartPage() {
                     )}
                   </div>
 
-                  {/* Quantity */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                      className="w-7 h-7 rounded bg-charcoal-800 hover:bg-charcoal-700 text-charcoal-300 flex items-center justify-center text-sm transition-colors"
-                    >
-                      −
-                    </button>
-                    <span className="w-8 text-center text-sm text-white font-medium">{item.quantity}</span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="w-7 h-7 rounded bg-charcoal-800 hover:bg-charcoal-700 text-charcoal-300 flex items-center justify-center text-sm transition-colors"
-                    >
-                      +
+                  {/* Quantity + Price + Remove — bottom row on mobile */}
+                  <div className="flex items-center gap-4 w-full sm:w-auto">
+                    {/* Quantity */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                        className="w-9 h-9 sm:w-7 sm:h-7 rounded bg-charcoal-800 hover:bg-charcoal-700 text-charcoal-300 flex items-center justify-center text-sm transition-colors"
+                      >
+                        −
+                      </button>
+                      <span className="w-8 text-center text-sm text-white font-medium">{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        className="w-9 h-9 sm:w-7 sm:h-7 rounded bg-charcoal-800 hover:bg-charcoal-700 text-charcoal-300 flex items-center justify-center text-sm transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Price */}
+                    <div className="text-right shrink-0 w-24 ml-auto sm:ml-0">
+                      {item.unitPrice ? (
+                        <>
+                          <p className="text-sm font-bold text-white">${item.totalPrice}</p>
+                          <p className="text-[10px] text-charcoal-500">${item.unitPrice}/ea</p>
+                        </>
+                      ) : (
+                        <p className="text-xs text-charcoal-500">TBD</p>
+                      )}
+                    </div>
+
+                    {/* Remove */}
+                    <button onClick={() => removeItem(item.id)} className="text-charcoal-600 hover:text-red-400 p-1 transition-colors shrink-0">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   </div>
-
-                  {/* Price */}
-                  <div className="text-right shrink-0 w-24">
-                    {item.unitPrice ? (
-                      <>
-                        <p className="text-sm font-bold text-white">${item.totalPrice}</p>
-                        <p className="text-[10px] text-charcoal-500">${item.unitPrice}/ea</p>
-                      </>
-                    ) : (
-                      <p className="text-xs text-charcoal-500">TBD</p>
-                    )}
-                  </div>
-
-                  {/* Remove */}
-                  <button onClick={() => removeItem(item.id)} className="text-charcoal-600 hover:text-red-400 p-1 transition-colors shrink-0">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
                 </div>
               ))}
 

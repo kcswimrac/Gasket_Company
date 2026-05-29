@@ -1169,7 +1169,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
                           <label className={labelCls}>Application / Fitment *</label>
                           <input type="text" value={contForm.application} onChange={(e) => cSet("application", e.target.value)} placeholder="What machine or vehicle does it fit?" className={inputCls} />
                         </div>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
                             <label className={labelCls}>Make</label>
                             <input type="text" value={contForm.make} onChange={(e) => cSet("make", e.target.value)} placeholder="Ford" className={inputCls} />
@@ -1255,7 +1255,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
 
                         <div className="border-t border-charcoal-800/40 pt-5">
                           <p className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold mb-3">Your Information</p>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                               <label className={labelCls}>Name *</label>
                               <input type="text" value={contForm.name} onChange={(e) => cSet("name", e.target.value)} placeholder="Name or shop" className={inputCls} />

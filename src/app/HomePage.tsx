@@ -66,7 +66,7 @@ function HeroSection() {
 
           {/* Authority stats bar */}
           <FadeUp delay={0.3}>
-            <div className="mt-10 flex flex-wrap gap-8 sm:gap-12">
+            <div className="mt-10 flex flex-wrap gap-6 sm:gap-12">
               {[
                 { value: "±1/32\"", label: "Accuracy" },
                 { value: "24hr", label: "Gasket turnaround" },

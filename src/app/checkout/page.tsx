@@ -110,17 +110,17 @@ export default function CheckoutPage() {
         <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
           <h1 className="text-2xl font-bold text-white mb-8">Checkout</h1>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Form */}
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl p-6">
                 <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Contact Information</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 sm:col-span-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
                     <label className={labelCls}>Full Name *</label>
                     <input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Name" className={inputCls} />
                   </div>
-                  <div className="col-span-2 sm:col-span-1">
+                  <div>
                     <label className={labelCls}>Email *</label>
                     <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="Email" className={inputCls} />
                   </div>
@@ -137,8 +137,8 @@ export default function CheckoutPage() {
 
               <div className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl p-6">
                 <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Shipping Address</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
                     <label className={labelCls}>Street Address</label>
                     <input value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Address" className={inputCls} />
                   </div>
@@ -200,7 +200,7 @@ export default function CheckoutPage() {
                   {items.map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
                       <div className="min-w-0 flex-1 pr-3">
-                        <p className="text-charcoal-200 truncate">{item.partName}</p>
+                        <p className="text-charcoal-200 line-clamp-2">{item.partName}</p>
                         <p className="text-[10px] text-charcoal-500">
                           {item.tier && `${item.tier.toUpperCase()} · `}{item.material} × {item.quantity}
                         </p>
