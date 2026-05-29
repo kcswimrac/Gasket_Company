@@ -763,6 +763,10 @@ export default function CatalogClient() {
   const [error, setError] = useState<string | null>(null);
   const [seg, setSeg] = useState("all");
   const [search, setSearch] = useState("");
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState("");
+  const [facets, setFacets] = useState<{ makes: Array<{ name: string; count: number }>; models: Array<{ name: string; count: number }>; years: Array<{ start: number; end: number | null; label: string }> }>({ makes: [], models: [], years: [] });
   const [contributeSent, setContributeSent] = useState(false);
   const [selectedPart, setSelectedPart] = useState<CatalogPart | null>(null);
   const [contForm, setContForm] = useState({
@@ -778,6 +782,9 @@ export default function CatalogClient() {
     try {
       const params = new URLSearchParams();
       if (seg !== "all") params.set("segment", seg);
+      if (make) params.set("make", make);
+      if (model) params.set("model", model);
+      if (year) params.set("year", year);
       if (search) params.set("search", search);
       const res = await fetch(`/api/catalog?${params}`);
       const data = await res.json();
@@ -788,9 +795,21 @@ export default function CatalogClient() {
     } finally {
       setLoading(false);
     }
-  }, [seg, search]);
+  }, [seg, make, model, year, search]);
+
+  const fetchFacets = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (seg !== "all") params.set("segment", seg);
+    if (make) params.set("make", make);
+    try {
+      const res = await fetch(`/api/catalog/facets?${params}`);
+      const data = await res.json();
+      if (data.success) setFacets(data);
+    } catch { /* ignore */ }
+  }, [seg, make]);
 
   useEffect(() => { fetchParts(); }, [fetchParts]);
+  useEffect(() => { fetchFacets(); }, [fetchFacets]);
 
   const dbPartsExist = parts.length > 0;
 
@@ -811,16 +830,85 @@ export default function CatalogClient() {
                 className="w-full bg-charcoal-900 border border-charcoal-800/60 rounded-xl pl-11 pr-4 py-3.5 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 focus:border-emerald-500/40"
               />
             </div>
+            {/* Segment chips */}
             <div className="flex flex-wrap gap-2">
-              <button onClick={() => setSeg("all")} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all ${seg === "all" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}>
+              <button onClick={() => { setSeg("all"); setMake(""); setModel(""); setYear(""); }} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all ${seg === "all" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}>
                 All
               </button>
               {SEGMENTS.map((s) => (
-                <button key={s.id} onClick={() => setSeg(s.id)} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all ${seg === s.id ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}>
+                <button key={s.id} onClick={() => { setSeg(s.id); setMake(""); setModel(""); setYear(""); }} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all ${seg === s.id ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}>
                   {s.label}
                 </button>
               ))}
             </div>
+
+            {/* Make chips — show when we have makes */}
+            {facets.makes.length > 0 && (
+              <div className="mt-3">
+                <p className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">Make</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {make && (
+                    <button onClick={() => { setMake(""); setModel(""); setYear(""); }} className="px-2.5 py-1 rounded-full text-[11px] font-medium text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300 transition-all">
+                      All Makes
+                    </button>
+                  )}
+                  {facets.makes.map((m) => (
+                    <button key={m.name} onClick={() => { setMake(m.name); setModel(""); setYear(""); }} className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${make === m.name ? "bg-gold-500/15 text-gold-400 border border-gold-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}>
+                      {m.name} <span className="text-charcoal-600 ml-0.5">({m.count})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Model chips — show when a make is selected and we have models */}
+            {make && facets.models.length > 0 && (
+              <div className="mt-3">
+                <p className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">Model</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {model && (
+                    <button onClick={() => { setModel(""); setYear(""); }} className="px-2.5 py-1 rounded-full text-[11px] font-medium text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300 transition-all">
+                      All Models
+                    </button>
+                  )}
+                  {facets.models.map((m) => (
+                    <button key={m.name} onClick={() => { setModel(m.name); setYear(""); }} className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${model === m.name ? "bg-gold-500/15 text-gold-400 border border-gold-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}>
+                      {m.name} <span className="text-charcoal-600 ml-0.5">({m.count})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Year chips — show when we have year ranges */}
+            {make && facets.years.length > 1 && (
+              <div className="mt-3">
+                <p className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">Year</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {year && (
+                    <button onClick={() => setYear("")} className="px-2.5 py-1 rounded-full text-[11px] font-medium text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300 transition-all">
+                      All Years
+                    </button>
+                  )}
+                  {facets.years.map((y) => (
+                    <button key={y.label} onClick={() => setYear(String(y.start))} className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${year === String(y.start) ? "bg-gold-500/15 text-gold-400 border border-gold-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}>
+                      {y.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Active filter breadcrumb */}
+            {(make || model || year) && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-[10px] text-charcoal-500">Filtering:</span>
+                {make && <span className="text-[10px] px-2 py-0.5 rounded bg-gold-500/10 text-gold-400 border border-gold-500/20">{make}</span>}
+                {model && <span className="text-[10px] px-2 py-0.5 rounded bg-gold-500/10 text-gold-400 border border-gold-500/20">{model}</span>}
+                {year && <span className="text-[10px] px-2 py-0.5 rounded bg-gold-500/10 text-gold-400 border border-gold-500/20">{year}</span>}
+                <button onClick={() => { setMake(""); setModel(""); setYear(""); }} className="text-[10px] text-charcoal-600 hover:text-red-400 transition-colors">Clear all</button>
+              </div>
+            )}
           </div>
 
           {/* Error */}

@@ -16,6 +16,9 @@ export async function GET(request: NextRequest) {
     const segment = request.nextUrl.searchParams.get("segment");
     const search = request.nextUrl.searchParams.get("search");
     const sort = request.nextUrl.searchParams.get("sort");
+    const make = request.nextUrl.searchParams.get("make");
+    const model = request.nextUrl.searchParams.get("model");
+    const year = request.nextUrl.searchParams.get("year");
 
     // Fetch estimate markup setting
     let markupPct = 0;
@@ -24,54 +27,25 @@ export async function GET(request: NextRequest) {
       return (parseFloat(price) * (1 + markupPct / 100)).toFixed(2);
     };
 
-    // Phase 1: settings + parts in parallel
     const orderClause = sort === "popular" ? sql`ORDER BY COALESCE(p.times_sold, 0) DESC, p.name` : sql`ORDER BY p.name`;
+    const yearNum = year ? parseInt(year) : null;
 
-    const partsQuery = segment && search
-      ? sql`
-        SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
-               p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
-               COALESCE(p.times_sold, 0) as times_sold,
-               c.public_credit_name as contributor_name
-        FROM parts p
-        LEFT JOIN contributors c ON p.contributor_id = c.id
-        WHERE p.active IS NOT false AND p.segment = ${segment}
-        AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})
-        ${orderClause}
-      `
-      : segment
-      ? sql`
-        SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
-               p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
-               COALESCE(p.times_sold, 0) as times_sold,
-               c.public_credit_name as contributor_name
-        FROM parts p
-        LEFT JOIN contributors c ON p.contributor_id = c.id
-        WHERE p.active IS NOT false AND p.segment = ${segment}
-        ${orderClause}
-      `
-      : search
-      ? sql`
-        SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
-               p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
-               COALESCE(p.times_sold, 0) as times_sold,
-               c.public_credit_name as contributor_name
-        FROM parts p
-        LEFT JOIN contributors c ON p.contributor_id = c.id
-        WHERE p.active IS NOT false
-        AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})
-        ${orderClause}
-      `
-      : sql`
-        SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
-               p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
-               COALESCE(p.times_sold, 0) as times_sold,
-               c.public_credit_name as contributor_name
-        FROM parts p
-        LEFT JOIN contributors c ON p.contributor_id = c.id
-        WHERE p.active IS NOT false
-        ${orderClause}
-      `;
+    // Single query with conditional filters
+    const partsQuery = sql`
+      SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
+             p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
+             COALESCE(p.times_sold, 0) as times_sold,
+             c.public_credit_name as contributor_name
+      FROM parts p
+      LEFT JOIN contributors c ON p.contributor_id = c.id
+      WHERE p.active IS NOT false
+      ${segment ? sql`AND p.segment = ${segment}` : sql``}
+      ${make ? sql`AND p.make = ${make}` : sql``}
+      ${model ? sql`AND p.model = ${model}` : sql``}
+      ${yearNum ? sql`AND p.year_start <= ${yearNum} AND COALESCE(p.year_end, p.year_start) >= ${yearNum}` : sql``}
+      ${search ? sql`AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})` : sql``}
+      ${orderClause}
+    `;
 
     const settingsQuery = sql`SELECT value FROM settings WHERE key = 'estimate_markup_pct'`.catch(() => []);
 
