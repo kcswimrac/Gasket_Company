@@ -878,8 +878,8 @@ export default function CatalogClient({ initialParts, initialFacets }: {
   const [claimSubmitting, setClaimSubmitting] = useState(false);
   const [claimSent, setClaimSent] = useState(false);
 
-  const fetchParts = useCallback(async () => {
-    setLoading(true);
+  const fetchParts = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     try {
       const params = new URLSearchParams();
       if (seg !== "all") params.set("segment", seg);
@@ -909,7 +909,8 @@ export default function CatalogClient({ initialParts, initialFacets }: {
     } catch { /* ignore */ }
   }, [seg, make]);
 
-  useEffect(() => { fetchParts(); }, [fetchParts]);
+  const hasInitialData = !!(initialParts && initialParts.length > 0);
+  useEffect(() => { fetchParts(!hasInitialData); }, [fetchParts, hasInitialData]);
   useEffect(() => { fetchFacets(); }, [fetchFacets]);
   useEffect(() => {
     fetch("/api/bounties").then((r) => r.json()).then((d) => { if (d.success) setBounties(d.bounties); }).catch(() => {});
@@ -1019,7 +1020,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
           {error && (
             <div className="bg-red-500/5 border border-red-500/15 rounded-xl p-4 mb-6 text-sm text-red-400 max-w-2xl mx-auto text-center">
               {error}
-              <button onClick={fetchParts} className="ml-3 underline text-xs">Retry</button>
+              <button onClick={() => fetchParts()} className="ml-3 underline text-xs">Retry</button>
             </div>
           )}
 
