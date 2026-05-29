@@ -64,6 +64,14 @@ export async function POST(request: NextRequest) {
         await sql`UPDATE orders SET total_price = ${amountTotal} WHERE id = ${orderId}`;
       }
 
+      // Increment times_sold on each part in the order's line items
+      await sql`
+        UPDATE parts SET times_sold = COALESCE(times_sold, 0) + oli.quantity
+        FROM order_line_items oli
+        JOIN part_variants pv ON oli.variant_id = pv.id
+        WHERE parts.id = pv.part_id AND oli.order_id = ${orderId}
+      `;
+
       // Store shipping address if collected
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const shipping = (session as any).shipping_details as { name?: string; address?: { line1?: string; line2?: string; city?: string; state?: string; postal_code?: string } } | null;

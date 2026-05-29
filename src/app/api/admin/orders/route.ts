@@ -14,6 +14,29 @@ export async function GET(request: NextRequest) {
     const sql = getSQL();
     const status = request.nextUrl.searchParams.get("status");
     const search = request.nextUrl.searchParams.get("search");
+    const page = Math.max(1, parseInt(request.nextUrl.searchParams.get("page") || "1", 10));
+    const limit = Math.max(1, Math.min(100, parseInt(request.nextUrl.searchParams.get("limit") || "25", 10)));
+    const offset = (page - 1) * limit;
+
+    // Count query for pagination (filtered)
+    const countResult = search
+      ? await sql`
+          SELECT COUNT(*)::int as total
+          FROM orders o
+          LEFT JOIN customers c ON o.customer_id = c.id
+          WHERE (
+            c.name ILIKE ${"%" + search + "%"}
+            OR c.email ILIKE ${"%" + search + "%"}
+            OR c.company ILIKE ${"%" + search + "%"}
+            OR o.id::text ILIKE ${"%" + search + "%"}
+          )
+          ${status && status !== "all" ? sql`AND o.status = ${status}` : sql``}
+        `
+      : status && status !== "all"
+        ? await sql`SELECT COUNT(*)::int as total FROM orders WHERE status = ${status}`
+        : await sql`SELECT COUNT(*)::int as total FROM orders`;
+
+    const total = countResult[0].total;
 
     // Main orders query with customer info and line item count
     const orders = search
@@ -42,6 +65,7 @@ export async function GET(request: NextRequest) {
           )
           ${status && status !== "all" ? sql`AND o.status = ${status}` : sql``}
           ORDER BY o.created_at DESC
+          LIMIT ${limit} OFFSET ${offset}
         `
       : status && status !== "all"
         ? await sql`
@@ -63,6 +87,7 @@ export async function GET(request: NextRequest) {
             ) li ON true
             WHERE o.status = ${status}
             ORDER BY o.created_at DESC
+            LIMIT ${limit} OFFSET ${offset}
           `
         : await sql`
             SELECT
@@ -82,9 +107,10 @@ export async function GET(request: NextRequest) {
               WHERE order_id = o.id
             ) li ON true
             ORDER BY o.created_at DESC
+            LIMIT ${limit} OFFSET ${offset}
           `;
 
-    // Summary stats
+    // Summary stats (always across all orders, unfiltered)
     const stats = await sql`
       SELECT
         COUNT(*)::int as total_orders,
@@ -100,6 +126,7 @@ export async function GET(request: NextRequest) {
       success: true,
       orders,
       stats: stats[0],
+      pagination: { page, limit, total },
     });
   } catch (e) {
     return NextResponse.json(

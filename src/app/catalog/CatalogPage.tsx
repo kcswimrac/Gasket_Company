@@ -871,6 +871,7 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [seg, setSeg] = useState("all");
+  const [sortBy, setSortBy] = useState<"name" | "popular">("name");
   const [search, setSearch] = useState("");
   const [contributeSent, setContributeSent] = useState(false);
   const [selectedPart, setSelectedPart] = useState<CatalogPart | null>(null);
@@ -888,6 +889,7 @@ export default function CatalogPage() {
       const params = new URLSearchParams();
       if (seg !== "all") params.set("segment", seg);
       if (search) params.set("search", search);
+      if (sortBy === "popular") params.set("sort", "popular");
       const res = await fetch(`/api/catalog?${params}`);
       const data = await res.json();
       if (data.success) setParts(data.parts);
@@ -897,7 +899,7 @@ export default function CatalogPage() {
     } finally {
       setLoading(false);
     }
-  }, [seg, search]);
+  }, [seg, search, sortBy]);
 
   useEffect(() => { fetchParts(); }, [fetchParts]);
 
@@ -942,7 +944,7 @@ export default function CatalogPage() {
                   className="w-full bg-charcoal-900 border border-charcoal-800/60 rounded-xl pl-11 pr-4 py-3.5 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 focus:border-emerald-500/40"
                 />
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 items-center">
                 <button onClick={() => setSeg("all")} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all ${seg === "all" ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}>
                   All
                 </button>
@@ -951,6 +953,13 @@ export default function CatalogPage() {
                     {s.label}
                   </button>
                 ))}
+                <span className="w-px h-5 bg-charcoal-800/50 mx-1" />
+                <button
+                  onClick={() => setSortBy(sortBy === "popular" ? "name" : "popular")}
+                  className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-all ${sortBy === "popular" ? "bg-gold-500/15 text-gold-400 border border-gold-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}
+                >
+                  Popular
+                </button>
               </div>
             </div>
 

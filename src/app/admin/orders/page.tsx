@@ -687,6 +687,8 @@ export default function OrdersAdmin() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<{ page: number; limit: number; total: number } | null>(null);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -695,11 +697,13 @@ export default function OrdersAdmin() {
       const params = new URLSearchParams();
       if (statusFilter !== "all") params.set("status", statusFilter);
       if (search) params.set("search", search);
+      params.set("page", String(page));
       const res = await fetch(`/api/admin/orders?${params}`);
       const data = await res.json();
       if (data.success) {
         setOrders(data.orders);
         setStats(data.stats);
+        if (data.pagination) setPagination(data.pagination);
       } else {
         setError(data.error);
       }
@@ -708,7 +712,7 @@ export default function OrdersAdmin() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, search]);
+  }, [statusFilter, search, page]);
 
   useEffect(() => {
     fetchOrders();
@@ -745,7 +749,7 @@ export default function OrdersAdmin() {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           placeholder="Search by customer, email, order ID..."
           className="bg-charcoal-900 border border-charcoal-800/50 rounded-lg px-3 py-2 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 w-full sm:w-72"
         />
@@ -753,7 +757,7 @@ export default function OrdersAdmin() {
           {STATUS_FILTERS.map((f) => (
             <button
               key={f.id}
-              onClick={() => setStatusFilter(f.id)}
+              onClick={() => { setStatusFilter(f.id); setPage(1); }}
               className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors ${
                 statusFilter === f.id
                   ? "bg-emerald-500/10 text-emerald-400"
@@ -858,6 +862,34 @@ export default function OrdersAdmin() {
           </div>
         )}
       </div>
+
+      {/* Pagination controls */}
+      {pagination && pagination.total > 0 && (
+        <div className="flex items-center justify-between mt-4 px-1">
+          <p className="text-xs text-charcoal-500">
+            Showing {Math.min((pagination.page - 1) * pagination.limit + 1, pagination.total)}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={pagination.page <= 1}
+              className="px-3 py-1.5 bg-charcoal-900 border border-charcoal-800/50 rounded text-xs text-charcoal-300 font-medium transition-colors hover:bg-charcoal-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-charcoal-400">
+              Page {pagination.page} of {Math.max(1, Math.ceil(pagination.total / pagination.limit))}
+            </span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
+              className="px-3 py-1.5 bg-charcoal-900 border border-charcoal-800/50 rounded text-xs text-charcoal-300 font-medium transition-colors hover:bg-charcoal-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -14,6 +14,21 @@ export async function GET(request: NextRequest) {
   try {
     const sql = getSQL();
     const search = request.nextUrl.searchParams.get("search");
+    const page = Math.max(1, parseInt(request.nextUrl.searchParams.get("page") || "1", 10));
+    const limit = Math.max(1, Math.min(100, parseInt(request.nextUrl.searchParams.get("limit") || "25", 10)));
+    const offset = (page - 1) * limit;
+
+    // Count query for pagination
+    const countResult = search
+      ? await sql`
+          SELECT COUNT(*)::int as total FROM customers
+          WHERE name ILIKE ${"%" + search + "%"}
+            OR email ILIKE ${"%" + search + "%"}
+            OR company ILIKE ${"%" + search + "%"}
+        `
+      : await sql`SELECT COUNT(*)::int as total FROM customers`;
+
+    const total = countResult[0].total;
 
     let customers;
     if (search) {
@@ -36,6 +51,7 @@ export async function GET(request: NextRequest) {
           OR c.email ILIKE ${pattern}
           OR c.company ILIKE ${pattern}
         ORDER BY c.created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
       `;
     } else {
       customers = await sql`
@@ -53,10 +69,11 @@ export async function GET(request: NextRequest) {
           GROUP BY customer_id
         ) agg ON agg.customer_id = c.id
         ORDER BY c.created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
       `;
     }
 
-    return NextResponse.json({ success: true, customers });
+    return NextResponse.json({ success: true, customers, pagination: { page, limit, total } });
   } catch (e) {
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },
