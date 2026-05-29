@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { neon } from "@neondatabase/serverless";
+import { sendEmail, paymentLinkEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -111,11 +112,28 @@ export async function POST(request: NextRequest) {
       WHERE id = ${orderId}
     `;
 
+    // Send payment link email to customer
+    let emailSent = false;
+    let emailError: string | undefined;
+    if (order.customer_email && session.url) {
+      const { subject, html } = paymentLinkEmail({
+        customerName: (order.customer_name as string) || "there",
+        orderId,
+        total: orderTotal.toFixed(2),
+        paymentUrl: session.url,
+      });
+      const result = await sendEmail({ to: order.customer_email as string, subject, html });
+      emailSent = result.sent;
+      if (!result.sent) emailError = result.reason;
+    }
+
     return NextResponse.json({
       success: true,
       status: "quoted",
       total: orderTotal.toFixed(2),
       paymentUrl: session.url,
+      emailSent,
+      emailError,
     });
   } catch (e) {
     return NextResponse.json(

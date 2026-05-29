@@ -337,6 +337,7 @@ function OrderRow({
   const [confirming, setConfirming] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [emailStatus, setEmailStatus] = useState<{ sent: boolean; error?: string } | null>(null);
 
   const isPending = order.status === "pending_quote" || order.status === "quoted";
 
@@ -414,6 +415,7 @@ function OrderRow({
       const data = await res.json();
       if (data.success) {
         if (data.paymentUrl) setPaymentUrl(data.paymentUrl);
+        setEmailStatus(data.emailSent !== undefined ? { sent: data.emailSent, error: data.emailError } : null);
         onUpdated();
       } else {
         setConfirmError(data.error);
@@ -640,7 +642,18 @@ function OrderRow({
                 </svg>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-emerald-300">Payment Link Ready</p>
-                  <p className="text-xs text-charcoal-500 mt-0.5">Send this link to {order.customer_email || "the customer"} to collect payment.</p>
+
+                  {emailStatus?.sent ? (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <svg className="w-3.5 h-3.5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                      <p className="text-xs text-emerald-400">Payment link emailed to {order.customer_email}</p>
+                    </div>
+                  ) : emailStatus ? (
+                    <p className="text-xs text-gold-400 mt-1">Email not sent: {emailStatus.error || "not configured"}. Copy the link below and send manually.</p>
+                  ) : (
+                    <p className="text-xs text-charcoal-500 mt-0.5">Send this link to {order.customer_email || "the customer"} to collect payment.</p>
+                  )}
+
                   <div className="mt-2 flex gap-2">
                     <input
                       readOnly
