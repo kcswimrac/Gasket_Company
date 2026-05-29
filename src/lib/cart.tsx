@@ -55,12 +55,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, loaded]);
 
   const addItem = useCallback((item: Omit<CartItem, "id" | "addedAt">) => {
-    const newItem: CartItem = {
-      ...item,
-      id: crypto.randomUUID(),
-      addedAt: new Date().toISOString(),
-    };
-    setItems((prev) => [...prev, newItem]);
+    setItems((prev) => {
+      const existing = prev.find((i) =>
+        i.partId === item.partId &&
+        i.variantId === item.variantId &&
+        i.material === item.material
+      );
+      if (existing) {
+        const newQty = existing.quantity + item.quantity;
+        const unitPrice = parseFloat(existing.unitPrice || "0");
+        return prev.map((i) =>
+          i.id === existing.id
+            ? { ...i, quantity: newQty, totalPrice: (unitPrice * newQty).toFixed(2) }
+            : i
+        );
+      }
+      return [...prev, { ...item, id: crypto.randomUUID(), addedAt: new Date().toISOString() }];
+    });
   }, []);
 
   const removeItem = useCallback((id: string) => {
