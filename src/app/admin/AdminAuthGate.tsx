@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + "_backyard_salt");
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export default function AdminAuthGate({
   children,
 }: {
@@ -12,42 +19,32 @@ export default function AdminAuthGate({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Check if we already have a valid admin_token cookie
     fetch("/api/admin/stats", { credentials: "include" })
       .then((res) => {
-        if (res.ok) {
-          setStatus("authenticated");
-        } else {
-          setStatus("unauthenticated");
-        }
+        setStatus(res.ok ? "authenticated" : "unauthenticated");
       })
-      .catch(() => {
-        setStatus("unauthenticated");
-      });
+      .catch(() => setStatus("unauthenticated"));
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // Set the cookie
-    document.cookie = `admin_token=${password};path=/;max-age=86400;SameSite=Strict`;
+    const hashed = await hashPassword(password);
+    document.cookie = `admin_token=${hashed};path=/;max-age=86400;SameSite=Strict;Secure`;
 
-    // Verify the token works
-    fetch("/api/admin/stats", { credentials: "include" })
-      .then((res) => {
-        if (res.ok) {
-          setStatus("authenticated");
-        } else {
-          // Clear the bad cookie
-          document.cookie = "admin_token=;path=/;max-age=0;SameSite=Strict";
-          setError("Invalid admin password");
-        }
-      })
-      .catch(() => {
+    try {
+      const res = await fetch("/api/admin/stats", { credentials: "include" });
+      if (res.ok) {
+        setStatus("authenticated");
+      } else {
         document.cookie = "admin_token=;path=/;max-age=0;SameSite=Strict";
-        setError("Connection error");
-      });
+        setError("Invalid password");
+      }
+    } catch {
+      document.cookie = "admin_token=;path=/;max-age=0;SameSite=Strict";
+      setError("Connection error");
+    }
   };
 
   if (status === "loading") {
