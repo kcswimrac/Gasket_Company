@@ -40,13 +40,176 @@ interface ScanItem {
   artifacts: Artifact[];
 }
 
-const STATUS_FLOW = ["received", "scanning", "modeling", "complete"];
+const STATUS_FLOW = ["received", "scanning", "scanned", "cad_generating", "cad_ready", "completed"];
 const STATUS_COLORS: Record<string, string> = {
   received: "bg-gold-500/10 text-gold-400",
   scanning: "bg-blue-500/10 text-blue-400",
+  scanned: "bg-violet-500/10 text-violet-400",
+  cad_generating: "bg-amber-500/10 text-amber-400",
+  cad_ready: "bg-copper-500/10 text-copper-400",
+  completed: "bg-emerald-500/10 text-emerald-400",
+  // Legacy statuses — kept for backward compatibility with existing data
   modeling: "bg-copper-500/10 text-copper-400",
   complete: "bg-emerald-500/10 text-emerald-400",
 };
+
+const STATUS_LABELS: Record<string, string> = {
+  received: "Received",
+  scanning: "Scanning",
+  scanned: "Scanned",
+  cad_generating: "CAD Generating",
+  cad_ready: "CAD Ready",
+  completed: "Completed",
+  modeling: "Modeling",
+  complete: "Complete",
+};
+
+const PART_TYPE_HINTS = [
+  { value: "auto", label: "Auto-detect" },
+  { value: "prismatic", label: "Prismatic (brackets, trays)" },
+  { value: "rotational", label: "Rotational (shafts, bushings)" },
+  { value: "sheet", label: "Sheet (gaskets, plates)" },
+  { value: "organic", label: "Organic (castings, housings)" },
+];
+
+interface CadGenResult {
+  confidence: number;
+  features: string[];
+  flaggedRegions: Array<{ region: string; reason: string }>;
+}
+
+function ConfidenceBadge({ confidence }: { confidence: number }) {
+  const pct = (confidence * 100).toFixed(0);
+  const cls =
+    confidence > 0.85
+      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+      : confidence >= 0.5
+        ? "bg-gold-500/10 text-gold-400 border-gold-500/20"
+        : "bg-red-500/10 text-red-400 border-red-500/20";
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-semibold ${cls}`}>
+      {pct}% confidence
+    </span>
+  );
+}
+
+function CadGenResultDisplay({ result, cadArtifacts }: { result: CadGenResult; cadArtifacts: Artifact[] }) {
+  const latestCad = cadArtifacts.filter((a) => !a.superseded_by).sort((a, b) => b.version - a.version)[0];
+  return (
+    <div className="bg-charcoal-950/40 border border-charcoal-800/30 rounded-lg p-3 mt-2 space-y-2">
+      <div className="flex items-center gap-3 flex-wrap">
+        <ConfidenceBadge confidence={result.confidence} />
+        <span className="text-[10px] text-charcoal-400">
+          {result.features.length} feature{result.features.length !== 1 ? "s" : ""} detected
+        </span>
+        {result.flaggedRegions.length > 0 && (
+          <span className="text-[10px] text-gold-400">
+            {result.flaggedRegions.length} flagged region{result.flaggedRegions.length !== 1 ? "s" : ""}
+          </span>
+        )}
+        {latestCad && (
+          <a
+            href={latestCad.file_url}
+            target="_blank"
+            rel="noopener"
+            className="text-[10px] text-blue-400 hover:text-blue-300 font-medium"
+          >
+            Review in CAD viewer
+          </a>
+        )}
+      </div>
+      {result.flaggedRegions.length > 0 && (
+        <div className="space-y-1">
+          {result.flaggedRegions.map((fr, i) => (
+            <div key={i} className="text-[10px] text-gold-400/80">
+              <span className="font-medium">{fr.region}:</span> {fr.reason}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GenerateCadButton({
+  scanQueueId,
+  onComplete,
+}: {
+  scanQueueId: string;
+  onComplete: (result: CadGenResult) => void;
+}) {
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [partTypeHint, setPartTypeHint] = useState("auto");
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/scans/generate-cad", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scanQueueId, partTypeHint }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setError(data.error);
+      } else {
+        onComplete({
+          confidence: data.confidence,
+          features: data.features,
+          flaggedRegions: data.flaggedRegions,
+        });
+      }
+    } catch {
+      setError("Network error — try again.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <select
+          value={partTypeHint}
+          onChange={(e) => setPartTypeHint(e.target.value)}
+          disabled={generating}
+          className="bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-1 text-[10px] text-charcoal-200 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 disabled:opacity-50"
+        >
+          {PART_TYPE_HINTS.map((h) => (
+            <option key={h.value} value={h.value}>{h.label}</option>
+          ))}
+        </select>
+        <button
+          onClick={handleGenerate}
+          disabled={generating}
+          className="px-3 py-1 bg-violet-600 hover:bg-violet-500 text-white text-[11px] font-semibold rounded transition-colors disabled:opacity-50 flex items-center gap-1.5"
+        >
+          {generating ? (
+            <>
+              <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Generating CAD...
+            </>
+          ) : (
+            <>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V15m0 0l-2.25-1.313M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5" />
+              </svg>
+              Generate CAD
+            </>
+          )}
+        </button>
+      </div>
+      {error && (
+        <p className="text-[10px] text-red-400">{error}</p>
+      )}
+    </div>
+  );
+}
 
 function FileUploadButton({
   scanQueueId,
@@ -118,11 +281,7 @@ function ArtifactList({ artifacts, type }: { artifacts: Artifact[]; type: string
 
 function ScanItemRow({ item, onRefresh, expanded, onToggle }: { item: ScanItem; onRefresh: () => void; expanded: boolean; onToggle: () => void }) {
   const [publishing, setPublishing] = useState(false);
-
-  const nextStatus = () => {
-    const idx = STATUS_FLOW.indexOf(item.status);
-    return idx >= 0 && idx < STATUS_FLOW.length - 1 ? STATUS_FLOW[idx + 1] : null;
-  };
+  const [cadGenResult, setCadGenResult] = useState<CadGenResult | null>(null);
 
   const advanceStatus = async (newStatus: string) => {
     await fetch("/api/admin/scans", {
@@ -136,6 +295,24 @@ function ScanItemRow({ item, onRefresh, expanded, onToggle }: { item: ScanItem; 
   const scanArtifacts = item.artifacts.filter((a) => a.artifact_type === "scan_raw" || a.artifact_type === "scan_processed");
   const cadArtifacts = item.artifacts.filter((a) => a.artifact_type === "cad_model");
   const otherArtifacts = item.artifacts.filter((a) => !["scan_raw", "scan_processed", "cad_model"].includes(a.artifact_type));
+
+  // Show Generate CAD button when there is a mesh but no CAD model
+  const hasMesh = scanArtifacts.some((a) => !a.superseded_by);
+  const hasCad = cadArtifacts.some((a) => !a.superseded_by);
+  const showGenerateCad = hasMesh && !hasCad && item.status !== "cad_generating";
+  const isGenerating = item.status === "cad_generating";
+
+  // Parse confidence from notes on latest cad artifact for display
+  const latestCadNotes = cadArtifacts.filter((a) => !a.superseded_by).sort((a, b) => b.version - a.version)[0]?.notes;
+  const savedConfidence = latestCadNotes?.match(/Confidence:\s*([\d.]+)%/);
+  const savedFeatures = latestCadNotes?.match(/Features:\s*(\d+)/);
+  const savedFlagged = latestCadNotes?.match(/Flagged regions:\s*(\d+)/);
+  const hasAutoGenResult = cadGenResult || (latestCadNotes?.includes("Auto-generated"));
+  const displayResult: CadGenResult | null = cadGenResult || (hasAutoGenResult && savedConfidence ? {
+    confidence: parseFloat(savedConfidence[1]) / 100,
+    features: Array.from({ length: parseInt(savedFeatures?.[1] || "0") }, (_, i) => `feature_${i}`),
+    flaggedRegions: Array.from({ length: parseInt(savedFlagged?.[1] || "0") }, (_, i) => ({ region: `region_${i}`, reason: "See artifact notes" })),
+  } : null);
 
   return (
     <div className="border-b border-charcoal-800/30">
@@ -174,7 +351,7 @@ function ScanItemRow({ item, onRefresh, expanded, onToggle }: { item: ScanItem; 
           </div>
 
           <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${STATUS_COLORS[item.status] || ""}`}>
-            {item.status}
+            {STATUS_LABELS[item.status] || item.status}
           </span>
 
           <span className="text-[10px] text-charcoal-600">{item.contributor_name || "—"}</span>
@@ -208,7 +385,32 @@ function ScanItemRow({ item, onRefresh, expanded, onToggle }: { item: ScanItem; 
                 </div>
               )}
               <ArtifactList artifacts={item.artifacts} type="cad_model" />
-              {cadArtifacts.length === 0 && <p className="text-[10px] text-charcoal-600">No CAD uploaded</p>}
+              {cadArtifacts.length === 0 && !isGenerating && !showGenerateCad && (
+                <p className="text-[10px] text-charcoal-600">No CAD uploaded</p>
+              )}
+              {isGenerating && (
+                <div className="flex items-center gap-2 mt-2 py-2">
+                  <svg className="animate-spin w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span className="text-[11px] text-amber-400 font-medium">CAD generation in progress...</span>
+                </div>
+              )}
+              {showGenerateCad && (
+                <div className="mt-2">
+                  <GenerateCadButton
+                    scanQueueId={item.id}
+                    onComplete={(result) => {
+                      setCadGenResult(result);
+                      onRefresh();
+                    }}
+                  />
+                </div>
+              )}
+              {displayResult && (
+                <CadGenResultDisplay result={displayResult} cadArtifacts={cadArtifacts} />
+              )}
             </div>
 
             {/* Other files */}
@@ -236,9 +438,9 @@ function ScanItemRow({ item, onRefresh, expanded, onToggle }: { item: ScanItem; 
 
           {/* Status actions */}
           <div className="flex flex-wrap items-center gap-3">
-            {item.status !== "complete" && cadArtifacts.length > 0 && (
+            {!["completed", "complete", "cad_generating"].includes(item.status) && cadArtifacts.length > 0 && (
               <button
-                onClick={() => advanceStatus("complete")}
+                onClick={() => advanceStatus("completed")}
                 className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white text-[11px] font-semibold rounded uppercase tracking-wider transition-colors"
               >
                 Mark Complete
@@ -248,12 +450,21 @@ function ScanItemRow({ item, onRefresh, expanded, onToggle }: { item: ScanItem; 
               <span className="text-[10px] text-charcoal-500">Upload a scan or CAD file to advance status</span>
             )}
             {item.status === "scanning" && cadArtifacts.length === 0 && (
-              <span className="text-[10px] text-charcoal-500">Upload CAD to advance to modeling</span>
+              <span className="text-[10px] text-charcoal-500">Upload scan files, then generate or upload CAD</span>
+            )}
+            {item.status === "scanned" && cadArtifacts.length === 0 && (
+              <span className="text-[10px] text-charcoal-500">Generate CAD from scan or upload a CAD file</span>
+            )}
+            {item.status === "cad_generating" && (
+              <span className="text-[10px] text-amber-400">CAD generation in progress — please wait</span>
+            )}
+            {item.status === "cad_ready" && (
+              <span className="text-[10px] text-charcoal-500">Review generated CAD, then mark complete to publish</span>
             )}
             {item.status === "modeling" && (
               <span className="text-[10px] text-charcoal-500">Upload STL preview or mark complete to publish</span>
             )}
-            {item.status === "complete" && (
+            {(item.status === "complete" || item.status === "completed") && (
               <button
                 onClick={async () => {
                   setPublishing(true);
@@ -273,7 +484,7 @@ function ScanItemRow({ item, onRefresh, expanded, onToggle }: { item: ScanItem; 
                 {publishing ? "Processing..." : item.part_id ? "Release Update to Part" : "Publish to Catalog"}
               </button>
             )}
-            {item.status === "complete" && !item.part_id && !item.segment && (
+            {(item.status === "complete" || item.status === "completed") && !item.part_id && !item.segment && (
               <span className="text-[10px] text-gold-400">Set segment before publishing</span>
             )}
             {item.notes && <span className="text-[10px] text-charcoal-600 ml-auto">Notes: {item.notes}</span>}
@@ -348,7 +559,7 @@ function AddScanForm({ onCreated }: { onCreated: () => void }) {
 
 export default function ScansAdmin() {
   const [items, setItems] = useState<ScanItem[]>([]);
-  const [pipeline, setPipeline] = useState<Record<string, number>>({ received: 0, scanning: 0, modeling: 0, complete: 0 });
+  const [pipeline, setPipeline] = useState<Record<string, number>>({ received: 0, scanning: 0, scanned: 0, cad_generating: 0, cad_ready: 0, completed: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -380,17 +591,17 @@ export default function ScansAdmin() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Scan Queue</h1>
-          <p className="text-sm text-charcoal-400 mt-1">Donor parts: receive → scan → model → catalog</p>
+          <p className="text-sm text-charcoal-400 mt-1">Donor parts: receive &rarr; scan &rarr; generate CAD &rarr; review &rarr; catalog</p>
         </div>
         <AddScanForm onCreated={fetchData} />
       </div>
 
       {/* Pipeline */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-8">
         {STATUS_FLOW.map((s) => (
-          <div key={s} className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl p-4 text-center">
+          <div key={s} className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl p-3 text-center">
             <p className="text-2xl font-extrabold text-white">{pipeline[s] || 0}</p>
-            <p className="text-[10px] text-charcoal-500 uppercase tracking-wider mt-1 capitalize">{s}</p>
+            <p className="text-[9px] text-charcoal-500 uppercase tracking-wider mt-1">{STATUS_LABELS[s] || s}</p>
           </div>
         ))}
       </div>

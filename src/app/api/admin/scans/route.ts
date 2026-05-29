@@ -49,7 +49,7 @@ export async function GET() {
       GROUP BY status
     `;
 
-    const pipeline: Record<string, number> = { received: 0, scanning: 0, modeling: 0, complete: 0 };
+    const pipeline: Record<string, number> = { received: 0, scanning: 0, scanned: 0, cad_generating: 0, cad_ready: 0, completed: 0 };
     for (const row of counts) {
       pipeline[row.status as string] = row.count as number;
     }
