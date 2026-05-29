@@ -94,6 +94,7 @@ export const parts = pgTable("parts", {
   active: boolean("active").notNull().default(true),
   timesSold: integer("times_sold").default(0),
   timesViewed: integer("times_viewed").default(0),
+  customQuotes: jsonb("custom_quotes").default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

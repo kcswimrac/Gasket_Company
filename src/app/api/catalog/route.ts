@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
       SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
              p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
              COALESCE(p.times_sold, 0) as times_sold,
+             COALESCE(p.custom_quotes, '[]'::jsonb) as custom_quotes,
              c.public_credit_name as contributor_name
       FROM parts p
       LEFT JOIN contributors c ON p.contributor_id = c.id
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
     const partIds = parts.map((p) => p.id);
     let variants: Record<string, unknown>[] = [];
     let partFilesData: Record<string, unknown>[] = [];
-    let customQuotesData: Record<string, unknown>[] = [];
+    // customQuotesData removed — custom quotes now stored as jsonb on parts table
 
     if (partIds.length > 0) {
       [variants, partFilesData] = await Promise.all([
@@ -82,18 +83,6 @@ export async function GET(request: NextRequest) {
         `,
       ]);
 
-      // Fetch cached custom material quotes (non-fatal — table/column may not exist yet)
-      try {
-        customQuotesData = await sql`
-          SELECT DISTINCT ON (part_id, material_code)
-            part_id, material_code, unit_price, lead_time_days, expires_at, created_at
-          FROM autoquote_cache
-          WHERE part_id = ANY(${partIds}) AND variant_id IS NULL AND unit_price IS NOT NULL
-            AND (expires_at IS NULL OR expires_at > NOW())
-            AND created_at > NOW() - INTERVAL '30 days'
-          ORDER BY part_id, material_code, created_at DESC
-        `;
-      } catch { /* part_id column may not exist if migration 0013 not applied */ }
     }
 
     const variantsByPart: Record<string, typeof variants> = {};
@@ -101,18 +90,6 @@ export async function GET(request: NextRequest) {
       const pid = v.part_id as string;
       if (!variantsByPart[pid]) variantsByPart[pid] = [];
       variantsByPart[pid].push(v);
-    }
-
-    const customQuotesByPart: Record<string, Array<{ material: string; unitPrice: string; leadTimeDays: number | null; quotedAt: string }>> = {};
-    for (const cq of customQuotesData) {
-      const pid = cq.part_id as string;
-      if (!customQuotesByPart[pid]) customQuotesByPart[pid] = [];
-      customQuotesByPart[pid].push({
-        material: cq.material_code as string,
-        unitPrice: cq.unit_price as string,
-        leadTimeDays: cq.lead_time_days as number | null,
-        quotedAt: cq.created_at as string,
-      });
     }
 
     const filesByPart: Record<string, typeof partFilesData> = {};
@@ -193,7 +170,7 @@ export async function GET(request: NextRequest) {
           isStale: estimateStale,
           quotedAt: p.last_estimate_at as string | null,
         } : null,
-        customQuotes: customQuotesByPart[p.id as string] || [],
+        customQuotes: (p.custom_quotes as Array<{ material: string; unitPrice: string; leadTimeDays: number | null; quotedAt: string }>) || [],
       };
     });
 

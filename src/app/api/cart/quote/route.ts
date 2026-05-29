@@ -206,22 +206,27 @@ export async function POST(request: NextRequest) {
 
       // Store on part for catalog caching
       if (result.unitPrice) {
+        // Update last estimate + append to custom_quotes jsonb array
+        const quoteEntry = JSON.stringify({
+          material: materialCode,
+          unitPrice: result.unitPrice,
+          leadTimeDays: quote.lead_time_days || null,
+          quotedAt: new Date().toISOString(),
+        });
+
         await sql`
           UPDATE parts SET
             last_estimate_price = ${result.unitPrice},
             last_estimate_at = NOW(),
             last_estimate_material = ${materialCode},
+            custom_quotes = (
+              SELECT COALESCE(jsonb_agg(elem), '[]'::jsonb)
+              FROM jsonb_array_elements(COALESCE(custom_quotes, '[]'::jsonb)) elem
+              WHERE elem->>'material' != ${materialCode}
+            ) || ${quoteEntry}::jsonb,
             updated_at = NOW()
           WHERE id = ${partId}
         `;
-
-        // Cache per-material quote (must await in serverless, but don't let failure kill the response)
-        try {
-          await sql`
-            INSERT INTO autoquote_cache (part_id, quote_id, quote_status, unit_price, total_price, lead_time_days, confidence, buyable, material_code, quantity, expires_at)
-            VALUES (${partId}, ${quote.id}, ${quote.status.toLowerCase()}, ${quote.unit_price_usd || null}, ${quote.total_price_usd || null}, ${quote.lead_time_days || null}, ${quote.confidence || null}, ${quote.buyable}, ${materialCode}, ${quantity}, ${quote.expires_at || null})
-          `;
-        } catch { /* cache failure is non-fatal */ }
       }
 
       return ok(result);
