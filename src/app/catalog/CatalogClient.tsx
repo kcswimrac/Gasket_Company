@@ -776,6 +776,15 @@ export default function CatalogClient() {
   const [contPhotos, setContPhotos] = useState<File[]>([]);
   const [contCadFiles, setContCadFiles] = useState<File[]>([]);
   const [contSubmitting, setContSubmitting] = useState(false);
+  const [bounties, setBounties] = useState<Array<{
+    id: string; title: string; description: string | null; segment: string | null;
+    make: string | null; model: string | null; year_start: number | null; year_end: number | null;
+    reward: string | null; priority: string; status: string;
+  }>>([]);
+  const [claimingBounty, setClaimingBounty] = useState<string | null>(null);
+  const [claimForm, setClaimForm] = useState({ name: "", email: "", notes: "" });
+  const [claimSubmitting, setClaimSubmitting] = useState(false);
+  const [claimSent, setClaimSent] = useState(false);
 
   const fetchParts = useCallback(async () => {
     setLoading(true);
@@ -810,6 +819,9 @@ export default function CatalogClient() {
 
   useEffect(() => { fetchParts(); }, [fetchParts]);
   useEffect(() => { fetchFacets(); }, [fetchFacets]);
+  useEffect(() => {
+    fetch("/api/bounties").then((r) => r.json()).then((d) => { if (d.success) setBounties(d.bounties); }).catch(() => {});
+  }, []);
 
   const dbPartsExist = parts.length > 0;
 
@@ -944,6 +956,93 @@ export default function CatalogClient() {
           )}
         </div>
       </section>
+
+      {/* Bounty Board */}
+      {bounties.length > 0 && (
+        <section id="bounty" className="py-16 md:py-24 border-t border-charcoal-800/30">
+          <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+            <div className="max-w-3xl mb-10">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-400">Bounty Board</span>
+              <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold text-white leading-tight">
+                Parts We&apos;re Looking For
+              </h2>
+              <p className="mt-4 text-charcoal-400 leading-relaxed">
+                Have one of these parts sitting in your shop? Send it to us — we&apos;ll 3D-scan it, build the model, and send you a replacement at cost plus the listed reward.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {bounties.map((b) => (
+                <div key={b.id} className={`bg-charcoal-900/60 border rounded-xl p-5 transition-all ${b.priority === "high" ? "border-gold-500/30" : "border-charcoal-800/50"}`}>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <h3 className="text-sm font-bold text-white">{b.title}</h3>
+                    {b.priority === "high" && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 font-semibold uppercase shrink-0">Urgent</span>
+                    )}
+                  </div>
+                  {b.description && <p className="text-xs text-charcoal-400 leading-relaxed mb-3">{b.description}</p>}
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {b.segment && <span className="text-[9px] px-1.5 py-0.5 rounded bg-charcoal-800 text-charcoal-400 uppercase">{b.segment}</span>}
+                    {b.make && <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{b.make}</span>}
+                    {b.model && <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{b.model}</span>}
+                    {b.year_start && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-charcoal-800 text-charcoal-400">
+                        {b.year_start === b.year_end || !b.year_end ? b.year_start : `${b.year_start}–${b.year_end}`}
+                      </span>
+                    )}
+                  </div>
+                  {b.reward && (
+                    <div className="bg-gold-500/5 border border-gold-500/15 rounded-lg px-3 py-2 mb-3">
+                      <p className="text-xs text-gold-400 font-medium">{b.reward}</p>
+                    </div>
+                  )}
+                  {claimingBounty === b.id ? (
+                    <div className="space-y-2">
+                      {claimSent ? (
+                        <div className="text-center py-3">
+                          <p className="text-xs text-emerald-400 font-medium">Claim submitted! We&apos;ll be in touch.</p>
+                        </div>
+                      ) : (
+                        <>
+                          <input type="text" value={claimForm.name} onChange={(e) => setClaimForm((f) => ({ ...f, name: e.target.value }))} placeholder="Your name" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-3 py-2 text-xs text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
+                          <input type="email" value={claimForm.email} onChange={(e) => setClaimForm((f) => ({ ...f, email: e.target.value }))} placeholder="Email" className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-3 py-2 text-xs text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
+                          <div className="flex gap-2">
+                            <button
+                              disabled={claimSubmitting || !claimForm.name || !claimForm.email}
+                              onClick={async () => {
+                                setClaimSubmitting(true);
+                                try {
+                                  const res = await fetch("/api/bounties", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bountyId: b.id, ...claimForm }) });
+                                  const data = await res.json();
+                                  if (data.success) { setClaimSent(true); setBounties((prev) => prev.filter((x) => x.id !== b.id)); }
+                                } catch { /* ignore */ }
+                                finally { setClaimSubmitting(false); }
+                              }}
+                              className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[10px] rounded uppercase tracking-wider disabled:opacity-50 transition-colors"
+                            >
+                              {claimSubmitting ? "Submitting..." : "I Have This Part"}
+                            </button>
+                            <button onClick={() => { setClaimingBounty(null); setClaimSent(false); }} className="px-3 py-2 border border-charcoal-700 text-charcoal-400 text-[10px] rounded uppercase tracking-wider">
+                              Cancel
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setClaimingBounty(b.id); setClaimForm({ name: "", email: "", notes: "" }); setClaimSent(false); }}
+                      className="w-full py-2.5 bg-charcoal-800 hover:bg-charcoal-700 text-emerald-400 font-bold text-[11px] rounded uppercase tracking-wider transition-colors"
+                    >
+                      I Have This Part
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Contributor */}
       <section id="contribute" className="py-24 md:py-32">

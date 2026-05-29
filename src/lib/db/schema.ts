@@ -321,3 +321,25 @@ export const partFiles = pgTable("part_files", {
   notes: text("notes"),
   uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
 });
+
+/* ─── Bounty Board (wanted part requests) ─── */
+
+export const bountyBoard = pgTable("bounty_board", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  segment: segmentEnum("segment"),
+  make: text("make"),
+  model: text("model"),
+  yearStart: integer("year_start"),
+  yearEnd: integer("year_end"),
+  reward: text("reward"),
+  priority: text("priority").default("normal"),
+  status: text("status").notNull().default("open"),
+  claimedBy: uuid("claimed_by").references(() => contributors.id),
+  claimedAt: timestamp("claimed_at"),
+  fulfilledAt: timestamp("fulfilled_at"),
+  partId: uuid("part_id").references(() => parts.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
