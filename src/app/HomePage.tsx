@@ -77,7 +77,7 @@ function HeroSection() {
                   <p className="text-2xl sm:text-3xl font-extrabold text-white leading-none">
                     {stat.value}
                   </p>
-                  <p className="text-[11px] text-charcoal-400 uppercase tracking-widest mt-1.5">
+                  <p className="text-[11px] text-charcoal-300 uppercase tracking-widest mt-1.5">
                     {stat.label}
                   </p>
                 </div>
@@ -196,11 +196,11 @@ function CapabilitiesSection() {
                   <h3 className="text-base font-bold text-white group-hover:text-gold-400 transition-colors">
                     {cap.title}
                   </h3>
-                  <span className="text-[10px] font-mono text-charcoal-500 uppercase tracking-wider">
+                  <span className="text-[10px] font-mono text-charcoal-300 uppercase tracking-wider">
                     {cap.lead}
                   </span>
                 </div>
-                <p className="text-sm text-charcoal-400 leading-relaxed mb-5">
+                <p className="text-sm text-charcoal-300 leading-relaxed mb-5">
                   {cap.desc}
                 </p>
                 <span className="text-xs text-gold-400/60 group-hover:text-gold-400 uppercase tracking-widest font-medium transition-colors flex items-center gap-2">
@@ -250,7 +250,7 @@ function ProcessSection() {
             </FadeUp>
 
             <FadeUp delay={0.2}>
-              <div className="mt-4 flex items-center gap-3 text-xs text-charcoal-400">
+              <div className="mt-4 flex items-center gap-3 text-xs text-charcoal-300">
                 <span className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-gold-400" />
                   CO2 Laser
@@ -335,7 +335,7 @@ function ContributorSection() {
               ].map((s) => (
                 <div key={s.label}>
                   <p className="text-2xl font-extrabold text-white">{s.value}</p>
-                  <p className="text-[10px] text-charcoal-400 uppercase tracking-widest mt-1">{s.label}</p>
+                  <p className="text-[10px] text-charcoal-300 uppercase tracking-widest mt-1">{s.label}</p>
                 </div>
               ))}
             </div>

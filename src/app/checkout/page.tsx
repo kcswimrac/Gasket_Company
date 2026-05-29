@@ -57,7 +57,7 @@ export default function CheckoutPage() {
   };
 
   const inputCls = "w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40";
-  const labelCls = "block text-[10px] font-semibold text-charcoal-400 mb-1.5 uppercase tracking-wider";
+  const labelCls = "block text-[10px] font-semibold text-charcoal-300 mb-1.5 uppercase tracking-wider";
 
   if (submitted) {
     return (
@@ -71,11 +71,11 @@ export default function CheckoutPage() {
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-white mb-3">Order Submitted</h1>
-            <p className="text-sm text-charcoal-400 mb-2">
+            <p className="text-sm text-charcoal-300 mb-2">
               We&apos;ve received your order and will review it shortly.
               You&apos;ll receive a confirmation email with final pricing and lead time.
             </p>
-            <p className="text-xs text-charcoal-500 mb-8">
+            <p className="text-xs text-charcoal-300 mb-8">
               Items with estimated pricing will be confirmed within 24 hours.
             </p>
             <a href="/catalog" className="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded uppercase tracking-wider transition-colors">
@@ -174,7 +174,7 @@ export default function CheckoutPage() {
                     </svg>
                     <div>
                       <p className="text-sm text-charcoal-200">Secure payment via Stripe</p>
-                      <p className="text-xs text-charcoal-500 mt-0.5">You&apos;ll be redirected to Stripe&apos;s secure checkout to complete payment.</p>
+                      <p className="text-xs text-charcoal-300 mt-0.5">You&apos;ll be redirected to Stripe&apos;s secure checkout to complete payment.</p>
                     </div>
                   </div>
                 ) : (
@@ -184,7 +184,7 @@ export default function CheckoutPage() {
                     </svg>
                     <div>
                       <p className="text-sm text-charcoal-200">Pricing review required</p>
-                      <p className="text-xs text-charcoal-500 mt-0.5">Some items have estimated prices. We&apos;ll confirm final pricing and send a payment link via email.</p>
+                      <p className="text-xs text-charcoal-300 mt-0.5">Some items have estimated prices. We&apos;ll confirm final pricing and send a payment link via email.</p>
                     </div>
                   </div>
                 )}
@@ -201,7 +201,7 @@ export default function CheckoutPage() {
                     <div key={item.id} className="flex justify-between text-sm">
                       <div className="min-w-0 flex-1 pr-3">
                         <p className="text-charcoal-200 line-clamp-2">{item.partName}</p>
-                        <p className="text-[10px] text-charcoal-500">
+                        <p className="text-[10px] text-charcoal-300">
                           {item.tier && `${item.tier.toUpperCase()} · `}{item.material} × {item.quantity}
                         </p>
                       </div>
@@ -214,12 +214,12 @@ export default function CheckoutPage() {
 
                 <div className="border-t border-charcoal-800/50 pt-4 mb-4">
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-charcoal-400">Subtotal</span>
+                    <span className="text-charcoal-300">Subtotal</span>
                     <span className="text-white font-bold">${total}</span>
                   </div>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-charcoal-400">Shipping</span>
-                    <span className="text-charcoal-400">Calculated after review</span>
+                    <span className="text-charcoal-300">Shipping</span>
+                    <span className="text-charcoal-300">Calculated after review</span>
                   </div>
                 </div>
 
@@ -245,7 +245,7 @@ export default function CheckoutPage() {
                   ) : allFirmPriced ? "Pay with Stripe" : "Submit for Review"}
                 </button>
 
-                <p className="text-[10px] text-charcoal-600 text-center mt-3">
+                <p className="text-[10px] text-charcoal-400 text-center mt-3">
                   {allFirmPriced
                     ? "You’ll be redirected to Stripe’s secure checkout."
                     : "No payment now. We’ll confirm pricing and send a payment link."}

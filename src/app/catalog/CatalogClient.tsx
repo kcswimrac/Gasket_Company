@@ -75,11 +75,11 @@ function PartCard({ part }: { part: CatalogPart }) {
         <div className="relative h-40 bg-charcoal-950 border-b border-charcoal-800/40 overflow-hidden">
           <img src={heroPhoto.thumbnail_url || heroPhoto.file_url} alt={part.name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" loading="lazy" />
           <div className="absolute top-2 left-2 flex gap-1">
-            <span className={`${heroChip!.color} text-white text-[8px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm`}>
+            <span className={`${heroChip!.color} text-white text-[10px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm`}>
               {heroChip!.label}
             </span>
             {heroTierChip && (
-              <span className={`${heroTierChip.color} text-white text-[8px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm`}>
+              <span className={`${heroTierChip.color} text-white text-[10px] font-semibold px-1.5 py-0.5 rounded backdrop-blur-sm`}>
                 {heroTierChip.label}
               </span>
             )}
@@ -90,7 +90,7 @@ function PartCard({ part }: { part: CatalogPart }) {
             </span>
           </div>
           {photos.length > 1 && (
-            <span className="absolute bottom-2 right-2 text-[9px] text-white/60 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded">
+            <span className="absolute bottom-2 right-2 text-[10px] text-white/60 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded">
               +{photos.length - 1} more
             </span>
           )}
@@ -119,9 +119,9 @@ function PartCard({ part }: { part: CatalogPart }) {
           {part.model && <span>{part.model} </span>}
           {yearDisplay && <span>({yearDisplay})</span>}
         </p>
-        <p className="text-[11px] text-charcoal-500 mt-0.5">{part.application}</p>
+        <p className="text-[11px] text-charcoal-300 mt-0.5">{part.application}</p>
         {part.description && !part.description.startsWith("Published from") && !part.description.startsWith("New scan version") && !part.description.startsWith("Revision scan") && (
-          <p className="text-xs text-charcoal-400 leading-relaxed mb-4 line-clamp-2">{part.description}</p>
+          <p className="text-xs text-charcoal-300 leading-relaxed mb-4 line-clamp-2">{part.description}</p>
         )}
 
         {/* Tier tabs */}
@@ -147,23 +147,23 @@ function PartCard({ part }: { part: CatalogPart }) {
         {variant ? (
           <div className="bg-charcoal-950/40 rounded-lg p-3 mb-4 border border-charcoal-800/30 space-y-1.5">
             <div className="flex justify-between text-[11px]">
-              <span className="text-charcoal-500">Material</span>
+              <span className="text-charcoal-300">Material</span>
               <span className="text-charcoal-200 font-medium text-right max-w-[60%] truncate">{variant.material}</span>
             </div>
             <div className="flex justify-between text-[11px]">
-              <span className="text-charcoal-500">Process</span>
+              <span className="text-charcoal-300">Process</span>
               <span className="text-charcoal-200 font-medium text-right max-w-[60%] truncate">{variant.process}</span>
             </div>
             {variant.lead_time_days && (
               <div className="flex justify-between text-[11px]">
-                <span className="text-charcoal-500">Lead Time</span>
+                <span className="text-charcoal-300">Lead Time</span>
                 <span className="text-charcoal-200 font-medium">{variant.lead_time_days} days</span>
               </div>
             )}
           </div>
         ) : (
           <div className="bg-charcoal-950/40 rounded-lg p-3 mb-4 border border-charcoal-800/30">
-            <p className="text-[11px] text-charcoal-500">Material tiers coming soon — contact us for pricing.</p>
+            <p className="text-[11px] text-charcoal-300">Material tiers coming soon — contact us for pricing.</p>
           </div>
         )}
 
@@ -176,7 +176,7 @@ function PartCard({ part }: { part: CatalogPart }) {
         )}
 
         {part.contributor_name && (
-          <p className="text-[10px] text-charcoal-600 mb-3">
+          <p className="text-[10px] text-charcoal-400 mb-3">
             Scanned from donor by {part.contributor_name}
           </p>
         )}
@@ -190,7 +190,7 @@ function PartCard({ part }: { part: CatalogPart }) {
                 <div>
                   <div className="flex items-end justify-between mb-2">
                     <div>
-                      <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">
+                      <span className="text-[10px] text-charcoal-300 uppercase tracking-wider">
                         {part.estimate.isStale ? "Previous est." : "Est. from"}
                       </span>
                       <p className="text-lg font-bold text-white">${part.estimate.price}</p>
@@ -253,9 +253,9 @@ function PartCard({ part }: { part: CatalogPart }) {
                   {quote.unitPrice ? (
                     <p className="text-lg font-bold text-white">${quote.totalPrice}</p>
                   ) : (
-                    <p className="text-sm text-charcoal-400">Contact us for pricing</p>
+                    <p className="text-sm text-charcoal-300">Contact us for pricing</p>
                   )}
-                  {quote.message && <p className="text-[10px] text-charcoal-500 mt-1">{quote.message}</p>}
+                  {quote.message && <p className="text-[10px] text-charcoal-300 mt-1">{quote.message}</p>}
                 </div>
               )}
             </div>
@@ -264,15 +264,15 @@ function PartCard({ part }: { part: CatalogPart }) {
               <div>
                 {variant.resolvedPrice ? (
                   <>
-                    <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">
+                    <span className="text-[10px] text-charcoal-300 uppercase tracking-wider">
                       {variant.pricingStatus !== "firm" ? "Est. from" : "Price"}
                     </span>
                     <p className="text-lg font-bold text-white">${variant.resolvedPrice}</p>
                   </>
                 ) : variant.quotable ? (
-                  <span className="text-xs text-charcoal-400">Click to get price for {variant.material}</span>
+                  <span className="text-xs text-charcoal-300">Click to get price for {variant.material}</span>
                 ) : (
-                  <span className="text-xs text-charcoal-500">Contact for pricing</span>
+                  <span className="text-xs text-charcoal-300">Contact for pricing</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -329,18 +329,18 @@ function PartCard({ part }: { part: CatalogPart }) {
               <div className={`rounded-lg p-3 ${quote.priceStatus !== "firm" ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
                 <div className="flex items-end justify-between mb-2">
                   <div>
-                    <span className="text-[9px] uppercase tracking-wider text-charcoal-500">
+                    <span className="text-[10px] uppercase tracking-wider text-charcoal-300">
                       {quote.priceStatus !== "firm" ? "Estimated price" : "Quoted price"}
                     </span>
                     {quote.unitPrice ? (
                       <p className="text-xl font-bold text-white">
                         ${quote.totalPrice}
-                        <span className="text-xs text-charcoal-400 font-normal ml-1.5">
+                        <span className="text-xs text-charcoal-300 font-normal ml-1.5">
                           (${quote.unitPrice} × {qty})
                         </span>
                       </p>
                     ) : (
-                      <p className="text-sm text-charcoal-400">Contact us for pricing</p>
+                      <p className="text-sm text-charcoal-300">Contact us for pricing</p>
                     )}
                   </div>
                   {quote.leadTimeDays && (
@@ -349,7 +349,7 @@ function PartCard({ part }: { part: CatalogPart }) {
                 </div>
 
                 {quote.message && (
-                  <p className="text-[11px] text-charcoal-400 leading-relaxed">{quote.message}</p>
+                  <p className="text-[11px] text-charcoal-300 leading-relaxed">{quote.message}</p>
                 )}
 
                 {quote.priceStatus === "firm" && (
@@ -522,9 +522,9 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
             <p className="text-sm text-emerald-400/70">
               {part.make && `${part.make} `}{part.model && `${part.model} `}{yearDisplay && `(${yearDisplay})`}
             </p>
-            <p className="text-xs text-charcoal-500 mt-0.5">{part.application}</p>
+            <p className="text-xs text-charcoal-300 mt-0.5">{part.application}</p>
           </div>
-          <button onClick={onClose} className="text-charcoal-500 hover:text-charcoal-300 p-1">
+          <button onClick={onClose} className="text-charcoal-400 hover:text-charcoal-300 p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -543,11 +543,11 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                     <>
                       <img src={p.file_url} alt={part.name} className="w-full rounded-lg object-cover max-h-80" />
                       <div className="absolute top-2 left-2 flex gap-1">
-                        <span className={`${cl.color} text-white text-[9px] font-semibold px-2 py-0.5 rounded backdrop-blur-sm`}>
+                        <span className={`${cl.color} text-white text-[10px] font-semibold px-2 py-0.5 rounded backdrop-blur-sm`}>
                           {cl.label}
                         </span>
                         {tc && (
-                          <span className={`${tc.color} text-white text-[9px] font-semibold px-2 py-0.5 rounded backdrop-blur-sm`}>
+                          <span className={`${tc.color} text-white text-[10px] font-semibold px-2 py-0.5 rounded backdrop-blur-sm`}>
                             {tc.label}
                           </span>
                         )}
@@ -590,7 +590,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
 
           {/* Contributor credit */}
           {part.contributor_name && (
-            <p className="text-xs text-charcoal-500 flex items-center gap-1.5">
+            <p className="text-xs text-charcoal-300 flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5 text-emerald-500/50" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
               Scanned from donor by {part.contributor_name}
             </p>
@@ -599,7 +599,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
           {/* Tier selector */}
           {hasVariants && (
             <div>
-              <p className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold mb-3">Material Tiers</p>
+              <p className="text-[10px] text-charcoal-300 uppercase tracking-wider font-semibold mb-3">Material Tiers</p>
               <div className="space-y-2">
                 {part.variants.map((v, i) => (
                   <button
@@ -613,11 +613,11 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                         {v.resolvedPrice ? (v.pricingStatus !== "firm" ? `est. $${v.resolvedPrice}` : `$${v.resolvedPrice}`) : v.quotable ? "Get price" : "Contact us"}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-charcoal-400">
+                    <div className="flex items-center justify-between text-xs text-charcoal-300">
                       <span>{v.material}</span>
                       <span>{v.process}</span>
                     </div>
-                    {v.lead_time_days && <p className="text-[11px] text-charcoal-500 mt-1">{v.lead_time_days} day lead time</p>}
+                    {v.lead_time_days && <p className="text-[11px] text-charcoal-300 mt-1">{v.lead_time_days} day lead time</p>}
                   </button>
                 ))}
               </div>
@@ -638,7 +638,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm font-bold text-white">Custom Material</span>
-                    <p className="text-xs text-charcoal-400 mt-0.5">Choose any material from our shop and get a live quote</p>
+                    <p className="text-xs text-charcoal-300 mt-0.5">Choose any material from our shop and get a live quote</p>
                   </div>
                   <svg className={`w-4 h-4 text-charcoal-400 transition-transform ${customMode ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                 </div>
@@ -649,14 +649,14 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                   {/* Previously quoted custom materials */}
                   {part.customQuotes.length > 0 && (
                     <div>
-                      <p className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">Recent Quotes</p>
+                      <p className="text-[10px] text-charcoal-300 uppercase tracking-wider font-semibold mb-2">Recent Quotes</p>
                       <div className="space-y-1.5">
                         {part.customQuotes.map((cq) => (
                           <div key={cq.material} className="flex items-center justify-between bg-charcoal-950/60 rounded-lg p-2.5 border border-charcoal-800/30">
                             <div>
                               <span className="text-xs text-charcoal-200 font-medium">{cq.material}</span>
                               <span className="text-lg font-bold text-white ml-3">${cq.unitPrice}</span>
-                              {cq.leadTimeDays && <span className="text-[10px] text-charcoal-500 ml-2">{cq.leadTimeDays}d lead</span>}
+                              {cq.leadTimeDays && <span className="text-[10px] text-charcoal-300 ml-2">{cq.leadTimeDays}d lead</span>}
                             </div>
                             <button
                               onClick={() => {
@@ -680,14 +680,14 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                         ))}
                       </div>
                       <div className="border-t border-charcoal-800/30 mt-3 pt-3">
-                        <p className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">Quote a Different Material</p>
+                        <p className="text-[10px] text-charcoal-300 uppercase tracking-wider font-semibold mb-2">Quote a Different Material</p>
                       </div>
                     </div>
                   )}
 
                   {materials.length > 0 ? (
                     <div>
-                      <label className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-1 block">Material</label>
+                      <label className="text-[10px] text-charcoal-300 uppercase tracking-wider font-semibold mb-1 block">Material</label>
                       <select
                         value={selectedMaterial}
                         onChange={(e) => {
@@ -702,11 +702,11 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                       </select>
                     </div>
                   ) : materialsLoaded ? (
-                    <p className="text-xs text-charcoal-500 text-center py-2">Materials unavailable — try again later.</p>
+                    <p className="text-xs text-charcoal-300 text-center py-2">Materials unavailable — try again later.</p>
                   ) : (
                     <div className="flex items-center justify-center py-3 gap-2">
                       <svg className="animate-spin w-4 h-4 text-charcoal-500" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                      <span className="text-xs text-charcoal-400">Loading materials...</span>
+                      <span className="text-xs text-charcoal-300">Loading materials...</span>
                     </div>
                   )}
                 </div>
@@ -724,7 +724,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                     return (
                       <>
                         <p className="text-[10px] text-amber-400/80 uppercase tracking-wider">Custom — {matName}</p>
-                        <p className="text-sm text-charcoal-400 mt-1">{selectedMaterial ? "Click below to get a live quote" : "Select a material above"}</p>
+                        <p className="text-sm text-charcoal-300 mt-1">{selectedMaterial ? "Click below to get a live quote" : "Select a material above"}</p>
                       </>
                     );
                   }
@@ -734,10 +734,10 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                   if (variant?.resolvedPrice) {
                     return (
                       <>
-                        <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">{tierLabel}</p>
+                        <p className="text-[10px] text-charcoal-300 uppercase tracking-wider">{tierLabel}</p>
                         <p className="text-2xl font-bold text-white mt-1">
                           {variant.pricingStatus !== "firm" ? "est. " : ""}${variant.resolvedPrice}
-                          <span className="text-xs text-charcoal-500 font-normal ml-1">/ unit</span>
+                          <span className="text-xs text-charcoal-300 font-normal ml-1">/ unit</span>
                         </p>
                       </>
                     );
@@ -745,27 +745,27 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                   if (variant?.quotable) {
                     return (
                       <>
-                        <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">{tierLabel}</p>
-                        <p className="text-sm text-charcoal-400 mt-1">Click &quot;Get Live Price&quot; to quote this material</p>
+                        <p className="text-[10px] text-charcoal-300 uppercase tracking-wider">{tierLabel}</p>
+                        <p className="text-sm text-charcoal-300 mt-1">Click &quot;Get Live Price&quot; to quote this material</p>
                       </>
                     );
                   }
                   if (!variant && part.estimate) {
                     return (
                       <>
-                        <p className="text-[10px] text-charcoal-500 uppercase tracking-wider">Estimate{part.estimate.material ? ` — ${part.estimate.material}` : ""}</p>
+                        <p className="text-[10px] text-charcoal-300 uppercase tracking-wider">Estimate{part.estimate.material ? ` — ${part.estimate.material}` : ""}</p>
                         <p className="text-2xl font-bold text-white mt-1">
                           est. ${part.estimate.price}
-                          <span className="text-xs text-charcoal-500 font-normal ml-1">/ unit</span>
+                          <span className="text-xs text-charcoal-300 font-normal ml-1">/ unit</span>
                         </p>
                       </>
                     );
                   }
-                  return <p className="text-sm text-charcoal-400">Get a price estimate</p>;
+                  return <p className="text-sm text-charcoal-300">Get a price estimate</p>;
                 })()}
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-[10px] text-charcoal-500 uppercase">Qty</label>
+                <label className="text-[10px] text-charcoal-300 uppercase">Qty</label>
                 <input type="number" min="1" value={qty} onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-2 text-sm text-charcoal-100 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/40" />
               </div>
             </div>
@@ -774,12 +774,12 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
             {quote && (
               <div className={`rounded-lg p-3 mb-4 ${quote.priceStatus !== "firm" ? "bg-gold-500/5 border border-gold-500/15" : "bg-emerald-500/5 border border-emerald-500/15"}`}>
                 {quote.unitPrice ? (
-                  <p className="text-lg font-bold text-white">${quote.totalPrice} <span className="text-xs text-charcoal-400 font-normal">(${quote.unitPrice} × {qty})</span></p>
+                  <p className="text-lg font-bold text-white">${quote.totalPrice} <span className="text-xs text-charcoal-300 font-normal">(${quote.unitPrice} × {qty})</span></p>
                 ) : (
-                  <p className="text-sm text-charcoal-400">Contact us for pricing</p>
+                  <p className="text-sm text-charcoal-300">Contact us for pricing</p>
                 )}
-                {quote.leadTimeDays && <p className="text-xs text-charcoal-400 mt-1">{quote.leadTimeDays} day lead time</p>}
-                {quote.message && <p className="text-[11px] text-charcoal-500 mt-1">{quote.message}</p>}
+                {quote.leadTimeDays && <p className="text-xs text-charcoal-300 mt-1">{quote.leadTimeDays} day lead time</p>}
+                {quote.message && <p className="text-[11px] text-charcoal-300 mt-1">{quote.message}</p>}
               </div>
             )}
 
@@ -950,7 +950,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
             {/* Make chips — show when we have makes */}
             {facets.makes.length > 0 && (
               <div className="mt-3">
-                <p className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">Make</p>
+                <p className="text-[10px] text-charcoal-300 uppercase tracking-wider font-semibold mb-2">Make</p>
                 <div className="flex flex-wrap gap-1.5">
                   {make && (
                     <button onClick={() => { setMake(""); setModel(""); setYear(""); }} className="px-2.5 py-1 rounded-full text-[11px] font-medium text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300 transition-all">
@@ -959,7 +959,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
                   )}
                   {facets.makes.map((m) => (
                     <button key={m.name} onClick={() => { setMake(m.name); setModel(""); setYear(""); }} className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${make === m.name ? "bg-gold-500/15 text-gold-400 border border-gold-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}>
-                      {m.name} <span className="text-charcoal-600 ml-0.5">({m.count})</span>
+                      {m.name} <span className="text-charcoal-400 ml-0.5">({m.count})</span>
                     </button>
                   ))}
                 </div>
@@ -969,7 +969,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
             {/* Model chips — show when a make is selected and we have models */}
             {make && facets.models.length > 0 && (
               <div className="mt-3">
-                <p className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">Model</p>
+                <p className="text-[10px] text-charcoal-300 uppercase tracking-wider font-semibold mb-2">Model</p>
                 <div className="flex flex-wrap gap-1.5">
                   {model && (
                     <button onClick={() => { setModel(""); setYear(""); }} className="px-2.5 py-1 rounded-full text-[11px] font-medium text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300 transition-all">
@@ -978,7 +978,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
                   )}
                   {facets.models.map((m) => (
                     <button key={m.name} onClick={() => { setModel(m.name); setYear(""); }} className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${model === m.name ? "bg-gold-500/15 text-gold-400 border border-gold-500/25" : "bg-charcoal-900/40 text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300"}`}>
-                      {m.name} <span className="text-charcoal-600 ml-0.5">({m.count})</span>
+                      {m.name} <span className="text-charcoal-400 ml-0.5">({m.count})</span>
                     </button>
                   ))}
                 </div>
@@ -988,7 +988,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
             {/* Year chips — show when we have year ranges */}
             {make && facets.years.length > 1 && (
               <div className="mt-3">
-                <p className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">Year</p>
+                <p className="text-[10px] text-charcoal-300 uppercase tracking-wider font-semibold mb-2">Year</p>
                 <div className="flex flex-wrap gap-1.5">
                   {year && (
                     <button onClick={() => setYear("")} className="px-2.5 py-1 rounded-full text-[11px] font-medium text-charcoal-500 border border-charcoal-800/50 hover:text-charcoal-300 transition-all">
@@ -1007,11 +1007,11 @@ export default function CatalogClient({ initialParts, initialFacets }: {
             {/* Active filter breadcrumb */}
             {(make || model || year) && (
               <div className="mt-3 flex items-center gap-2">
-                <span className="text-[10px] text-charcoal-500">Filtering:</span>
+                <span className="text-[10px] text-charcoal-300">Filtering:</span>
                 {make && <span className="text-[10px] px-2 py-0.5 rounded bg-gold-500/10 text-gold-400 border border-gold-500/20">{make}</span>}
                 {model && <span className="text-[10px] px-2 py-0.5 rounded bg-gold-500/10 text-gold-400 border border-gold-500/20">{model}</span>}
                 {year && <span className="text-[10px] px-2 py-0.5 rounded bg-gold-500/10 text-gold-400 border border-gold-500/20">{year}</span>}
-                <button onClick={() => { setMake(""); setModel(""); setYear(""); }} className="text-[10px] text-charcoal-600 hover:text-red-400 transition-colors">Clear all</button>
+                <button onClick={() => { setMake(""); setModel(""); setYear(""); }} className="text-[10px] text-charcoal-400 hover:text-red-400 transition-colors">Clear all</button>
               </div>
             )}
           </div>
@@ -1041,7 +1041,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
           ) : (
             <div className="text-center py-20">
               <p className="text-lg font-medium text-charcoal-300 mb-2">No parts in the catalog yet</p>
-              <p className="text-sm text-charcoal-500 max-w-md mx-auto">
+              <p className="text-sm text-charcoal-300 max-w-md mx-auto">
                 Parts will appear here as they&apos;re scanned and added through the admin panel.
                 In the meantime, you can request a part below.
               </p>
@@ -1059,7 +1059,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
               <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold text-white leading-tight">
                 Parts We&apos;re Looking For
               </h2>
-              <p className="mt-4 text-charcoal-400 leading-relaxed">
+              <p className="mt-4 text-charcoal-300 leading-relaxed">
                 Have one of these parts sitting in your shop? Send it to us — we&apos;ll 3D-scan it, build the model, and send you a replacement at cost plus the listed reward.
               </p>
             </div>
@@ -1070,16 +1070,16 @@ export default function CatalogClient({ initialParts, initialFacets }: {
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <h3 className="text-sm font-bold text-white">{b.title}</h3>
                     {b.priority === "high" && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 font-semibold uppercase shrink-0">Urgent</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 font-semibold uppercase shrink-0">Urgent</span>
                     )}
                   </div>
-                  {b.description && <p className="text-xs text-charcoal-400 leading-relaxed mb-3">{b.description}</p>}
+                  {b.description && <p className="text-xs text-charcoal-300 leading-relaxed mb-3">{b.description}</p>}
                   <div className="flex flex-wrap gap-1.5 mb-3">
-                    {b.segment && <span className="text-[9px] px-1.5 py-0.5 rounded bg-charcoal-800 text-charcoal-400 uppercase">{b.segment}</span>}
-                    {b.make && <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{b.make}</span>}
-                    {b.model && <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{b.model}</span>}
+                    {b.segment && <span className="text-[10px] px-1.5 py-0.5 rounded bg-charcoal-800 text-charcoal-300 uppercase">{b.segment}</span>}
+                    {b.make && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{b.make}</span>}
+                    {b.model && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">{b.model}</span>}
                     {b.year_start && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-charcoal-800 text-charcoal-400">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-charcoal-800 text-charcoal-300">
                         {b.year_start === b.year_end || !b.year_end ? b.year_start : `${b.year_start}–${b.year_end}`}
                       </span>
                     )}
@@ -1146,7 +1146,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
               <h2 className="mt-4 text-3xl sm:text-4xl font-extrabold text-white leading-tight">
                 Send the Broken One.<br /><span className="text-emerald-400">Get the New One at Cost.</span>
               </h2>
-              <p className="mt-6 text-charcoal-400 leading-relaxed max-w-md">
+              <p className="mt-6 text-charcoal-300 leading-relaxed max-w-md">
                 Ship us a worn-out part. We 3D-scan it, build the model, and manufacture a replacement at our cost. Your original comes back too.
               </p>
             </div>
@@ -1158,7 +1158,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
                   {(() => {
                     const cSet = (k: string, v: string) => setContForm((f) => ({ ...f, [k]: v }));
                     const inputCls = "w-full bg-charcoal-950 border border-charcoal-700/50 rounded-lg px-4 py-3 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40";
-                    const labelCls = "block text-[11px] font-semibold text-charcoal-400 mb-2 uppercase tracking-wider";
+                    const labelCls = "block text-[11px] font-semibold text-charcoal-300 mb-2 uppercase tracking-wider";
                     return (
                       <>
                         <div>
@@ -1229,7 +1229,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
                         {/* CAD file upload */}
                         <div>
                           <label className={labelCls}>CAD Files (optional)</label>
-                          <p className="text-[10px] text-charcoal-500 mb-2">
+                          <p className="text-[10px] text-charcoal-300 mb-2">
                             Already have a model? Upload STEP, STL, IGES, Fusion 360, SolidWorks, or any CAD format.
                           </p>
                           <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-charcoal-700/50 rounded-lg cursor-pointer hover:border-blue-500/30 transition-colors">
@@ -1244,9 +1244,9 @@ export default function CatalogClient({ initialParts, initialFacets }: {
                                   <div className="flex items-center gap-2 min-w-0">
                                     <svg className="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
                                     <span className="text-xs text-charcoal-300 truncate">{f.name}</span>
-                                    <span className="text-[9px] text-charcoal-600 shrink-0">{(f.size / 1024 / 1024).toFixed(1)} MB</span>
+                                    <span className="text-[10px] text-charcoal-400 shrink-0">{(f.size / 1024 / 1024).toFixed(1)} MB</span>
                                   </div>
-                                  <button onClick={() => setContCadFiles((p) => p.filter((_, j) => j !== i))} className="text-charcoal-600 hover:text-red-400 text-xs ml-2">×</button>
+                                  <button onClick={() => setContCadFiles((p) => p.filter((_, j) => j !== i))} className="text-charcoal-400 hover:text-red-400 text-xs ml-2">×</button>
                                 </div>
                               ))}
                             </div>
@@ -1254,7 +1254,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
                         </div>
 
                         <div className="border-t border-charcoal-800/40 pt-5">
-                          <p className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold mb-3">Your Information</p>
+                          <p className="text-[10px] text-charcoal-300 uppercase tracking-wider font-semibold mb-3">Your Information</p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                               <label className={labelCls}>Name *</label>
@@ -1308,7 +1308,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
                     <svg className="w-7 h-7 text-emerald-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
                   </div>
                   <h3 className="text-lg font-bold text-white mb-2">Received</h3>
-                  <p className="text-sm text-charcoal-400">We&apos;ll follow up within 2 business days.</p>
+                  <p className="text-sm text-charcoal-300">We&apos;ll follow up within 2 business days.</p>
                   <button onClick={() => setContributeSent(false)} className="mt-4 text-xs text-emerald-400 hover:text-emerald-300 uppercase tracking-wider font-medium">Submit Another</button>
                 </div>
               )}

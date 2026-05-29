@@ -39,7 +39,7 @@ export default async function CatalogPage() {
                 The Parts Nobody Makes Anymore.
                 <br /><span className="text-emerald-400">We Do.</span>
               </h1>
-              <p className="mt-6 text-base text-charcoal-400 max-w-xl leading-relaxed">
+              <p className="mt-6 text-base text-charcoal-300 max-w-xl leading-relaxed">
                 {parts.length > 0
                   ? `${parts.length} parts in the library. 3D-scanned from originals. OEM, Improved, or Custom tiers.`
                   : "Our parts library is being built. Check back soon or submit a part request below."
