@@ -216,6 +216,12 @@ export async function POST(request: NextRequest) {
         `;
       }
 
+      // Cache per-material quote for the custom material section
+      await sql`
+        INSERT INTO autoquote_cache (part_id, quote_id, quote_status, unit_price, total_price, lead_time_days, confidence, buyable, material_code, quantity, expires_at)
+        VALUES (${partId}, ${quote.id}, ${quote.status.toLowerCase()}, ${quote.unit_price_usd || null}, ${quote.total_price_usd || null}, ${quote.lead_time_days || null}, ${quote.confidence || null}, ${quote.buyable}, ${materialCode}, ${quantity}, ${quote.expires_at || null})
+      `;
+
       return ok(result);
     } catch (e) {
       return ok(makeResult({

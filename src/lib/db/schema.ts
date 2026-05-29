@@ -216,6 +216,7 @@ export const orderLineItems = pgTable("order_line_items", {
 export const autoquoteCache = pgTable("autoquote_cache", {
   id: uuid("id").defaultRandom().primaryKey(),
   variantId: uuid("variant_id").references(() => partVariants.id),
+  partId: uuid("part_id").references(() => parts.id),
   quoteId: text("quote_id").notNull(),
   status: quoteStatusEnum("quote_status").notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),

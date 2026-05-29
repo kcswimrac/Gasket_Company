@@ -646,6 +646,45 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
 
               {customMode && (
                 <div className="mt-2 p-4 bg-charcoal-950/40 rounded-xl border border-amber-500/15 space-y-3">
+                  {/* Previously quoted custom materials */}
+                  {part.customQuotes.length > 0 && (
+                    <div>
+                      <p className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">Recent Quotes</p>
+                      <div className="space-y-1.5">
+                        {part.customQuotes.map((cq) => (
+                          <div key={cq.material} className="flex items-center justify-between bg-charcoal-950/60 rounded-lg p-2.5 border border-charcoal-800/30">
+                            <div>
+                              <span className="text-xs text-charcoal-200 font-medium">{cq.material}</span>
+                              <span className="text-lg font-bold text-white ml-3">${cq.unitPrice}</span>
+                              {cq.leadTimeDays && <span className="text-[10px] text-charcoal-500 ml-2">{cq.leadTimeDays}d lead</span>}
+                            </div>
+                            <button
+                              onClick={() => {
+                                addItem({
+                                  partId: part.id, partName: part.name, variantId: null,
+                                  tier: "custom", material: cq.material,
+                                  process: "CNC_3AXIS", quantity: qty,
+                                  unitPrice: cq.unitPrice,
+                                  totalPrice: (parseFloat(cq.unitPrice) * qty).toFixed(2),
+                                  leadTimeDays: cq.leadTimeDays,
+                                  isEstimate: true,
+                                  quoteId: null, quoteSource: "cached_custom",
+                                });
+                                setAddedToCart(true);
+                              }}
+                              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[10px] rounded uppercase tracking-wider transition-colors shrink-0"
+                            >
+                              Add to Cart
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="border-t border-charcoal-800/30 mt-3 pt-3">
+                        <p className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-2">Quote a Different Material</p>
+                      </div>
+                    </div>
+                  )}
+
                   {materials.length > 0 ? (
                     <div>
                       <label className="text-[9px] text-charcoal-500 uppercase tracking-wider font-semibold mb-1 block">Material</label>

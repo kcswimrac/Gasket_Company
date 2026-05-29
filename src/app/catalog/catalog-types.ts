@@ -94,6 +94,12 @@ export interface CatalogPart {
     isStale: boolean;
     quotedAt: string | null;
   } | null;
+  customQuotes: Array<{
+    material: string;
+    unitPrice: string;
+    leadTimeDays: number | null;
+    quotedAt: string;
+  }>;
   variants: Variant[];
   files: Array<{
     id: string;

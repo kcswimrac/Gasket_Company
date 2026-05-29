@@ -1,0 +1,1 @@
+ALTER TABLE "autoquote_cache" ADD COLUMN "part_id" uuid REFERENCES parts(id);

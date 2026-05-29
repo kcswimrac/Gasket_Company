@@ -56,9 +56,10 @@ export async function GET(request: NextRequest) {
     const partIds = parts.map((p) => p.id);
     let variants: Record<string, unknown>[] = [];
     let partFilesData: Record<string, unknown>[] = [];
+    let customQuotesData: Record<string, unknown>[] = [];
 
     if (partIds.length > 0) {
-      [variants, partFilesData] = await Promise.all([
+      [variants, partFilesData, customQuotesData] = await Promise.all([
         sql`
           SELECT id, part_id, tier, material, process, base_price,
                  lead_time_days, available, last_quoted_price, last_quoted_at,
@@ -79,6 +80,15 @@ export async function GET(request: NextRequest) {
           WHERE part_id = ANY(${partIds}) AND (show_in_catalog = true OR is_step_file = true OR file_type = 'stl_preview')
           ORDER BY display_order
         `,
+        sql`
+          SELECT DISTINCT ON (part_id, material_code)
+            part_id, material_code, unit_price, lead_time_days, expires_at, created_at
+          FROM autoquote_cache
+          WHERE part_id = ANY(${partIds}) AND variant_id IS NULL AND unit_price IS NOT NULL
+            AND (expires_at IS NULL OR expires_at > NOW())
+            AND created_at > NOW() - INTERVAL '30 days'
+          ORDER BY part_id, material_code, created_at DESC
+        `,
       ]);
     }
 
@@ -87,6 +97,18 @@ export async function GET(request: NextRequest) {
       const pid = v.part_id as string;
       if (!variantsByPart[pid]) variantsByPart[pid] = [];
       variantsByPart[pid].push(v);
+    }
+
+    const customQuotesByPart: Record<string, Array<{ material: string; unitPrice: string; leadTimeDays: number | null; quotedAt: string }>> = {};
+    for (const cq of customQuotesData) {
+      const pid = cq.part_id as string;
+      if (!customQuotesByPart[pid]) customQuotesByPart[pid] = [];
+      customQuotesByPart[pid].push({
+        material: cq.material_code as string,
+        unitPrice: cq.unit_price as string,
+        leadTimeDays: cq.lead_time_days as number | null,
+        quotedAt: cq.created_at as string,
+      });
     }
 
     const filesByPart: Record<string, typeof partFilesData> = {};
@@ -167,6 +189,7 @@ export async function GET(request: NextRequest) {
           isStale: estimateStale,
           quotedAt: p.last_estimate_at as string | null,
         } : null,
+        customQuotes: customQuotesByPart[p.id as string] || [],
       };
     });
 
