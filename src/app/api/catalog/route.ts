@@ -109,21 +109,24 @@ export async function GET(request: NextRequest) {
         const isStale = isCachedPriceStale(lastQuotedAt);
         const isExpired = expiresAt ? expiresAt <= new Date() : false;
         const hasFreshQuote = !isStale && !isExpired && !!v.last_quoted_price;
-        const isFirmQuote = hasFreshQuote && !!v.last_quote_firm;
         const quotable = !!v.autoquote_material_code;
 
         const rawPrice = hasFreshQuote
           ? (v.last_quoted_price as string)
           : (v.base_price as string | null) || null;
 
+        // A fresh AutoQuote price (not stale, not expired) is shown as-is.
+        // Only base_price fallbacks get the markup buffer.
+        const isFromAutoQuote = hasFreshQuote;
+
         let pricingStatus: PriceStatus;
-        if (isFirmQuote) pricingStatus = "firm";
+        if (isFromAutoQuote) pricingStatus = v.last_quote_firm ? "firm" : "estimate";
         else if (rawPrice) pricingStatus = "estimate";
         else if (quotable) pricingStatus = "unavailable";
         else pricingStatus = "unavailable";
 
-        // Markup buffer on estimates only — firm (OFFERED+buyable) prices shown as-is
-        const resolvedPrice = rawPrice && pricingStatus !== "firm"
+        // Markup only on base_price fallbacks, never on actual AutoQuote prices
+        const resolvedPrice = rawPrice && !isFromAutoQuote
           ? applyMarkup(rawPrice) : rawPrice;
 
         const { autoquote_material_code, ...vPublic } = v;
