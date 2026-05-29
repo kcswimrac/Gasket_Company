@@ -18,18 +18,14 @@ export async function GET(request: NextRequest) {
 
     // Fetch estimate markup setting
     let markupPct = 0;
-    try {
-      const settingsRows = await sql`SELECT value FROM settings WHERE key = 'estimate_markup_pct'`;
-      if (settingsRows.length > 0) markupPct = parseFloat(settingsRows[0].value as string) || 0;
-    } catch { /* settings table may not exist yet */ }
     const applyMarkup = (price: string) => {
       if (markupPct <= 0) return price;
       return (parseFloat(price) * (1 + markupPct / 100)).toFixed(2);
     };
 
-    let parts;
-    if (segment && search) {
-      parts = await sql`
+    // Phase 1: settings + parts in parallel
+    const partsQuery = segment && search
+      ? sql`
         SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
                p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
                c.public_credit_name as contributor_name
@@ -38,9 +34,9 @@ export async function GET(request: NextRequest) {
         WHERE p.active IS NOT false AND p.segment = ${segment}
         AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})
         ORDER BY p.name
-      `;
-    } else if (segment) {
-      parts = await sql`
+      `
+      : segment
+      ? sql`
         SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
                p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
                c.public_credit_name as contributor_name
@@ -48,9 +44,9 @@ export async function GET(request: NextRequest) {
         LEFT JOIN contributors c ON p.contributor_id = c.id
         WHERE p.active IS NOT false AND p.segment = ${segment}
         ORDER BY p.name
-      `;
-    } else if (search) {
-      parts = await sql`
+      `
+      : search
+      ? sql`
         SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
                p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
                c.public_credit_name as contributor_name
@@ -59,9 +55,8 @@ export async function GET(request: NextRequest) {
         WHERE p.active IS NOT false
         AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})
         ORDER BY p.name
-      `;
-    } else {
-      parts = await sql`
+      `
+      : sql`
         SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
                p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
                c.public_credit_name as contributor_name
@@ -70,26 +65,40 @@ export async function GET(request: NextRequest) {
         WHERE p.active IS NOT false
         ORDER BY p.name
       `;
-    }
 
-    // Fetch variants
+    const settingsQuery = sql`SELECT value FROM settings WHERE key = 'estimate_markup_pct'`.catch(() => []);
+
+    const [parts, settingsRows] = await Promise.all([partsQuery, settingsQuery]);
+    if (settingsRows.length > 0) markupPct = parseFloat(settingsRows[0].value as string) || 0;
+
+    // Phase 2: variants + files in parallel (need partIds from phase 1)
     const partIds = parts.map((p) => p.id);
     let variants: Record<string, unknown>[] = [];
+    let partFilesData: Record<string, unknown>[] = [];
+
     if (partIds.length > 0) {
-      variants = await sql`
-        SELECT id, part_id, tier, material, process, base_price,
-               lead_time_days, available, last_quoted_price, last_quoted_at,
-               last_quote_expires_at, last_quote_firm, autoquote_material_code
-        FROM part_variants
-        WHERE part_id = ANY(${partIds})
-        ORDER BY
-          CASE tier
-            WHEN 'fitment_check' THEN 0
-            WHEN 'oem' THEN 1
-            WHEN 'improved' THEN 2
-            WHEN 'custom' THEN 3
-          END
-      `;
+      [variants, partFilesData] = await Promise.all([
+        sql`
+          SELECT id, part_id, tier, material, process, base_price,
+                 lead_time_days, available, last_quoted_price, last_quoted_at,
+                 last_quote_expires_at, last_quote_firm, autoquote_material_code
+          FROM part_variants
+          WHERE part_id = ANY(${partIds})
+          ORDER BY
+            CASE tier
+              WHEN 'fitment_check' THEN 0
+              WHEN 'oem' THEN 1
+              WHEN 'improved' THEN 2
+              WHEN 'custom' THEN 3
+            END
+        `,
+        sql`
+          SELECT id, part_id, file_type, file_name, file_url, thumbnail_url, is_step_file, show_in_catalog, tier
+          FROM part_files
+          WHERE part_id = ANY(${partIds}) AND (show_in_catalog = true OR is_step_file = true OR file_type = 'stl_preview')
+          ORDER BY display_order
+        `,
+      ]);
     }
 
     const variantsByPart: Record<string, typeof variants> = {};
@@ -97,17 +106,6 @@ export async function GET(request: NextRequest) {
       const pid = v.part_id as string;
       if (!variantsByPart[pid]) variantsByPart[pid] = [];
       variantsByPart[pid].push(v);
-    }
-
-    // Fetch catalog-visible files (photos) + STEP files (for 3D viewer + quoting)
-    let partFilesData: Record<string, unknown>[] = [];
-    if (partIds.length > 0) {
-      partFilesData = await sql`
-        SELECT id, part_id, file_type, file_name, file_url, thumbnail_url, is_step_file, show_in_catalog, tier
-        FROM part_files
-        WHERE part_id = ANY(${partIds}) AND (show_in_catalog = true OR is_step_file = true OR file_type = 'stl_preview')
-        ORDER BY display_order
-      `;
     }
 
     const filesByPart: Record<string, typeof partFilesData> = {};
@@ -188,7 +186,9 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ success: true, parts: result });
+    return NextResponse.json({ success: true, parts: result }, {
+      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
+    });
   } catch (e) {
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },

@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse(body, {
         headers: {
           "Content-Type": fallback.headers.get("Content-Type") || "application/octet-stream",
-          "Cache-Control": "public, max-age=3600",
+          "Cache-Control": "public, max-age=86400, s-maxage=604800, immutable",
         },
       });
     }
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(body, {
       headers: {
         "Content-Type": res.headers.get("Content-Type") || "application/octet-stream",
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": "public, max-age=86400, s-maxage=604800, immutable",
       },
     });
   } catch {
