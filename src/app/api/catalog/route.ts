@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN contributors c ON p.contributor_id = c.id
       WHERE p.active IS NOT false
       ${segment ? sql`AND p.segment = ${segment}` : sql``}
-      ${make ? sql`AND p.make = ${make}` : sql``}
+      ${make ? sql`AND EXISTS (SELECT 1 FROM unnest(string_to_array(p.make, ',')) m WHERE trim(m) = ${make})` : sql``}
       ${model ? sql`AND p.model = ${model}` : sql``}
       ${yearNum ? sql`AND p.year_start <= ${yearNum} AND COALESCE(p.year_end, p.year_start) >= ${yearNum}` : sql``}
       ${search ? sql`AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})` : sql``}

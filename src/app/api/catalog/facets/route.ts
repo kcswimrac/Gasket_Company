@@ -16,29 +16,35 @@ export async function GET(request: NextRequest) {
     const make = request.nextUrl.searchParams.get("make");
 
     // Get available makes for a segment (or all segments)
+    // Splits comma-separated makes so "Ford, Chevy" becomes two separate pills
     const makesQuery = segment
       ? sql`
-        SELECT DISTINCT make, COUNT(*)::int as part_count
-        FROM parts WHERE active IS NOT false AND make IS NOT NULL AND segment = ${segment}
-        GROUP BY make ORDER BY make
+        SELECT trim(m)::text as make, COUNT(DISTINCT p.id)::int as part_count
+        FROM parts p, unnest(string_to_array(p.make, ',')) as m
+        WHERE p.active IS NOT false AND p.make IS NOT NULL AND p.segment = ${segment}
+        GROUP BY trim(m) ORDER BY trim(m)
       `
       : sql`
-        SELECT DISTINCT make, COUNT(*)::int as part_count
-        FROM parts WHERE active IS NOT false AND make IS NOT NULL
-        GROUP BY make ORDER BY make
+        SELECT trim(m)::text as make, COUNT(DISTINCT p.id)::int as part_count
+        FROM parts p, unnest(string_to_array(p.make, ',')) as m
+        WHERE p.active IS NOT false AND p.make IS NOT NULL
+        GROUP BY trim(m) ORDER BY trim(m)
       `;
 
-    // Get available models for a make (optionally within a segment)
+    // Get available models for a make (matches if make appears anywhere in comma list)
     const modelsQuery = make
       ? segment
         ? sql`
           SELECT DISTINCT model, COUNT(*)::int as part_count
-          FROM parts WHERE active IS NOT false AND model IS NOT NULL AND make = ${make} AND segment = ${segment}
+          FROM parts WHERE active IS NOT false AND model IS NOT NULL
+          AND EXISTS (SELECT 1 FROM unnest(string_to_array(make, ',')) m WHERE trim(m) = ${make})
+          AND segment = ${segment}
           GROUP BY model ORDER BY model
         `
         : sql`
           SELECT DISTINCT model, COUNT(*)::int as part_count
-          FROM parts WHERE active IS NOT false AND model IS NOT NULL AND make = ${make}
+          FROM parts WHERE active IS NOT false AND model IS NOT NULL
+          AND EXISTS (SELECT 1 FROM unnest(string_to_array(make, ',')) m WHERE trim(m) = ${make})
           GROUP BY model ORDER BY model
         `
       : Promise.resolve([]);
@@ -48,13 +54,15 @@ export async function GET(request: NextRequest) {
       ? segment
         ? sql`
           SELECT DISTINCT year_start, year_end
-          FROM parts WHERE active IS NOT false AND year_start IS NOT NULL AND make = ${make}
-          ${make && segment ? sql`AND segment = ${segment}` : sql``}
+          FROM parts WHERE active IS NOT false AND year_start IS NOT NULL
+          AND EXISTS (SELECT 1 FROM unnest(string_to_array(make, ',')) m WHERE trim(m) = ${make})
+          AND segment = ${segment}
           ORDER BY year_start
         `
         : sql`
           SELECT DISTINCT year_start, year_end
-          FROM parts WHERE active IS NOT false AND year_start IS NOT NULL AND make = ${make}
+          FROM parts WHERE active IS NOT false AND year_start IS NOT NULL
+          AND EXISTS (SELECT 1 FROM unnest(string_to_array(make, ',')) m WHERE trim(m) = ${make})
           ORDER BY year_start
         `
       : Promise.resolve([]);
