@@ -748,7 +748,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
             {!addedToCart ? (
               <div className="flex gap-2">
                 {/* Has price (from catalog cache or live quote) — show Add to Cart as primary */}
-                {(variant?.resolvedPrice || quote?.unitPrice) && !customMode ? (
+                {(variant?.resolvedPrice && !customMode) || quote?.unitPrice ? (
                   <>
                     <button
                       onClick={() => {
@@ -774,7 +774,7 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                       Add to Cart
                     </button>
                     <button
-                      onClick={handleQuote}
+                      onClick={customMode ? handleCustomQuote : handleQuote}
                       disabled={quoting}
                       className="px-4 py-3 border border-charcoal-700 hover:border-charcoal-600 text-charcoal-400 hover:text-charcoal-300 text-[11px] rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center"
                     >
