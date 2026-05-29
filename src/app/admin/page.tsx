@@ -355,6 +355,71 @@ function AutoQuotePanel() {
   );
 }
 
+function PricingSettingsPanel() {
+  const [markup, setMarkup] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.settings?.estimate_markup_pct) setMarkup(d.settings.estimate_markup_pct);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaved(false);
+    await fetch("/api/admin/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: "estimate_markup_pct", value: markup }),
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <div className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl p-6">
+      <div className="flex items-start gap-4">
+        <div className="flex-1">
+          <p className="text-sm font-medium text-white mb-1">Estimate Markup</p>
+          <p className="text-xs text-charcoal-500 leading-relaxed">
+            Buffer added to cached AutoQuote estimates shown to customers. Protects against price increases between quote and confirmation.
+            The actual confirmed price is unaffected — this only pads what customers see before purchasing.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {loading ? (
+            <div className="w-16 h-9 bg-charcoal-800/50 rounded animate-pulse" />
+          ) : (
+            <>
+              <input
+                type="number"
+                min="0"
+                max="50"
+                step="1"
+                value={markup}
+                onChange={(e) => setMarkup(e.target.value)}
+                className="w-16 bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-2 text-sm text-charcoal-100 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+              />
+              <span className="text-sm text-charcoal-400">%</span>
+              <button
+                onClick={handleSave}
+                className={`px-3 py-2 text-[10px] font-bold rounded uppercase tracking-wider transition-colors ${saved ? "bg-emerald-500/20 text-emerald-400" : "bg-emerald-500 hover:bg-emerald-400 text-white"}`}
+              >
+                {saved ? "Saved" : "Save"}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const stats = [
     { label: "Active Parts", value: "15", change: "+3 this month" },
@@ -381,6 +446,14 @@ export default function AdminDashboard() {
             <p className="text-[11px] text-charcoal-500 mt-1">{s.change}</p>
           </div>
         ))}
+      </div>
+
+      {/* Pricing Settings */}
+      <div className="mb-10">
+        <h2 className="text-sm font-bold text-charcoal-300 uppercase tracking-wider mb-4">
+          Pricing Settings
+        </h2>
+        <PricingSettingsPanel />
       </div>
 
       {/* Database & Migrations */}

@@ -16,6 +16,17 @@ export async function GET(request: NextRequest) {
     const segment = request.nextUrl.searchParams.get("segment");
     const search = request.nextUrl.searchParams.get("search");
 
+    // Fetch estimate markup setting
+    let markupPct = 0;
+    try {
+      const settingsRows = await sql`SELECT value FROM settings WHERE key = 'estimate_markup_pct'`;
+      if (settingsRows.length > 0) markupPct = parseFloat(settingsRows[0].value as string) || 0;
+    } catch { /* settings table may not exist yet */ }
+    const applyMarkup = (price: string) => {
+      if (markupPct <= 0) return price;
+      return (parseFloat(price) * (1 + markupPct / 100)).toFixed(2);
+    };
+
     let parts;
     if (segment && search) {
       parts = await sql`
@@ -122,15 +133,19 @@ export async function GET(request: NextRequest) {
         const quotable = !!v.autoquote_material_code;
 
         // Per-variant price: own quoted price or base price only — never the part-level estimate
-        const resolvedPrice = hasFreshQuote
+        const rawPrice = hasFreshQuote
           ? (v.last_quoted_price as string)
           : (v.base_price as string | null) || null;
 
         let pricingStatus: PriceStatus;
         if (hasFreshQuote) pricingStatus = "firm";
-        else if (resolvedPrice) pricingStatus = "estimate";
+        else if (rawPrice) pricingStatus = "estimate";
         else if (quotable) pricingStatus = "unavailable";
         else pricingStatus = "unavailable";
+
+        // Apply markup buffer to estimates only — firm prices are shown as-is
+        const resolvedPrice = rawPrice && pricingStatus !== "firm"
+          ? applyMarkup(rawPrice) : rawPrice;
 
         const { autoquote_material_code, ...vPublic } = v;
         return {
@@ -165,7 +180,7 @@ export async function GET(request: NextRequest) {
         files: pfiles,
         hasStepFile: hasStep,
         estimate: p.last_estimate_price ? {
-          price: p.last_estimate_price as string,
+          price: applyMarkup(p.last_estimate_price as string),
           material: p.last_estimate_material as string | null,
           isStale: estimateStale,
           quotedAt: p.last_estimate_at as string | null,
