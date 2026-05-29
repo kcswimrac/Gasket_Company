@@ -1,0 +1,1 @@
+ALTER TABLE "part_variants" ADD COLUMN "last_quote_firm" boolean DEFAULT false;

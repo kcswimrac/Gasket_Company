@@ -140,12 +140,14 @@ export async function POST(request: NextRequest) {
 
         // Store on variant
         if (result.unitPrice) {
+          const isFirm = result.priceStatus === "firm";
           await sql`
             UPDATE part_variants SET
               last_quoted_price = ${result.unitPrice},
               last_quoted_at = NOW(),
               last_quote_id = ${result.quoteId},
-              last_quote_expires_at = ${quote.expires_at || null}
+              last_quote_expires_at = ${quote.expires_at || null},
+              last_quote_firm = ${isFirm}
             WHERE id = ${variantId}
           `;
         }

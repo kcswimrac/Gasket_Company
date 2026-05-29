@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       variants = await sql`
         SELECT id, part_id, tier, material, process, base_price,
                lead_time_days, available, last_quoted_price, last_quoted_at,
-               last_quote_expires_at, autoquote_material_code
+               last_quote_expires_at, last_quote_firm, autoquote_material_code
         FROM part_variants
         WHERE part_id = ANY(${partIds})
         ORDER BY
@@ -130,20 +130,20 @@ export async function GET(request: NextRequest) {
         const isStale = isCachedPriceStale(lastQuotedAt);
         const isExpired = expiresAt ? expiresAt <= new Date() : false;
         const hasFreshQuote = !isStale && !isExpired && !!v.last_quoted_price;
+        const isFirmQuote = hasFreshQuote && !!v.last_quote_firm;
         const quotable = !!v.autoquote_material_code;
 
-        // Per-variant price: own quoted price or base price only — never the part-level estimate
         const rawPrice = hasFreshQuote
           ? (v.last_quoted_price as string)
           : (v.base_price as string | null) || null;
 
         let pricingStatus: PriceStatus;
-        if (hasFreshQuote) pricingStatus = "firm";
+        if (isFirmQuote) pricingStatus = "firm";
         else if (rawPrice) pricingStatus = "estimate";
         else if (quotable) pricingStatus = "unavailable";
         else pricingStatus = "unavailable";
 
-        // Apply markup buffer to estimates only — firm prices are shown as-is
+        // Markup buffer on estimates only — firm (OFFERED+buyable) prices shown as-is
         const resolvedPrice = rawPrice && pricingStatus !== "firm"
           ? applyMarkup(rawPrice) : rawPrice;
 

@@ -114,6 +114,7 @@ export const partVariants = pgTable("part_variants", {
   lastQuotedAt: timestamp("last_quoted_at"),
   lastQuoteId: text("last_quote_id"),
   lastQuoteExpiresAt: timestamp("last_quote_expires_at"),
+  lastQuoteFirm: boolean("last_quote_firm").default(false),
   available: boolean("available").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
