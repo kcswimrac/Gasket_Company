@@ -17,11 +17,13 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get("content-type") || "";
     let form: Record<string, string>;
     let photoFiles: File[] = [];
+    let cadFiles: File[] = [];
 
     if (contentType.includes("multipart/form-data")) {
       const fd = await request.formData();
       form = JSON.parse(fd.get("data") as string);
       photoFiles = fd.getAll("photos").filter((f): f is File => f instanceof File);
+      cadFiles = fd.getAll("cadFiles").filter((f): f is File => f instanceof File);
     } else {
       form = await request.json();
     }
@@ -100,24 +102,50 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create scan queue entry
+    // Create scan queue entry — if contributor provides CAD, skip scanning stage
+    const hasContributorCad = cadFiles.length > 0;
     const result = await sql`
       INSERT INTO scan_queue (
         contributor_id, part_description, application, segment,
         make, model, year_start, year_end,
-        condition, part_number, photo_urls, status
+        condition, part_number, photo_urls, status, notes
       )
       VALUES (
         ${contributorId}, ${partDescription}, ${application},
         ${segment || null}, ${make || null}, ${model || null},
         ${yearStart}, ${yearEnd}, ${condition || null},
         ${partNumber || null}, ${photoUrls.length > 0 ? JSON.stringify(photoUrls) : null},
-        ${"received"}
+        ${hasContributorCad ? "cad_ready" : "received"},
+        ${hasContributorCad ? "Contributor provided CAD files" : null}
       )
       RETURNING id
     `;
+    const scanQueueId = result[0].id as string;
 
-    return NextResponse.json({ success: true, scanQueueId: result[0].id });
+    // Upload CAD files as scan artifacts
+    for (const file of cadFiles) {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "";
+      const isStep = ext === "step" || ext === "stp";
+      const blob = await put(
+        `contributions/${scanQueueId}/cad_${Date.now()}_${file.name}`,
+        file,
+        { access: "private" }
+      );
+      await sql`
+        INSERT INTO scan_artifacts (scan_queue_id, artifact_type, version, file_name, file_url, file_size, notes)
+        VALUES (${scanQueueId}, ${"cad_model"}, ${1}, ${file.name}, ${blob.url}, ${file.size}, ${isStep ? "STEP file — ready for AutoQuote" : `Contributor CAD (${ext})`})
+      `;
+    }
+
+    // Upload photos as scan artifacts too
+    for (let i = 0; i < photoFiles.length; i++) {
+      await sql`
+        INSERT INTO scan_artifacts (scan_queue_id, artifact_type, version, file_name, file_url, file_size)
+        VALUES (${scanQueueId}, ${"photo"}, ${1}, ${photoFiles[i].name}, ${photoUrls[i]}, ${photoFiles[i].size})
+      `;
+    }
+
+    return NextResponse.json({ success: true, scanQueueId });
   } catch (e) {
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },

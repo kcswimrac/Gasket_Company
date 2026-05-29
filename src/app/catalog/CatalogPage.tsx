@@ -879,6 +879,7 @@ export default function CatalogPage() {
     segment: "", make: "", model: "", year: "", condition: "", partNumber: "",
   });
   const [contPhotos, setContPhotos] = useState<File[]>([]);
+  const [contCadFiles, setContCadFiles] = useState<File[]>([]);
   const [contSubmitting, setContSubmitting] = useState(false);
 
   const fetchParts = useCallback(async () => {
@@ -1076,6 +1077,33 @@ export default function CatalogPage() {
                             )}
                           </div>
 
+                          {/* CAD file upload */}
+                          <div>
+                            <label className={labelCls}>CAD Files (optional)</label>
+                            <p className="text-[10px] text-charcoal-500 mb-2">
+                              Already have a model? Upload STEP, STL, IGES, Fusion 360, SolidWorks, or any CAD format.
+                            </p>
+                            <label className="flex items-center justify-center gap-2 w-full py-3 border-2 border-dashed border-charcoal-700/50 rounded-lg cursor-pointer hover:border-blue-500/30 transition-colors">
+                              <svg className="w-5 h-5 text-charcoal-500" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12H9.75m0 0l2.25-2.25M9.75 15l2.25 2.25M2.25 9v9.75A2.25 2.25 0 004.5 21h15a2.25 2.25 0 002.25-2.25V9M2.25 9V6.75A2.25 2.25 0 014.5 4.5h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H19.5A2.25 2.25 0 0121.75 9v0" /></svg>
+                              <span className="text-sm text-charcoal-400">{contCadFiles.length > 0 ? `${contCadFiles.length} CAD file${contCadFiles.length > 1 ? "s" : ""} selected` : "Add CAD files"}</span>
+                              <input type="file" accept=".step,.stp,.stl,.iges,.igs,.f3d,.f3z,.sldprt,.sldasm,.x_t,.x_b,.sat,.3mf,.obj,.dxf,.dwg" multiple className="hidden" onChange={(e) => { if (e.target.files) setContCadFiles(Array.from(e.target.files)); }} />
+                            </label>
+                            {contCadFiles.length > 0 && (
+                              <div className="space-y-1 mt-2">
+                                {contCadFiles.map((f, i) => (
+                                  <div key={i} className="flex items-center justify-between bg-charcoal-950/40 rounded px-3 py-1.5 border border-charcoal-800/30">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <svg className="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                                      <span className="text-xs text-charcoal-300 truncate">{f.name}</span>
+                                      <span className="text-[9px] text-charcoal-600 shrink-0">{(f.size / 1024 / 1024).toFixed(1)} MB</span>
+                                    </div>
+                                    <button onClick={() => setContCadFiles((p) => p.filter((_, j) => j !== i))} className="text-charcoal-600 hover:text-red-400 text-xs ml-2">×</button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
                           <div className="border-t border-charcoal-800/40 pt-5">
                             <p className="text-[10px] text-charcoal-500 uppercase tracking-wider font-semibold mb-3">Your Information</p>
                             <div className="grid grid-cols-2 gap-3">
@@ -1108,12 +1136,14 @@ export default function CatalogPage() {
                           const fd = new FormData();
                           fd.append("data", JSON.stringify(contForm));
                           contPhotos.forEach((f) => fd.append("photos", f));
+                          contCadFiles.forEach((f) => fd.append("cadFiles", f));
                           const res = await fetch("/api/contribute", { method: "POST", body: fd });
                           const data = await res.json();
                           if (data.success) {
                             setContributeSent(true);
                             setContForm({ partDescription: "", application: "", name: "", email: "", phone: "", company: "", segment: "", make: "", model: "", year: "", condition: "", partNumber: "" });
                             setContPhotos([]);
+                            setContCadFiles([]);
                           }
                         } catch { /* ignore */ }
                         finally { setContSubmitting(false); }
