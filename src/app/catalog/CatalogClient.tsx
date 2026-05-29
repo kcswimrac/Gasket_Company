@@ -282,22 +282,45 @@ function PartCard({ part }: { part: CatalogPart }) {
                   className="w-14 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-1.5 text-xs text-charcoal-100 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
                   onClick={(e) => e.stopPropagation()}
                 />
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleGetPrice(); }}
-                  disabled={quoting || (!variant.resolvedPrice && !variant.quotable)}
-                  className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[11px] rounded transition-all uppercase tracking-wider shadow-lg shadow-emerald-500/10 disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {quoting ? (
-                    <>
-                      <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                      Quoting...
-                    </>
-                  ) : variant.resolvedPrice ? (
-                    "Add to Cart"
-                  ) : (
-                    "Get Price"
-                  )}
-                </button>
+                {variant.resolvedPrice && !addedToCart ? (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addItem({
+                        partId: part.id, partName: part.name, variantId: variant.id,
+                        tier: variant.tier, material: variant.material,
+                        process: variant.process, quantity: qty,
+                        unitPrice: variant.resolvedPrice!,
+                        totalPrice: (parseFloat(variant.resolvedPrice!) * qty).toFixed(2),
+                        leadTimeDays: variant.lead_time_days,
+                        isEstimate: variant.pricingStatus !== "firm",
+                        quoteId: null, quoteSource: "catalog_cached",
+                      });
+                      setAddedToCart(true);
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[11px] rounded transition-all uppercase tracking-wider shadow-lg shadow-emerald-500/10 flex items-center gap-1.5"
+                  >
+                    Add to Cart
+                  </button>
+                ) : addedToCart ? (
+                  <a href="/cart" onClick={(e) => e.stopPropagation()} className="px-4 py-2 bg-charcoal-800 hover:bg-charcoal-700 text-emerald-400 font-bold text-[11px] rounded uppercase tracking-wider transition-colors flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                    View Cart
+                  </a>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleGetPrice(); }}
+                    disabled={quoting || !variant.quotable}
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[11px] rounded transition-all uppercase tracking-wider shadow-lg shadow-emerald-500/10 disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {quoting ? (
+                      <>
+                        <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                        Quoting...
+                      </>
+                    ) : "Get Price"}
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -724,22 +747,49 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
             {/* Action buttons */}
             {!addedToCart ? (
               <div className="flex gap-2">
-                <button
-                  onClick={customMode ? handleCustomQuote : handleQuote}
-                  disabled={quoting || (customMode && !selectedMaterial)}
-                  className={`flex-1 py-3 ${customMode ? "bg-amber-500 hover:bg-amber-400" : "bg-emerald-500 hover:bg-emerald-400"} text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2`}
-                >
-                  {quoting ? (
-                    <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Getting price...</>
-                  ) : quote?.unitPrice ? "Update Price" : "Get Live Price"}
-                </button>
-                {quote?.unitPrice && (
+                {/* Has price (from catalog cache or live quote) — show Add to Cart as primary */}
+                {(variant?.resolvedPrice || quote?.unitPrice) && !customMode ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        if (quote?.unitPrice) {
+                          handleAddToCart();
+                        } else if (variant?.resolvedPrice) {
+                          addItem({
+                            partId: part.id, partName: part.name, variantId: variant?.id || null,
+                            tier: variant?.tier || null, material: variant?.material || part.estimate?.material || "Default",
+                            process: variant?.process || "TBD", quantity: qty,
+                            unitPrice: variant.resolvedPrice!,
+                            totalPrice: (parseFloat(variant.resolvedPrice!) * qty).toFixed(2),
+                            leadTimeDays: variant?.lead_time_days || null,
+                            isEstimate: variant.pricingStatus !== "firm",
+                            quoteId: null, quoteSource: "catalog_cached",
+                          });
+                          setAddedToCart(true);
+                        }
+                      }}
+                      className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>
+                      Add to Cart
+                    </button>
+                    <button
+                      onClick={handleQuote}
+                      disabled={quoting}
+                      className="px-4 py-3 border border-charcoal-700 hover:border-charcoal-600 text-charcoal-400 hover:text-charcoal-300 text-[11px] rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center"
+                    >
+                      {quoting ? <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> : "↻ Refresh"}
+                    </button>
+                  </>
+                ) : (
                   <button
-                    onClick={handleAddToCart}
-                    className="flex-1 py-3 bg-charcoal-800 hover:bg-charcoal-700 text-emerald-400 font-bold text-sm rounded-lg uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
+                    onClick={customMode ? handleCustomQuote : handleQuote}
+                    disabled={quoting || (customMode && !selectedMaterial)}
+                    className={`flex-1 py-3 ${customMode ? "bg-amber-500 hover:bg-amber-400" : "bg-emerald-500 hover:bg-emerald-400"} text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2`}
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>
-                    Add to Cart
+                    {quoting ? (
+                      <><svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg> Getting price...</>
+                    ) : "Get Live Price"}
                   </button>
                 )}
               </div>
