@@ -50,20 +50,11 @@ export default function AdminUsersPage() {
   }, [router]);
 
   useEffect(() => {
-    // Bootstrap mode — no Auth.js session but has cookie = full access
-    if (status === "unauthenticated" && document.cookie.includes("admin_token=")) {
-      fetchUsers();
-      return;
-    }
-    // Auth.js authenticated — check owner role
-    if (status === "authenticated") {
-      if (session?.user?.role !== "owner") {
-        router.push("/admin");
-        return;
-      }
-      fetchUsers();
-    }
-  }, [status, session, router, fetchUsers]);
+    // Just try to fetch — the middleware handles auth.
+    // If we get 403, we're not authorized (not owner).
+    // If we get data, we're in.
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
