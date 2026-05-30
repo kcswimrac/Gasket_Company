@@ -39,9 +39,9 @@ export default function AdminNav() {
   const { data: session } = useSession();
   const role = session?.user?.role;
 
-  // Build links — add "Users" for owners
+  // Build links — add "Users" for owners or bootstrap (no session = bootstrap = full access)
   const links = [...baseLinks];
-  if (role === "owner") {
+  if (!role || role === "owner") {
     links.push({ href: "/admin/users", label: "Users", icon: "shield" });
   }
 
