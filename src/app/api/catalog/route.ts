@@ -80,7 +80,9 @@ export async function GET(request: NextRequest) {
         sql`
           SELECT id, part_id, tier, material, process, base_price,
                  lead_time_days, available, last_quoted_price, last_quoted_at,
-                 last_quote_expires_at, last_quote_firm, autoquote_material_code
+                 last_quote_expires_at, last_quote_firm, autoquote_material_code,
+                 COALESCE(stock_quantity, 0) as stock_quantity,
+                 COALESCE(made_to_order, true) as made_to_order
           FROM part_variants
           WHERE part_id = ANY(${partIds})
           ORDER BY
@@ -154,6 +156,8 @@ export async function GET(request: NextRequest) {
           resolvedPrice,
           pricingStatus,
           quotable: quotable || undefined,
+          stock_quantity: v.stock_quantity as number,
+          made_to_order: v.made_to_order as boolean,
         };
       });
 

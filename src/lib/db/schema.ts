@@ -119,6 +119,8 @@ export const partVariants = pgTable("part_variants", {
   lastQuoteExpiresAt: timestamp("last_quote_expires_at"),
   lastQuoteFirm: boolean("last_quote_firm").default(false),
   available: boolean("available").notNull().default(false),
+  stockQuantity: integer("stock_quantity").default(0),
+  madeToOrder: boolean("made_to_order").default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -345,6 +347,21 @@ export const bountyBoard = pgTable("bounty_board", {
   claimedAt: timestamp("claimed_at"),
   fulfilledAt: timestamp("fulfilled_at"),
   partId: uuid("part_id").references(() => parts.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/* ─── Blog Posts ─── */
+
+export const blogPosts = pgTable("blog_posts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  excerpt: text("excerpt"),
+  content: text("content").notNull(),
+  author: text("author"),
+  published: boolean("published").default(false),
+  publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart";
+import SessionWrapper from "@/app/admin/SessionWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -55,7 +56,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable} ${jetbrains.variable}`}>
       <body className="font-sans antialiased">
-        <CartProvider>{children}</CartProvider>
+        <SessionWrapper>
+          <CartProvider>{children}</CartProvider>
+        </SessionWrapper>
       </body>
     </html>
   );

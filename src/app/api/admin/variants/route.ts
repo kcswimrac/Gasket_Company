@@ -12,15 +12,15 @@ function getSQL() {
 export async function POST(request: NextRequest) {
   try {
     const sql = getSQL();
-    const { partId, tier, material, process, basePrice, leadTimeDays, autoquoteMaterialCode, autoquoteProcess, available } = await request.json();
+    const { partId, tier, material, process, basePrice, leadTimeDays, autoquoteMaterialCode, autoquoteProcess, available, stockQuantity, madeToOrder } = await request.json();
 
     if (!partId || !tier || !material || !process) {
       return NextResponse.json({ success: false, error: "partId, tier, material, and process are required" }, { status: 400 });
     }
 
     const result = await sql`
-      INSERT INTO part_variants (part_id, tier, material, process, base_price, lead_time_days, autoquote_material_code, autoquote_process, available)
-      VALUES (${partId}, ${tier}, ${material}, ${process}, ${basePrice || null}, ${leadTimeDays || null}, ${autoquoteMaterialCode || null}, ${autoquoteProcess || null}, ${available ?? false})
+      INSERT INTO part_variants (part_id, tier, material, process, base_price, lead_time_days, autoquote_material_code, autoquote_process, available, stock_quantity, made_to_order)
+      VALUES (${partId}, ${tier}, ${material}, ${process}, ${basePrice || null}, ${leadTimeDays || null}, ${autoquoteMaterialCode || null}, ${autoquoteProcess || null}, ${available ?? false}, ${stockQuantity ?? 0}, ${madeToOrder ?? true})
       RETURNING *
     `;
 
@@ -45,7 +45,9 @@ export async function PUT(request: NextRequest) {
         lead_time_days = ${fields.leadTimeDays ?? null},
         autoquote_material_code = ${fields.autoquoteMaterialCode ?? null},
         autoquote_process = ${fields.autoquoteProcess ?? null},
-        available = COALESCE(${fields.available ?? null}, available)
+        available = COALESCE(${fields.available ?? null}, available),
+        stock_quantity = COALESCE(${fields.stockQuantity ?? null}, stock_quantity),
+        made_to_order = COALESCE(${fields.madeToOrder ?? null}, made_to_order)
       WHERE id = ${id}
     `;
 

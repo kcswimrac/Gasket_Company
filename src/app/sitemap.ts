@@ -10,6 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/gaskets`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${base}/track`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
     { url: `${base}/privacy`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.2 },
+    { url: `${base}/blog`, lastModified: new Date(), changeFrequency: "daily", priority: 0.7 },
     { url: `${base}/cart`, changeFrequency: "always", priority: 0.3 },
     { url: `${base}/checkout`, changeFrequency: "always", priority: 0.3 },
   ];
@@ -38,5 +39,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // If DB is unavailable, just return static routes
   }
 
-  return [...staticRoutes, ...partRoutes];
+  // Dynamically include published blog posts
+  let blogRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const { neon } = await import("@neondatabase/serverless");
+    const url = process.env.DATABASE_URL;
+    if (url) {
+      const sql = neon(url);
+      const posts = await sql`
+        SELECT slug, updated_at
+        FROM blog_posts
+        WHERE published = true
+        ORDER BY published_at DESC
+      `;
+      blogRoutes = posts.map((p) => ({
+        url: `${base}/blog/${p.slug as string}`,
+        lastModified: p.updated_at ? new Date(p.updated_at as string) : new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.6,
+      }));
+    }
+  } catch {
+    // If DB is unavailable, skip blog routes
+  }
+
+  return [...staticRoutes, ...partRoutes, ...blogRoutes];
 }

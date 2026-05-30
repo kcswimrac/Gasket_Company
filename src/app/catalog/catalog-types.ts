@@ -72,6 +72,8 @@ export interface Variant {
   resolvedPrice: string | null;
   pricingStatus: PriceStatus;
   quotable?: boolean;
+  stock_quantity: number;
+  made_to_order: boolean;
 }
 
 export interface CatalogPart {

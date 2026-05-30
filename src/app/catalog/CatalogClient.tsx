@@ -161,6 +161,16 @@ function PartCard({ part }: { part: CatalogPart }) {
                 <span className="text-charcoal-200 font-medium">{variant.lead_time_days} days</span>
               </div>
             )}
+            <div className="flex justify-between text-[11px] items-center">
+              <span className="text-charcoal-300">Availability</span>
+              {variant.made_to_order ? (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-charcoal-700 text-charcoal-300 font-semibold uppercase">Made to Order</span>
+              ) : variant.stock_quantity > 0 ? (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold uppercase">In Stock</span>
+              ) : (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 font-semibold uppercase">Out of Stock</span>
+              )}
+            </div>
           </div>
         ) : (
           <div className="bg-charcoal-950/40 rounded-lg p-3 mb-4 border border-charcoal-800/30">
@@ -616,7 +626,16 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
                     </div>
                     <div className="flex items-center justify-between text-xs text-charcoal-300">
                       <span>{v.material}</span>
-                      <span>{v.process}</span>
+                      <span className="flex items-center gap-2">
+                        {v.made_to_order ? (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-charcoal-700 text-charcoal-300 font-semibold uppercase">Made to Order</span>
+                        ) : v.stock_quantity > 0 ? (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold uppercase">In Stock</span>
+                        ) : (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 font-semibold uppercase">Out of Stock</span>
+                        )}
+                        <span>{v.process}</span>
+                      </span>
                     </div>
                     {v.lead_time_days && <p className="text-[11px] text-charcoal-300 mt-1">{v.lead_time_days} day lead time</p>}
                   </button>

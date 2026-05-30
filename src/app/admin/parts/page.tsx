@@ -61,6 +61,8 @@ interface Part {
     base_price: string | null;
     available: boolean;
     last_quoted_price: string | null;
+    stock_quantity: number;
+    made_to_order: boolean;
   }>;
 }
 
@@ -256,23 +258,66 @@ function VariantManager({ partId, variants, onChanged }: { partId: string; varia
       {/* Existing variants */}
       <div className="space-y-2">
         {variants.map((v) => (
-          <div key={v.id} className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className={`text-[10px] px-2 py-0.5 rounded font-semibold uppercase ${v.tier === "oem" ? "bg-blue-500/10 text-blue-400" : v.tier === "improved" ? "bg-emerald-500/10 text-emerald-400" : v.tier === "fitment_check" ? "bg-gold-500/10 text-gold-400" : "bg-charcoal-800 text-charcoal-400"}`}>
-                {v.tier === "fitment_check" ? "3D Fit" : v.tier}
-              </span>
-              <div>
-                <span className="text-xs text-charcoal-200">{v.material}</span>
-                <span className="text-[10px] text-charcoal-500 ml-1.5">{v.process}</span>
+          <div key={v.id} className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className={`text-[10px] px-2 py-0.5 rounded font-semibold uppercase ${v.tier === "oem" ? "bg-blue-500/10 text-blue-400" : v.tier === "improved" ? "bg-emerald-500/10 text-emerald-400" : v.tier === "fitment_check" ? "bg-gold-500/10 text-gold-400" : "bg-charcoal-800 text-charcoal-400"}`}>
+                  {v.tier === "fitment_check" ? "3D Fit" : v.tier}
+                </span>
+                <div>
+                  <span className="text-xs text-charcoal-200">{v.material}</span>
+                  <span className="text-[10px] text-charcoal-500 ml-1.5">{v.process}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {v.last_quoted_price && <span className="text-xs text-emerald-400 font-medium">${v.last_quoted_price}</span>}
+                {v.base_price && <span className="text-xs text-charcoal-400">${v.base_price}</span>}
+                {v.stock_quantity > 0 && !v.made_to_order && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold uppercase">In Stock</span>
+                )}
+                <button onClick={() => toggleAvailable(v)} className={`text-[10px] px-2 py-0.5 rounded transition-colors ${v.available ? "bg-emerald-500/15 text-emerald-400" : "bg-charcoal-800 text-charcoal-500"}`}>
+                  {v.available ? "Active" : "Draft"}
+                </button>
+                <button onClick={() => handleDelete(v.id)} className="text-[10px] text-red-400/50 hover:text-red-400">×</button>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {v.last_quoted_price && <span className="text-xs text-emerald-400 font-medium">${v.last_quoted_price}</span>}
-              {v.base_price && <span className="text-xs text-charcoal-400">${v.base_price}</span>}
-              <button onClick={() => toggleAvailable(v)} className={`text-[10px] px-2 py-0.5 rounded transition-colors ${v.available ? "bg-emerald-500/15 text-emerald-400" : "bg-charcoal-800 text-charcoal-500"}`}>
-                {v.available ? "Active" : "Draft"}
-              </button>
-              <button onClick={() => handleDelete(v.id)} className="text-[10px] text-red-400/50 hover:text-red-400">×</button>
+            <div className="flex items-center gap-4 mt-2 pt-2 border-t border-charcoal-800/20">
+              <div className="flex items-center gap-1.5">
+                <label className="text-[9px] text-charcoal-500 uppercase tracking-wider">Stock</label>
+                <input
+                  type="number"
+                  min="0"
+                  defaultValue={v.stock_quantity}
+                  className="w-16 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-1 text-[11px] text-charcoal-100 text-center focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                  onBlur={async (e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    if (val !== v.stock_quantity) {
+                      await fetch("/api/admin/variants", {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: v.id, stockQuantity: val }),
+                      });
+                      onChanged();
+                    }
+                  }}
+                />
+              </div>
+              <label className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={v.made_to_order}
+                  onChange={async (e) => {
+                    await fetch("/api/admin/variants", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ id: v.id, madeToOrder: e.target.checked }),
+                    });
+                    onChanged();
+                  }}
+                  className="rounded border-charcoal-600 bg-charcoal-950 text-emerald-500 focus:ring-emerald-500/40 focus:ring-1 w-3.5 h-3.5"
+                />
+                <span className="text-[9px] text-charcoal-500 uppercase tracking-wider">Made to Order</span>
+              </label>
             </div>
           </div>
         ))}

@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
+import { useSession } from "next-auth/react";
 
 const navItems = [
   { label: "Gaskets", href: "/gaskets" },
   { label: "Parts Catalog", href: "/catalog" },
+  { label: "Blog", href: "/blog" },
   { label: "Contribute", href: "/catalog#contribute" },
   { label: "FAQ", href: "/gaskets#faq" },
 ];
@@ -20,6 +22,27 @@ function CartIcon({ count }: { count: number }) {
       {count > 0 && (
         <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-emerald-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
           {count}
+        </span>
+      )}
+    </a>
+  );
+}
+
+function AccountIcon() {
+  const { data: session, status } = useSession();
+  const isLoggedIn = status === "authenticated" && session?.user;
+
+  return (
+    <a
+      href={isLoggedIn ? "/account" : "/account/login"}
+      className="relative p-2 text-charcoal-400 hover:text-white transition-colors flex items-center gap-1.5"
+    >
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+      </svg>
+      {isLoggedIn && (
+        <span className="hidden lg:inline text-[11px] font-medium text-charcoal-300 max-w-[80px] truncate">
+          {session.user.name?.split(" ")[0]}
         </span>
       )}
     </a>
@@ -64,16 +87,18 @@ export default function SiteHeader() {
             ))}
           </nav>
 
-          {/* Desktop: cart + CTA */}
+          {/* Desktop: account + cart + CTA */}
           <div className="hidden md:flex items-center gap-3">
+            <AccountIcon />
             <CartIcon count={count} />
             <a href="/gaskets#quote" className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[13px] rounded tracking-wide transition-all shadow-lg shadow-emerald-500/15 uppercase">
               Get a Quote
             </a>
           </div>
 
-          {/* Mobile: cart + hamburger */}
+          {/* Mobile: account + cart + hamburger */}
           <div className="flex items-center gap-1 md:hidden">
+            <AccountIcon />
             <CartIcon count={count} />
             <button
               onClick={() => setOpen(!open)}

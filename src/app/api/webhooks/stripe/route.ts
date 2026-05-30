@@ -74,6 +74,13 @@ export async function POST(request: NextRequest) {
           WHERE parts.id = pv.part_id AND oli.order_id = ${orderId}
         `;
 
+        // Decrement stock for each line item's variant
+        await sql`
+          UPDATE part_variants SET stock_quantity = GREATEST(COALESCE(stock_quantity, 0) - oli.quantity, 0)
+          FROM order_line_items oli
+          WHERE part_variants.id = oli.variant_id AND oli.order_id = ${orderId}
+        `;
+
         // Store shipping address if collected
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const shipping = (session as any).shipping_details as { name?: string; address?: { line1?: string; line2?: string; city?: string; state?: string; postal_code?: string } } | null;
