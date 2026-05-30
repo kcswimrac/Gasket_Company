@@ -235,89 +235,120 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Users table */}
-      <div className="bg-charcoal-900 border border-charcoal-800 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-charcoal-800 text-charcoal-400 text-xs uppercase tracking-wider">
-              <th className="text-left px-4 py-3 font-medium">Name</th>
-              <th className="text-left px-4 py-3 font-medium">Email</th>
-              <th className="text-left px-4 py-3 font-medium">Role</th>
-              <th className="text-left px-4 py-3 font-medium">Last Login</th>
-              <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-left px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr
-                key={user.id}
-                className="border-b border-charcoal-800/50 hover:bg-charcoal-800/30"
-              >
-                <td className="px-4 py-3 text-charcoal-200">{user.name}</td>
-                <td className="px-4 py-3 text-charcoal-400">{user.email}</td>
-                <td className="px-4 py-3">
-                  <select
-                    value={user.role}
-                    onChange={(e) => changeRole(user.id, e.target.value)}
-                    className="bg-charcoal-800 border border-charcoal-700 rounded px-2 py-1 text-xs text-charcoal-300 focus:outline-none focus:border-emerald-500"
-                    disabled={user.id === session?.user?.id}
-                  >
-                    <option value="viewer">Viewer</option>
-                    <option value="operator">Operator</option>
-                    <option value="owner">Owner</option>
-                  </select>
-                </td>
-                <td className="px-4 py-3 text-charcoal-500 text-xs">
-                  {user.last_login_at
-                    ? new Date(user.last_login_at).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
-                    : "Never"}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                      user.active
-                        ? "bg-emerald-900/30 text-emerald-400 border border-emerald-800/50"
-                        : "bg-red-900/30 text-red-400 border border-red-800/50"
-                    }`}
-                  >
-                    {user.active ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  {user.id !== session?.user?.id && (
-                    <button
-                      onClick={() => toggleActive(user)}
-                      className={`text-xs font-medium transition-colors ${
-                        user.active
-                          ? "text-red-400/70 hover:text-red-400"
-                          : "text-emerald-400/70 hover:text-emerald-400"
-                      }`}
-                    >
-                      {user.active ? "Deactivate" : "Activate"}
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {users.length === 0 && (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-8 text-center text-charcoal-500"
-                >
-                  No admin users found. Add one above.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      {/* Users list */}
+      <div className="space-y-3">
+        {users.map((user) => (
+          <UserCard key={user.id} user={user} onUpdated={fetchUsers} />
+        ))}
+        {users.length === 0 && (
+          <div className="bg-charcoal-900 border border-charcoal-800 rounded-lg p-8 text-center text-charcoal-400">
+            No admin users found. Add one above.
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function UserCard({ user, onUpdated }: { user: AdminUser; onUpdated: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(user.name);
+  const [email, setEmail] = useState(user.email);
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState(user.role);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const body: Record<string, unknown> = { id: user.id };
+      if (name !== user.name) body.name = name;
+      if (email !== user.email) body.email = email;
+      if (password) body.password = password;
+      if (role !== user.role) body.role = role;
+
+      await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(body),
+      });
+      setEditing(false);
+      setPassword("");
+      onUpdated();
+    } catch { /* ignore */ }
+    finally { setSaving(false); }
+  };
+
+  const toggleActive = async () => {
+    await fetch("/api/admin/users", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ id: user.id, active: !user.active }),
+    });
+    onUpdated();
+  };
+
+  const inputCls = "w-full bg-charcoal-800 border border-charcoal-600 rounded px-3 py-2 text-charcoal-100 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500";
+
+  return (
+    <div className={`bg-charcoal-900 border rounded-lg p-4 ${user.active ? "border-charcoal-800" : "border-red-800/30 opacity-60"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-sm font-medium text-charcoal-100">{user.name}</p>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded font-semibold uppercase ${
+              user.role === "owner" ? "bg-amber-500/10 text-amber-400" :
+              user.role === "operator" ? "bg-emerald-500/10 text-emerald-400" :
+              "bg-charcoal-700 text-charcoal-400"
+            }`}>{user.role}</span>
+            {!user.active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 font-semibold">Inactive</span>}
+          </div>
+          <p className="text-xs text-charcoal-400">{user.email}</p>
+          <p className="text-[10px] text-charcoal-500 mt-1">
+            {user.last_login_at ? `Last login: ${new Date(user.last_login_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : "Never logged in"}
+          </p>
+        </div>
+        <div className="flex gap-2 shrink-0">
+          <button onClick={() => setEditing(!editing)} className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium">
+            {editing ? "Cancel" : "Edit"}
+          </button>
+          <button onClick={toggleActive} className={`text-[11px] font-medium ${user.active ? "text-red-400/70 hover:text-red-400" : "text-emerald-400/70 hover:text-emerald-400"}`}>
+            {user.active ? "Deactivate" : "Activate"}
+          </button>
+        </div>
+      </div>
+
+      {editing && (
+        <div className="mt-4 space-y-3 border-t border-charcoal-800 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] text-charcoal-400 uppercase tracking-wider mb-1">Name</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[10px] text-charcoal-400 uppercase tracking-wider mb-1">Email</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[10px] text-charcoal-400 uppercase tracking-wider mb-1">New Password (leave blank to keep)</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-[10px] text-charcoal-400 uppercase tracking-wider mb-1">Role</label>
+              <select value={role} onChange={(e) => setRole(e.target.value)} className={inputCls}>
+                <option value="viewer">Viewer</option>
+                <option value="operator">Operator</option>
+                <option value="owner">Owner</option>
+              </select>
+            </div>
+          </div>
+          <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-[11px] rounded uppercase tracking-wider disabled:opacity-50 transition-colors">
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

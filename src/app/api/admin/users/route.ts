@@ -87,92 +87,32 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, role, active, password } = await request.json();
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, error: "User id is required" },
-        { status: 400 }
-      );
-    }
-
-    const sql = getSQL();
-
-    // Build update parts
-    const updates: string[] = [];
+    const { id, name, email, role, active, password } = await request.json();
+    if (!id) return NextResponse.json({ success: false, error: "User id is required" }, { status: 400 });
 
     if (role !== undefined) {
       const validRoles = ["owner", "operator", "viewer"];
-      if (!validRoles.includes(role)) {
-        return NextResponse.json(
-          { success: false, error: "Invalid role" },
-          { status: 400 }
-        );
-      }
+      if (!validRoles.includes(role)) return NextResponse.json({ success: false, error: "Invalid role" }, { status: 400 });
     }
 
-    if (password) {
-      const passwordHash = await sha256(password + "_backyard_salt");
-      if (role !== undefined && active !== undefined) {
-        await sql`
-          UPDATE admin_users
-          SET role = ${role}, active = ${active}, password_hash = ${passwordHash}
-          WHERE id = ${id}
-        `;
-      } else if (role !== undefined) {
-        await sql`
-          UPDATE admin_users
-          SET role = ${role}, password_hash = ${passwordHash}
-          WHERE id = ${id}
-        `;
-      } else if (active !== undefined) {
-        await sql`
-          UPDATE admin_users
-          SET active = ${active}, password_hash = ${passwordHash}
-          WHERE id = ${id}
-        `;
-      } else {
-        await sql`
-          UPDATE admin_users
-          SET password_hash = ${passwordHash}
-          WHERE id = ${id}
-        `;
-      }
-    } else {
-      if (role !== undefined && active !== undefined) {
-        await sql`
-          UPDATE admin_users
-          SET role = ${role}, active = ${active}
-          WHERE id = ${id}
-        `;
-      } else if (role !== undefined) {
-        await sql`
-          UPDATE admin_users SET role = ${role} WHERE id = ${id}
-        `;
-      } else if (active !== undefined) {
-        await sql`
-          UPDATE admin_users SET active = ${active} WHERE id = ${id}
-        `;
-      }
-    }
+    const sql = getSQL();
+    const passwordHash = password ? await sha256(password + "_backyard_salt") : null;
 
-    const rows = await sql`
-      SELECT id, name, email, role, active, last_login_at, created_at
-      FROM admin_users WHERE id = ${id}
+    await sql`
+      UPDATE admin_users SET
+        name = COALESCE(${name || null}, name),
+        email = COALESCE(${email || null}, email),
+        role = COALESCE(${role || null}, role),
+        active = COALESCE(${active ?? null}, active),
+        password_hash = COALESCE(${passwordHash}, password_hash)
+      WHERE id = ${id}
     `;
 
-    if (rows.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "User not found" },
-        { status: 404 }
-      );
-    }
+    const rows = await sql`SELECT id, name, email, role, active, last_login_at, created_at FROM admin_users WHERE id = ${id}`;
+    if (rows.length === 0) return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
 
     return NextResponse.json({ success: true, user: rows[0] });
   } catch (e) {
-    return NextResponse.json(
-      { success: false, error: e instanceof Error ? e.message : "Unknown error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });
   }
 }
