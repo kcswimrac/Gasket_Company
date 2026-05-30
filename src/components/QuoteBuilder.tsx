@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import type { QuoteResult } from "@/lib/pricing/types";
 import DxfPreview from "./DxfPreview";
+import { useCart } from "@/lib/cart";
 
 type UploadTab = "dxf" | "photo";
 
@@ -39,6 +40,9 @@ export default function QuoteBuilder() {
   const [photoConfidence, setPhotoConfidence] = useState<number | null>(null);
   const [photoWarnings, setPhotoWarnings] = useState<string[]>([]);
   const [dxfBase64, setDxfBase64] = useState<string | null>(null);
+
+  const [addedToCart, setAddedToCart] = useState(false);
+  const { addItem } = useCart();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -157,6 +161,7 @@ export default function QuoteBuilder() {
     setPhotoConfidence(null);
     setPhotoWarnings([]);
     setDxfBase64(null);
+    setAddedToCart(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -795,9 +800,46 @@ export default function QuoteBuilder() {
                       </div>
                     )}
 
-                    <button className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
-                      Confirm &amp; Request Review
-                    </button>
+                    {!addedToCart ? (
+                      <button
+                        onClick={() => {
+                          const materialLabel = materialOptions.find((m) => m.value === material)?.label || material;
+                          const bb = quoteResult.geometry.boundingBox;
+                          addItem({
+                            partId: `gasket-custom-${Date.now()}`,
+                            partName: `Custom Gasket — ${materialLabel} ${bb.width}"×${bb.height}"`,
+                            variantId: null,
+                            tier: "custom",
+                            material: materialLabel,
+                            process: "Laser Cut",
+                            quantity: qty,
+                            unitPrice: quoteResult.unitPrice.toFixed(2),
+                            totalPrice: quoteResult.total.toFixed(2),
+                            leadTimeDays: null,
+                            isEstimate: false,
+                            quoteId: null,
+                            quoteSource: "gasket_calculator",
+                          });
+                          setAddedToCart(true);
+                        }}
+                        className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-emerald-500/10 uppercase tracking-wide flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                        </svg>
+                        Add to Cart
+                      </button>
+                    ) : (
+                      <a
+                        href="/cart"
+                        className="w-full py-4 bg-charcoal-800 hover:bg-charcoal-700 text-emerald-400 font-bold text-sm rounded-lg uppercase tracking-wide transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        View Cart
+                      </a>
+                    )}
                     <button
                       onClick={handleReset}
                       className="w-full py-2 text-xs text-charcoal-500 hover:text-emerald-400 transition-colors uppercase tracking-wider font-medium"
