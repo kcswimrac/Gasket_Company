@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { neon } from "@neondatabase/serverless";
+import { rateLimit } from "@/lib/rate-limit";
+import { sanitize, isValidEmail, maxLength } from "@/lib/sanitize";
+import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
 

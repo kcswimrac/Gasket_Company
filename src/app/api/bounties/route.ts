@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { rateLimit } from "@/lib/rate-limit";
+import { sanitize, isValidEmail, maxLength } from "@/lib/sanitize";
 
 export const runtime = "nodejs";
 
@@ -31,11 +33,25 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting: 10 requests per minute per IP
+    const ip = request.headers.get("x-forwarded-for") || "anonymous";
+    const rl = rateLimit(`bounties:${ip}`, 10, 60_000);
+    if (!rl.ok) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const sql = getSQL();
-    const { bountyId, name, email, notes } = await request.json();
+    let { bountyId, name, email, notes } = await request.json();
     if (!bountyId || !name || !email) {
       return NextResponse.json({ success: false, error: "bountyId, name, and email required" }, { status: 400 });
     }
+
+    // Input validation
+    name = sanitize(maxLength(name, 100));
+    if (!isValidEmail(email)) {
+      return NextResponse.json({ success: false, error: "Invalid email format" }, { status: 400 });
+    }
+    if (notes) notes = sanitize(notes);
 
     const existing = await sql`SELECT id FROM contributors WHERE name = ${name} LIMIT 1`;
     let contributorId: string;

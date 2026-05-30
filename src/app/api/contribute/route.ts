@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { put } from "@vercel/blob";
+import { rateLimit } from "@/lib/rate-limit";
+import { sanitize, isValidEmail, maxLength } from "@/lib/sanitize";
+import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
+
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/heic", "image/heif", "image/tiff", "image/bmp"];
+const ALLOWED_CAD_EXTENSIONS = [".step", ".stp", ".stl", ".iges", ".igs", ".f3d", ".sldprt", ".dxf", ".dwg", ".3mf", ".obj"];
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB per file
+const MAX_TOTAL_SIZE = 200 * 1024 * 1024; // 200MB total
 
 function getSQL() {
   const url = process.env.DATABASE_URL;
@@ -10,8 +18,20 @@ function getSQL() {
   return neon(url);
 }
 
+function containsXSS(input: string): boolean {
+  const lower = input.toLowerCase();
+  return lower.includes("<script") || lower.includes("javascript:");
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting: 5 requests per minute per IP
+    const ip = request.headers.get("x-forwarded-for") || "anonymous";
+    const rl = rateLimit(`contribute:${ip}`, 5, 60_000);
+    if (!rl.ok) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const sql = getSQL();
 
     const contentType = request.headers.get("content-type") || "";
@@ -28,7 +48,17 @@ export async function POST(request: NextRequest) {
       form = await request.json();
     }
 
-    const {
+    // Input validation + XSS sanitization
+    for (const key of Object.keys(form)) {
+      if (typeof form[key] === "string" && containsXSS(form[key])) {
+        return NextResponse.json(
+          { success: false, error: "Invalid input detected" },
+          { status: 400 }
+        );
+      }
+    }
+
+    let {
       partDescription, application, name, email, phone, company,
       segment, make, model, year, condition, partNumber,
     } = form;
@@ -36,6 +66,59 @@ export async function POST(request: NextRequest) {
     if (!partDescription || !application) {
       return NextResponse.json(
         { success: false, error: "Part description and application are required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate and sanitize field lengths
+    partDescription = sanitize(maxLength(partDescription, 500));
+    application = sanitize(application);
+    if (name) name = sanitize(maxLength(name, 100));
+    if (email) {
+      if (!isValidEmail(email)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid email format" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // File upload validation
+    let totalSize = 0;
+    for (const file of photoFiles) {
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { success: false, error: `Photo "${file.name}" exceeds 50MB limit` },
+          { status: 400 }
+        );
+      }
+      if (!ALLOWED_IMAGE_TYPES.includes(file.type) && !file.type.startsWith("image/")) {
+        return NextResponse.json(
+          { success: false, error: `Photo "${file.name}" has invalid file type: ${file.type}` },
+          { status: 400 }
+        );
+      }
+      totalSize += file.size;
+    }
+    for (const file of cadFiles) {
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { success: false, error: `CAD file "${file.name}" exceeds 50MB limit` },
+          { status: 400 }
+        );
+      }
+      const ext = "." + (file.name.split(".").pop()?.toLowerCase() || "");
+      if (!ALLOWED_CAD_EXTENSIONS.includes(ext)) {
+        return NextResponse.json(
+          { success: false, error: `CAD file "${file.name}" has unsupported extension: ${ext}` },
+          { status: 400 }
+        );
+      }
+      totalSize += file.size;
+    }
+    if (totalSize > MAX_TOTAL_SIZE) {
+      return NextResponse.json(
+        { success: false, error: "Total upload size exceeds 200MB limit" },
         { status: 400 }
       );
     }
@@ -147,6 +230,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, scanQueueId });
   } catch (e) {
+    logError("api/contribute", e);
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },
       { status: 500 }

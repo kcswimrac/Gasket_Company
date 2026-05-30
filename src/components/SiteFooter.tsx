@@ -59,9 +59,14 @@ export default function SiteFooter() {
           <p className="text-[11px] text-charcoal-400">
             &copy; {new Date().getFullYear()} Backyard Restoration. All rights reserved.
           </p>
-          <p className="text-[11px] text-charcoal-400">
-            Precision parts fabricated on demand in the USA.
-          </p>
+          <div className="flex items-center gap-4">
+            <a href="/privacy" className="text-[11px] text-charcoal-400 hover:text-emerald-400 transition-colors">
+              Privacy Policy
+            </a>
+            <p className="text-[11px] text-charcoal-400">
+              Precision parts fabricated on demand in the USA.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

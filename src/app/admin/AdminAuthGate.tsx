@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+const THROTTLE_MS = 60 * 1000; // 1 minute
 
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -17,6 +20,38 @@ export default function AdminAuthGate({
   const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const lastActivityRef = useRef(Date.now());
+
+  // Throttled activity tracker
+  const handleActivity = useCallback(() => {
+    const now = Date.now();
+    if (now - lastActivityRef.current > THROTTLE_MS) {
+      lastActivityRef.current = now;
+    }
+  }, []);
+
+  // Idle timeout: check every 60s, logout after 30 min of inactivity
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    // Reset activity timestamp on auth
+    lastActivityRef.current = Date.now();
+
+    const events = ["mousemove", "keydown", "mousedown", "touchstart"] as const;
+    events.forEach((evt) => window.addEventListener(evt, handleActivity));
+
+    const interval = setInterval(() => {
+      if (Date.now() - lastActivityRef.current > IDLE_TIMEOUT_MS) {
+        document.cookie = "admin_token=;path=/;max-age=0;SameSite=Strict";
+        setStatus("unauthenticated");
+      }
+    }, 60_000);
+
+    return () => {
+      events.forEach((evt) => window.removeEventListener(evt, handleActivity));
+      clearInterval(interval);
+    };
+  }, [status, handleActivity]);
 
   useEffect(() => {
     fetch("/api/admin/stats", { credentials: "include" })
