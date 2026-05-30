@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { auth } from "@/auth";
 
 export const runtime = "nodejs";
 
@@ -21,11 +20,7 @@ async function sha256(input: string): Promise<string> {
 
 export async function GET() {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "owner") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
+    // Auth is handled by middleware (owner role or bootstrap)
     const sql = getSQL();
     const rows = await sql`
       SELECT id, name, email, role, active, last_login_at, created_at
@@ -44,11 +39,6 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "owner") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     const { name, email, password, role } = await request.json();
 
     if (!name || !email || !password) {
@@ -97,11 +87,6 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user || session.user.role !== "owner") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     const { id, role, active, password } = await request.json();
 
     if (!id) {
