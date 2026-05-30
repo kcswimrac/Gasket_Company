@@ -50,17 +50,17 @@ export default function AdminUsersPage() {
   }, [router]);
 
   useEffect(() => {
-    // Auth.js authenticated with owner role
+    // Bootstrap mode — no Auth.js session but has cookie = full access
+    if (status === "unauthenticated" && document.cookie.includes("admin_token=")) {
+      fetchUsers();
+      return;
+    }
+    // Auth.js authenticated — check owner role
     if (status === "authenticated") {
       if (session?.user?.role !== "owner") {
         router.push("/admin");
         return;
       }
-      fetchUsers();
-      return;
-    }
-    // Bootstrap mode — no Auth.js session but has cookie
-    if (status === "unauthenticated" && document.cookie.includes("admin_token=")) {
       fetchUsers();
     }
   }, [status, session, router, fetchUsers]);
