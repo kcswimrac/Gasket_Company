@@ -219,7 +219,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-charcoal-300">Shipping</span>
-                    <span className="text-charcoal-300">Calculated after review</span>
+                    <span className="text-emerald-400 font-medium">Free — Continental US</span>
                   </div>
                 </div>
 

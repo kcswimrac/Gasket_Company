@@ -102,6 +102,10 @@ export default function CartPage() {
                   <span className="text-sm text-charcoal-300">Subtotal</span>
                   <span className="text-xl font-bold text-white">${total}</span>
                 </div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm text-charcoal-300">Shipping</span>
+                  <span className="text-sm text-emerald-400 font-medium">Free — Continental US</span>
+                </div>
 
                 {items.some((i) => i.isEstimate) && (
                   <div className="bg-gold-500/5 border border-gold-500/15 rounded-lg p-3 mb-4">

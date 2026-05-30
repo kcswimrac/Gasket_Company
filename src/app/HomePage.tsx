@@ -71,7 +71,7 @@ function HeroSection() {
                 { value: "±1/32\"", label: "Accuracy" },
                 { value: "24hr", label: "Gasket turnaround" },
                 { value: "5–7 day", label: "Parts turnaround" },
-                { value: "0", label: "Minimum order" },
+                { value: "Free", label: "Shipping (cont. US)" },
               ].map((stat) => (
                 <div key={stat.label}>
                   <p className="text-2xl sm:text-3xl font-extrabold text-white leading-none">
