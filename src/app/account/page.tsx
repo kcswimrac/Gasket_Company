@@ -6,6 +6,17 @@ import { useEffect, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
+interface WishlistItem {
+  id: string;
+  part_id: string;
+  part_name: string;
+  make: string | null;
+  model: string | null;
+  segment: string | null;
+  photo_url: string | null;
+  created_at: string;
+}
+
 interface LineItem {
   id: string;
   quantity: number;
@@ -47,6 +58,9 @@ export default function CustomerAccountPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const [loadingWishlist, setLoadingWishlist] = useState(true);
+  const [removingWishlist, setRemovingWishlist] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -63,8 +77,17 @@ export default function CustomerAccountPage() {
         })
         .catch(() => {})
         .finally(() => setLoadingOrders(false));
+
+      fetch("/api/account/wishlist")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) setWishlistItems(data.items);
+        })
+        .catch(() => {})
+        .finally(() => setLoadingWishlist(false));
     } else if (status === "authenticated") {
       setLoadingOrders(false);
+      setLoadingWishlist(false);
     }
   }, [status, session]);
 
@@ -85,6 +108,33 @@ export default function CustomerAccountPage() {
   }
 
   const isCustomer = session?.user?.role === "customer";
+
+  const handleRemoveWishlist = async (partId: string) => {
+    setRemovingWishlist(partId);
+    try {
+      const res = await fetch("/api/account/wishlist", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWishlistItems((prev) => prev.filter((item) => item.part_id !== partId));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setRemovingWishlist(null);
+    }
+  };
+
+  const SEGMENT_LABELS: Record<string, string> = {
+    tractor: "Tractor",
+    marine: "Marine",
+    automotive: "Automotive",
+    motorcycle: "Motorcycle",
+    industrial: "Industrial",
+  };
 
   return (
     <>
@@ -131,6 +181,107 @@ export default function CustomerAccountPage() {
               </div>
             </div>
           </div>
+
+          {/* Saved Parts */}
+          {isCustomer && (
+            <div className="bg-charcoal-900 border border-emerald-500/15 rounded-2xl p-6 sm:p-8 mb-8 shadow-2xl shadow-emerald-500/5">
+              <h2 className="text-[12px] font-bold text-white uppercase tracking-[0.15em] mb-5">
+                Saved Parts
+              </h2>
+
+              {loadingWishlist ? (
+                <div className="text-center py-12">
+                  <svg
+                    className="animate-spin w-6 h-6 text-emerald-400 mx-auto mb-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <p className="text-sm text-charcoal-400">Loading saved parts...</p>
+                </div>
+              ) : wishlistItems.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-charcoal-800/30 flex items-center justify-center mb-5 border border-charcoal-800/40">
+                    <svg className="w-7 h-7 text-charcoal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm text-charcoal-200 font-semibold mb-2">No saved parts yet</p>
+                  <p className="text-xs text-charcoal-500 mb-6">
+                    Browse the catalog to save parts for later.
+                  </p>
+                  <a
+                    href="/catalog"
+                    className="inline-flex px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm rounded-lg uppercase tracking-wider transition-colors"
+                  >
+                    Browse Catalog
+                  </a>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {wishlistItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="bg-charcoal-950/40 rounded-xl p-4 border border-charcoal-800/30 flex items-center gap-4"
+                    >
+                      {/* Photo thumbnail */}
+                      {item.photo_url ? (
+                        <img
+                          src={item.photo_url}
+                          alt={item.part_name}
+                          className="w-16 h-16 rounded-lg object-cover border border-charcoal-800/40 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-charcoal-800/30 border border-charcoal-800/40 flex items-center justify-center shrink-0">
+                          <svg width="24" height="24" viewBox="0 0 80 80" fill="none" className="text-charcoal-700">
+                            <rect x="10" y="20" width="60" height="40" rx="4" stroke="currentColor" strokeWidth="1" strokeDasharray="4 3" />
+                            <circle cx="40" cy="40" r="12" stroke="currentColor" strokeWidth="1" />
+                          </svg>
+                        </div>
+                      )}
+
+                      {/* Part info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{item.part_name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {item.make && (
+                            <span className="text-[11px] text-emerald-400/70">{item.make}</span>
+                          )}
+                          {item.model && (
+                            <span className="text-[11px] text-emerald-400/70">{item.model}</span>
+                          )}
+                          {item.segment && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-charcoal-800 text-charcoal-300 font-semibold uppercase">
+                              {SEGMENT_LABELS[item.segment] || item.segment}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={`/catalog`}
+                          className="px-3 py-1.5 bg-charcoal-800 hover:bg-charcoal-700 text-emerald-400 font-bold text-[10px] rounded uppercase tracking-wider transition-colors"
+                        >
+                          View Part
+                        </a>
+                        <button
+                          onClick={() => handleRemoveWishlist(item.part_id)}
+                          disabled={removingWishlist === item.part_id}
+                          className="px-3 py-1.5 border border-charcoal-700 hover:border-red-500/30 text-charcoal-400 hover:text-red-400 text-[10px] font-bold rounded uppercase tracking-wider transition-colors disabled:opacity-50"
+                        >
+                          {removingWishlist === item.part_id ? "..." : "Remove"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Order history */}
           {isCustomer && (

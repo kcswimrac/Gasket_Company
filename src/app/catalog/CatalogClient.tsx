@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import {
   SEGMENTS,
@@ -20,8 +22,21 @@ import { partSlug } from "@/lib/slug";
 
 const QuoteBuilder = dynamic(() => import("@/components/QuoteBuilder"), { ssr: false });
 
+/* ─── Heart Icon ─── */
+function HeartIcon({ filled, className }: { filled: boolean; className?: string }) {
+  return filled ? (
+    <svg className={className} viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="2">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  ) : (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  );
+}
+
 /* ─── Part Card ─── */
-function PartCard({ part }: { part: CatalogPart }) {
+function PartCard({ part, isWishlisted, onToggleWishlist }: { part: CatalogPart; isWishlisted: boolean; onToggleWishlist: (partId: string) => void }) {
   const [activeTier, setActiveTier] = useState(0);
   const [quoting, setQuoting] = useState(false);
   const [quote, setQuote] = useState<CartQuote | null>(null);
@@ -88,10 +103,17 @@ function PartCard({ part }: { part: CatalogPart }) {
               </span>
             )}
           </div>
-          <div className="absolute top-2 right-2">
+          <div className="absolute top-2 right-2 flex items-center gap-1.5">
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border backdrop-blur-sm ${FITMENT_COLORS[part.fitment_status] || ""}`}>
               {FITMENT_LABELS[part.fitment_status] || part.fitment_status}
             </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleWishlist(part.id); }}
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-all active:scale-125"
+              title={isWishlisted ? "Remove from saved" : "Save for later"}
+            >
+              <HeartIcon filled={isWishlisted} className="w-4 h-4 text-white/70" />
+            </button>
           </div>
           {photos.length > 1 && (
             <span className="absolute bottom-2 right-2 text-[10px] text-white/60 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded">
@@ -100,11 +122,18 @@ function PartCard({ part }: { part: CatalogPart }) {
           )}
         </div>
       ) : (
-        <div className="h-32 bg-charcoal-950 border-b border-charcoal-800/40 flex items-center justify-center">
+        <div className="relative h-32 bg-charcoal-950 border-b border-charcoal-800/40 flex items-center justify-center">
           <svg width="48" height="48" viewBox="0 0 80 80" fill="none" className="text-charcoal-800">
             <rect x="10" y="20" width="60" height="40" rx="4" stroke="currentColor" strokeWidth="1" strokeDasharray="4 3" />
             <circle cx="40" cy="40" r="12" stroke="currentColor" strokeWidth="1" />
           </svg>
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleWishlist(part.id); }}
+            className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full bg-charcoal-800/60 hover:bg-charcoal-700/80 transition-all active:scale-125"
+            title={isWishlisted ? "Remove from saved" : "Save for later"}
+          >
+            <HeartIcon filled={isWishlisted} className="w-4 h-4 text-charcoal-400" />
+          </button>
         </div>
       )}
 
@@ -964,6 +993,138 @@ export default function CatalogClient({ initialParts, initialFacets }: {
   const [claimSubmitting, setClaimSubmitting] = useState(false);
   const [claimSent, setClaimSent] = useState(false);
 
+  /* ─── Wishlist ─── */
+  const { data: session, status: sessionStatus } = useSession();
+  const router = useRouter();
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (sessionStatus === "authenticated" && session?.user?.role === "customer") {
+      fetch("/api/account/wishlist")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.success) setWishlist(new Set(d.items.map((i: { part_id: string }) => i.part_id)));
+        })
+        .catch(() => {});
+    }
+  }, [sessionStatus, session]);
+
+  const toggleWishlist = useCallback((partId: string) => {
+    if (sessionStatus !== "authenticated" || session?.user?.role !== "customer") {
+      router.push("/account/login");
+      return;
+    }
+    const isInWishlist = wishlist.has(partId);
+    // Optimistic update
+    setWishlist((prev) => {
+      const next = new Set(prev);
+      if (isInWishlist) next.delete(partId);
+      else next.add(partId);
+      return next;
+    });
+    fetch("/api/account/wishlist", {
+      method: isInWishlist ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ partId }),
+    }).catch(() => {
+      // Revert on error
+      setWishlist((prev) => {
+        const next = new Set(prev);
+        if (isInWishlist) next.add(partId);
+        else next.delete(partId);
+        return next;
+      });
+    });
+  }, [sessionStatus, session, wishlist, router]);
+
+  /* ─── Search autocomplete state ─── */
+  type Suggestion = { id: string; name: string; make: string | null; model: string | null; segment: string | null; slug: string };
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  /* Fetch suggestions (debounced from the input handler) */
+  const fetchSuggestions = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/catalog/search?q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data.success) {
+        setSuggestions(data.suggestions);
+        setShowSuggestions(true);
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  /* Handle search input change — update grid filter + trigger debounced autocomplete */
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value);
+    setSelectedIndex(-1);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
+  }, [fetchSuggestions]);
+
+  /* Keyboard navigation for suggestions */
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
+    } else if (e.key === "Enter" && selectedIndex >= 0) {
+      e.preventDefault();
+      const s = suggestions[selectedIndex];
+      if (s) window.location.href = `/catalog/${s.slug}`;
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
+    }
+  }, [showSuggestions, suggestions, selectedIndex]);
+
+  /* Close suggestions on blur (with delay to allow click) */
+  const handleSearchBlur = useCallback(() => {
+    blurTimeoutRef.current = setTimeout(() => {
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
+    }, 200);
+  }, []);
+
+  const handleSearchFocus = useCallback(() => {
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    if (suggestions.length > 0 && search.length >= 2) setShowSuggestions(true);
+  }, [suggestions, search]);
+
+  /* Cleanup timers */
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    };
+  }, []);
+
   const fetchParts = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
     try {
@@ -1012,14 +1173,74 @@ export default function CatalogClient({ initialParts, initialFacets }: {
           {/* Search + filters */}
           <div className="max-w-4xl mx-auto mb-10">
             <div className="relative mb-5">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal-500" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal-500 z-10" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
+              {searching && (
+                <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-charcoal-500 animate-spin z-10" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
               <input
-                type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                type="text" value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                onBlur={handleSearchBlur}
+                onFocus={handleSearchFocus}
                 placeholder="Search by part name, make, model..."
-                className="w-full bg-charcoal-900 border border-charcoal-800/60 rounded-xl pl-11 pr-4 py-3.5 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 focus:border-emerald-500/40"
+                className="w-full bg-charcoal-900 border border-charcoal-800/60 rounded-xl pl-11 pr-10 py-3.5 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 focus:border-emerald-500/40"
+                autoComplete="off"
               />
+              {/* Autocomplete dropdown */}
+              {showSuggestions && search.length >= 2 && (
+                <div
+                  ref={suggestionsRef}
+                  className="absolute top-full left-0 right-0 mt-1 bg-charcoal-900 border border-charcoal-800 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50"
+                >
+                  {suggestions.length > 0 ? (
+                    <ul className="py-1">
+                      {suggestions.map((s, i) => (
+                        <li key={s.id}>
+                          <a
+                            href={`/catalog/${s.slug}`}
+                            onMouseDown={(e) => {
+                              // Prevent blur from firing before navigation
+                              e.preventDefault();
+                            }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.location.href = `/catalog/${s.slug}`;
+                            }}
+                            onMouseEnter={() => setSelectedIndex(i)}
+                            className={`flex items-center justify-between px-4 py-2.5 transition-colors cursor-pointer ${
+                              selectedIndex === i
+                                ? "bg-charcoal-800"
+                                : "hover:bg-charcoal-800/50"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <span className="text-sm font-bold text-white block truncate">{s.name}</span>
+                              {(s.make || s.model) && (
+                                <span className="text-xs text-charcoal-400 block truncate">
+                                  {[s.make, s.model].filter(Boolean).join(" ")}
+                                </span>
+                              )}
+                            </div>
+                            {s.segment && (
+                              <span className="ml-3 shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-charcoal-800 text-charcoal-400 border border-charcoal-700/50 uppercase tracking-wider font-semibold">
+                                {s.segment}
+                              </span>
+                            )}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : !searching ? (
+                    <div className="px-4 py-3 text-sm text-charcoal-500">No results</div>
+                  ) : null}
+                </div>
+              )}
             </div>
             {/* Segment chips */}
             <div className="flex flex-wrap gap-2">
@@ -1120,7 +1341,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {parts.map((part) => (
                 <div key={part.id} onClick={() => setSelectedPart(part)} className="cursor-pointer">
-                  <PartCard part={part} />
+                  <PartCard part={part} isWishlisted={wishlist.has(part.id)} onToggleWishlist={toggleWishlist} />
                 </div>
               ))}
             </div>

@@ -366,6 +366,19 @@ export const blogPosts = pgTable("blog_posts", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+/* ─── Wishlists ─── */
+
+export const wishlists = pgTable("wishlists", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  partId: uuid("part_id")
+    .notNull()
+    .references(() => parts.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 /* ─── Admin Users ─── */
 
 export const adminUsers = pgTable("admin_users", {
