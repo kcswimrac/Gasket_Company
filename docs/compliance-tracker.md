@@ -29,7 +29,11 @@
 - [ ] M4 — Automated tests + CI pipeline (Jest/Vitest + GitHub Actions)
 - [ ] M5 — HSTS + HTTPS enforcement headers
 
-## Notes
+## Backlog (Post-Compliance)
+
+- [ ] B1 — Orders page: "Re-quote via AutoQuote" button on line items. Instead of only manual price entry, allow re-running each line item against AutoQuote with the variant's material code to get a fresh price. Button next to each line item's price field, populates the price automatically.
+- [ ] B2 — Automated tests expansion (increase coverage beyond 38 tests)
+- [ ] B3 — HSTS headers (Vercel handles on custom domains, verify)
 
 - C3/C4 require architecture decision: Auth.js vs Clerk vs custom JWT. Needs user input.
 - H3 requires policy decision: retention period, what constitutes "deletion". Needs user input.
