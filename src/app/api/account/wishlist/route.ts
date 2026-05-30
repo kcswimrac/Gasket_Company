@@ -14,15 +14,18 @@ export async function GET() {
   try {
     const session = await auth();
 
-    if (!session?.user?.id || session.user.role !== "customer") {
-      return NextResponse.json(
-        { success: false, error: "Not authenticated" },
-        { status: 401 }
-      );
+    if (!session?.user?.email) {
+      return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
     }
 
-    const customerId = session.user.id;
     const sql = getSQL();
+
+    // Find customer by email (works for both customer and admin sessions)
+    const customers = await sql`SELECT id FROM customers WHERE email = ${session.user.email} AND deleted_at IS NULL LIMIT 1`;
+    if (customers.length === 0) {
+      return NextResponse.json({ success: true, items: [] });
+    }
+    const customerId = customers[0].id as string;
 
     const items = await sql`
       SELECT
@@ -62,25 +65,25 @@ export async function POST(request: Request) {
   try {
     const session = await auth();
 
-    if (!session?.user?.id || session.user.role !== "customer") {
-      return NextResponse.json(
-        { success: false, error: "Not authenticated" },
-        { status: 401 }
-      );
+    if (!session?.user?.email) {
+      return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
     }
 
     const body = await request.json();
     const { partId } = body;
 
     if (!partId) {
-      return NextResponse.json(
-        { success: false, error: "partId is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "partId is required" }, { status: 400 });
     }
 
-    const customerId = session.user.id;
     const sql = getSQL();
+
+    // Find or create customer by email
+    let customers = await sql`SELECT id FROM customers WHERE email = ${session.user.email} AND deleted_at IS NULL LIMIT 1`;
+    if (customers.length === 0) {
+      customers = await sql`INSERT INTO customers (name, email) VALUES (${session.user.name || 'User'}, ${session.user.email}) RETURNING id`;
+    }
+    const customerId = customers[0].id as string;
 
     await sql`
       INSERT INTO wishlists (customer_id, part_id)
@@ -102,25 +105,23 @@ export async function DELETE(request: Request) {
   try {
     const session = await auth();
 
-    if (!session?.user?.id || session.user.role !== "customer") {
-      return NextResponse.json(
-        { success: false, error: "Not authenticated" },
-        { status: 401 }
-      );
+    if (!session?.user?.email) {
+      return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
     }
 
     const body = await request.json();
     const { partId } = body;
 
     if (!partId) {
-      return NextResponse.json(
-        { success: false, error: "partId is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "partId is required" }, { status: 400 });
     }
 
-    const customerId = session.user.id;
     const sql = getSQL();
+    const customers = await sql`SELECT id FROM customers WHERE email = ${session.user.email} AND deleted_at IS NULL LIMIT 1`;
+    if (customers.length === 0) {
+      return NextResponse.json({ success: true });
+    }
+    const customerId = customers[0].id as string;
 
     await sql`
       DELETE FROM wishlists

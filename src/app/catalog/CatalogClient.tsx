@@ -999,7 +999,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (sessionStatus === "authenticated" && session?.user?.role === "customer") {
+    if (sessionStatus === "authenticated") {
       fetch("/api/account/wishlist")
         .then((r) => r.json())
         .then((d) => {
@@ -1010,7 +1010,7 @@ export default function CatalogClient({ initialParts, initialFacets }: {
   }, [sessionStatus, session]);
 
   const toggleWishlist = useCallback((partId: string) => {
-    if (sessionStatus !== "authenticated" || session?.user?.role !== "customer") {
+    if (sessionStatus !== "authenticated") {
       router.push("/account/login");
       return;
     }
