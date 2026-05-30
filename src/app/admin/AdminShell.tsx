@@ -2,21 +2,26 @@
 
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useState, useEffect } from "react";
 import AdminNav from "./AdminNav";
 
-export default function AdminShell({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { status } = useSession();
   const isLoginPage = pathname === "/admin/login";
+  const [bootstrapOk, setBootstrapOk] = useState(false);
 
-  // Login page renders without the nav shell
-  if (isLoginPage || status !== "authenticated") {
-    return <>{children}</>;
-  }
+  useEffect(() => {
+    if (status === "authenticated" || isLoginPage) return;
+    if (document.cookie.includes("admin_token=")) {
+      setBootstrapOk(true);
+    }
+  }, [status, isLoginPage]);
+
+  if (isLoginPage) return <>{children}</>;
+
+  const showNav = status === "authenticated" || bootstrapOk;
+  if (!showNav) return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-charcoal-950 text-charcoal-200">
