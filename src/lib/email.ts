@@ -70,3 +70,82 @@ export function paymentLinkEmail(opts: {
     `,
   };
 }
+
+export function orderStatusEmail(opts: {
+  customerName: string;
+  orderId: string;
+  status: "paid" | "in_progress" | "shipped" | "delivered";
+  trackingNumber?: string | null;
+}): { subject: string; html: string } {
+  const shortOid = opts.orderId.slice(0, 8).toUpperCase();
+
+  const configs: Record<
+    typeof opts.status,
+    { subject: string; heading: string; message: string; accent: string; statusLabel: string }
+  > = {
+    paid: {
+      subject: `Payment confirmed for order #${shortOid} — Backyard Restoration`,
+      heading: "Payment Confirmed",
+      message: "Thank you for your payment. Your order is now in our queue and will begin production shortly.",
+      accent: "#3b82f6",
+      statusLabel: "Paid",
+    },
+    in_progress: {
+      subject: `Your order #${shortOid} is being manufactured — Backyard Restoration`,
+      heading: "Your Order Is Being Manufactured",
+      message: "Great news! Your custom parts have entered production. We'll notify you when they ship.",
+      accent: "#10b981",
+      statusLabel: "In Progress",
+    },
+    shipped: {
+      subject: `Your order #${shortOid} has shipped — Backyard Restoration`,
+      heading: "Your Order Has Shipped",
+      message: "Your order is on its way! You can track your shipment using the details below.",
+      accent: "#a855f7",
+      statusLabel: "Shipped",
+    },
+    delivered: {
+      subject: `Your order #${shortOid} has been delivered — Backyard Restoration`,
+      heading: "Your Order Has Been Delivered",
+      message: "Your order has been delivered. We hope everything looks great! If you have any questions, don't hesitate to reach out.",
+      accent: "#22c55e",
+      statusLabel: "Delivered",
+    },
+  };
+
+  const cfg = configs[opts.status];
+
+  const trackingBlock =
+    opts.status === "shipped" && opts.trackingNumber
+      ? `
+          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <p style="color: #8b949e; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px;">Tracking Number</p>
+            <p style="color: #fff; font-size: 16px; font-weight: bold; font-family: monospace; margin: 0;">${opts.trackingNumber}</p>
+          </div>
+        `
+      : "";
+
+  return {
+    subject: cfg.subject,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+        <div style="background: #0d1117; padding: 32px; border-radius: 12px;">
+          <h1 style="color: #fff; font-size: 20px; margin: 0 0 8px;">${cfg.heading}</h1>
+          <p style="color: #8b949e; font-size: 14px; margin: 0 0 24px;">Hi ${opts.customerName}, here's an update on your order.</p>
+
+          <div style="background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
+            <p style="color: #8b949e; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px;">Order #${shortOid}</p>
+            <p style="color: ${cfg.accent}; font-size: 20px; font-weight: bold; margin: 0;">${cfg.statusLabel}</p>
+          </div>
+
+          ${trackingBlock}
+
+          <p style="color: #c9d1d9; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">${cfg.message}</p>
+
+          <p style="color: #484f58; font-size: 12px; text-align: center; margin: 0;">If you have any questions, reply to this email or contact us directly.</p>
+        </div>
+        <p style="color: #484f58; font-size: 11px; text-align: center; margin-top: 16px;">Backyard Restoration — Custom Gaskets & Reproduction Parts</p>
+      </div>
+    `,
+  };
+}

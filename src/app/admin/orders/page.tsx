@@ -175,6 +175,8 @@ function LineItemsDetail({ orderId, editable, onPricesChanged }: { orderId: stri
   const [loading, setLoading] = useState(true);
   const [editPrices, setEditPrices] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [quoting, setQuoting] = useState<string | null>(null);
+  const [quoteError, setQuoteError] = useState<Record<string, string>>({});
 
   useEffect(() => {
     async function load() {
@@ -242,6 +244,29 @@ function LineItemsDetail({ orderId, editable, onPricesChanged }: { orderId: stri
     finally { setSaving(null); }
   };
 
+  const handleRequote = async (item: LineItem) => {
+    if (!item.variant_id) return;
+    setQuoting(item.id);
+    setQuoteError((prev) => { const n = { ...prev }; delete n[item.id]; return n; });
+    try {
+      const res = await fetch("/api/cart/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ variantId: item.variant_id, quantity: item.quantity }),
+      });
+      const data = await res.json();
+      if (data.success && data.quote?.unitPrice) {
+        setEditPrices((p) => ({ ...p, [item.id]: data.quote.unitPrice }));
+      } else {
+        setQuoteError((prev) => ({ ...prev, [item.id]: data.quote?.message || data.error || "Quote unavailable" }));
+      }
+    } catch {
+      setQuoteError((prev) => ({ ...prev, [item.id]: "Failed to reach quoting service" }));
+    } finally {
+      setQuoting(null);
+    }
+  };
+
   return (
     <div className="space-y-2">
       {items.map((item) => {
@@ -262,7 +287,7 @@ function LineItemsDetail({ orderId, editable, onPricesChanged }: { orderId: stri
                 </p>
               </div>
               {editable ? (
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                   <span className="text-[10px] text-charcoal-500">$</span>
                   <input
                     type="number"
@@ -273,6 +298,20 @@ function LineItemsDetail({ orderId, editable, onPricesChanged }: { orderId: stri
                     className="w-24 bg-charcoal-950 border border-charcoal-700/50 rounded px-2 py-1 text-sm text-charcoal-100 text-right focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
                     placeholder="0.00"
                   />
+                  {item.variant_id && (
+                    <button
+                      onClick={() => handleRequote(item)}
+                      disabled={quoting === item.id}
+                      className="text-[9px] px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-semibold disabled:opacity-50 transition-colors whitespace-nowrap"
+                    >
+                      {quoting === item.id ? (
+                        <span className="flex items-center gap-1">
+                          <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                          Quoting
+                        </span>
+                      ) : "↻ Quote"}
+                    </button>
+                  )}
                   {isEdited && (
                     <button
                       onClick={() => savePrice(item.id, item.quantity)}
@@ -310,6 +349,9 @@ function LineItemsDetail({ orderId, editable, onPricesChanged }: { orderId: stri
               {!editable && <span className="text-charcoal-500">{formatCurrency(item.unit_price)}/ea</span>}
               {editable && item.unit_price && <span className="text-charcoal-500">current: {formatCurrency(item.unit_price)}/ea → ${currentPrice ? (parseFloat(currentPrice) * item.quantity).toFixed(2) : "0.00"} total</span>}
             </div>
+            {quoteError[item.id] && (
+              <p className="text-[10px] text-red-400 mt-1">{quoteError[item.id]}</p>
+            )}
           </div>
         );
       })}

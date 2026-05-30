@@ -14,6 +14,7 @@ function getSQL() {
 export async function GET(request: NextRequest) {
   try {
     const sql = getSQL();
+    const partId = request.nextUrl.searchParams.get("partId");
     const segment = request.nextUrl.searchParams.get("segment");
     const search = request.nextUrl.searchParams.get("search");
     const sort = request.nextUrl.searchParams.get("sort");
@@ -32,22 +33,36 @@ export async function GET(request: NextRequest) {
     const yearNum = year ? parseInt(year) : null;
 
     // Single query with conditional filters
-    const partsQuery = sql`
-      SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
-             p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
-             COALESCE(p.times_sold, 0) as times_sold,
-             COALESCE(p.custom_quotes, '[]'::jsonb) as custom_quotes,
-             c.public_credit_name as contributor_name
-      FROM parts p
-      LEFT JOIN contributors c ON p.contributor_id = c.id
-      WHERE p.active IS NOT false
-      ${segment ? sql`AND p.segment = ${segment}` : sql``}
-      ${make ? sql`AND EXISTS (SELECT 1 FROM unnest(string_to_array(p.make, ',')) m WHERE trim(m) = ${make})` : sql``}
-      ${model ? sql`AND EXISTS (SELECT 1 FROM unnest(string_to_array(p.model, ',')) m WHERE trim(m) = ${model})` : sql``}
-      ${yearNum ? sql`AND p.year_start <= ${yearNum} AND COALESCE(p.year_end, p.year_start) >= ${yearNum}` : sql``}
-      ${search ? sql`AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})` : sql``}
-      ${orderClause}
-    `;
+    // If partId is provided (8-char prefix), look up by ID prefix
+    const partsQuery = partId
+      ? sql`
+          SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
+                 p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
+                 COALESCE(p.times_sold, 0) as times_sold,
+                 COALESCE(p.custom_quotes, '[]'::jsonb) as custom_quotes,
+                 c.public_credit_name as contributor_name
+          FROM parts p
+          LEFT JOIN contributors c ON p.contributor_id = c.id
+          WHERE p.active IS NOT false
+            AND CAST(p.id AS text) LIKE ${partId + "%"}
+          LIMIT 1
+        `
+      : sql`
+          SELECT p.id, p.name, p.segment, p.make, p.model, p.year_start, p.year_end,
+                 p.application, p.description, p.fitment_status, p.dimensions, p.cad_file_url, p.last_estimate_price, p.last_estimate_at, p.last_estimate_material,
+                 COALESCE(p.times_sold, 0) as times_sold,
+                 COALESCE(p.custom_quotes, '[]'::jsonb) as custom_quotes,
+                 c.public_credit_name as contributor_name
+          FROM parts p
+          LEFT JOIN contributors c ON p.contributor_id = c.id
+          WHERE p.active IS NOT false
+          ${segment ? sql`AND p.segment = ${segment}` : sql``}
+          ${make ? sql`AND EXISTS (SELECT 1 FROM unnest(string_to_array(p.make, ',')) m WHERE trim(m) = ${make})` : sql``}
+          ${model ? sql`AND EXISTS (SELECT 1 FROM unnest(string_to_array(p.model, ',')) m WHERE trim(m) = ${model})` : sql``}
+          ${yearNum ? sql`AND p.year_start <= ${yearNum} AND COALESCE(p.year_end, p.year_start) >= ${yearNum}` : sql``}
+          ${search ? sql`AND (p.name ILIKE ${"%" + search + "%"} OR p.application ILIKE ${"%" + search + "%"} OR p.make ILIKE ${"%" + search + "%"} OR p.model ILIKE ${"%" + search + "%"})` : sql``}
+          ${orderClause}
+        `;
 
     const settingsQuery = sql`SELECT value FROM settings WHERE key = 'estimate_markup_pct'`.catch(() => []);
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { logAudit } from "@/lib/audit";
+import { sendEmail, orderStatusEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -181,7 +182,47 @@ export async function PUT(request: NextRequest) {
       ip: request.headers.get("x-forwarded-for") || undefined,
     });
 
-    return NextResponse.json({ success: true, order: result[0] });
+    // Send status notification email for customer-facing statuses
+    const EMAIL_STATUSES = ["paid", "in_progress", "shipped", "delivered"] as const;
+    type EmailStatus = (typeof EMAIL_STATUSES)[number];
+    let emailSent = false;
+    let emailError: string | undefined;
+
+    if (status && EMAIL_STATUSES.includes(status as EmailStatus)) {
+      try {
+        const updatedOrder = result[0];
+        // Look up customer email from customer_id
+        if (updatedOrder.customer_id) {
+          const customers = await sql`
+            SELECT name, email FROM customers WHERE id = ${updatedOrder.customer_id}
+          `;
+          if (customers.length > 0 && customers[0].email) {
+            const customer = customers[0];
+            const emailContent = orderStatusEmail({
+              customerName: (customer.name as string) || "Customer",
+              orderId: id,
+              status: status as EmailStatus,
+              trackingNumber: updatedOrder.tracking_number as string | null,
+            });
+            const emailResult = await sendEmail({
+              to: customer.email as string,
+              subject: emailContent.subject,
+              html: emailContent.html,
+            });
+            emailSent = emailResult.sent;
+            if (!emailResult.sent) emailError = emailResult.reason;
+          } else {
+            emailError = "No customer email on file";
+          }
+        } else {
+          emailError = "No customer linked to order";
+        }
+      } catch (e) {
+        emailError = e instanceof Error ? e.message : "Email send failed";
+      }
+    }
+
+    return NextResponse.json({ success: true, order: result[0], emailSent, emailError });
   } catch (e) {
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },
