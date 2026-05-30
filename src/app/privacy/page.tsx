@@ -58,10 +58,24 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">Data Retention</h2>
+            <p className="text-charcoal-300 mb-3">
+              Customer data is retained for 24 months after the last recorded activity on your
+              account (e.g., placing an order, updating your profile). After this period, your
+              data may be automatically anonymized unless required by law for longer retention.
+            </p>
+            <p className="text-charcoal-300 mb-3">
+              You may request deletion of your personal data at any time by contacting{" "}
+              <a
+                href="mailto:privacy@backyardrestorations.com"
+                className="text-emerald-400 hover:text-emerald-300 transition-colors underline underline-offset-2"
+              >
+                privacy@backyardrestorations.com
+              </a>.
+            </p>
             <p className="text-charcoal-300">
-              We retain your personal data while your account is active and for two years after
-              your last order or interaction. After this period, your data is deleted unless
-              required by law for longer retention.
+              When data is deleted, your personal details (name, email, phone, company, and notes)
+              are anonymized. Order history is preserved in anonymized form to comply with tax and
+              legal record-keeping requirements.
             </p>
           </section>
 

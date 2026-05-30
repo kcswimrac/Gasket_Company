@@ -11,6 +11,7 @@ interface Customer {
   is_shop_account: boolean;
   notes: string | null;
   created_at: string;
+  deleted_at: string | null;
   order_count: number;
   total_spent: number;
 }
@@ -424,6 +425,30 @@ function CustomerRow({
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoaded, setOrdersLoaded] = useState(false);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const isDeleted = !!customer.deleted_at;
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/admin/customers/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId: customer.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setConfirmDelete(false);
+        onRefresh();
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const loadOrders = useCallback(async () => {
     setLoadingOrders(true);
@@ -479,6 +504,11 @@ function CustomerRow({
             <p className="text-sm font-medium text-white truncate">
               {customer.name}
             </p>
+            {isDeleted && (
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-red-500/15 text-red-400 border border-red-500/20 tracking-wider">
+                Deleted
+              </span>
+            )}
             {customer.is_shop_account && (
               <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 tracking-wider">
                 B2B
@@ -529,6 +559,42 @@ function CustomerRow({
         <div className="px-4 pb-5 pl-11 space-y-4">
           {/* Editable fields */}
           <EditableCustomerFields customer={customer} onSaved={onRefresh} />
+
+          {/* Delete Customer Data */}
+          {!isDeleted && (
+            <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
+              {!confirmDelete ? (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded uppercase tracking-wider transition-colors"
+                >
+                  Delete Customer Data
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-red-400">
+                    This will permanently anonymize this customer&apos;s personal data (name, email, phone, company, notes).
+                    Order history will be preserved. This action cannot be undone.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded uppercase tracking-wider transition-colors disabled:opacity-50"
+                    >
+                      {deleting ? "Deleting..." : "Confirm Delete"}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(false)}
+                      className="px-4 py-2 border border-charcoal-700 text-charcoal-400 hover:text-charcoal-300 text-xs rounded uppercase tracking-wider transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Orders list */}
           <div className="bg-charcoal-950/40 rounded-lg p-3 border border-charcoal-800/30">
@@ -617,6 +683,7 @@ export default function CustomersAdmin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [hideDeleted, setHideDeleted] = useState(true);
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState<{ page: number; limit: number; total: number } | null>(null);
 
@@ -625,6 +692,7 @@ export default function CustomersAdmin() {
     try {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
+      if (hideDeleted) params.set("hideDeleted", "true");
       params.set("page", String(page));
       const res = await fetch(`/api/admin/customers?${params}`);
       const data = await res.json();
@@ -639,7 +707,7 @@ export default function CustomersAdmin() {
     } finally {
       setLoading(false);
     }
-  }, [search, page]);
+  }, [search, page, hideDeleted]);
 
   useEffect(() => {
     fetchCustomers();
@@ -659,7 +727,7 @@ export default function CustomersAdmin() {
         <AddCustomerForm onCreated={fetchCustomers} />
       </div>
 
-      {/* Search */}
+      {/* Search + filters */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <input
           type="text"
@@ -668,6 +736,24 @@ export default function CustomersAdmin() {
           placeholder="Search by name, email, or company..."
           className="bg-charcoal-900 border border-charcoal-800/50 rounded-lg px-3 py-2 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 w-80"
         />
+        <label className="flex items-center gap-2 cursor-pointer">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hideDeleted}
+            onClick={() => { setHideDeleted(!hideDeleted); setPage(1); }}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+              hideDeleted ? "bg-emerald-500" : "bg-charcoal-700"
+            }`}
+          >
+            <span
+              className={`inline-block h-3 w-3 rounded-full bg-white transition-transform ${
+                hideDeleted ? "translate-x-5" : "translate-x-1"
+              }`}
+            />
+          </button>
+          <span className="text-xs text-charcoal-400">Hide deleted</span>
+        </label>
       </div>
 
       {/* Error */}

@@ -14,24 +14,57 @@ export async function GET(request: NextRequest) {
   try {
     const sql = getSQL();
     const search = request.nextUrl.searchParams.get("search");
+    const hideDeleted = request.nextUrl.searchParams.get("hideDeleted") === "true";
     const page = Math.max(1, parseInt(request.nextUrl.searchParams.get("page") || "1", 10));
     const limit = Math.max(1, Math.min(100, parseInt(request.nextUrl.searchParams.get("limit") || "25", 10)));
     const offset = (page - 1) * limit;
 
     // Count query for pagination
-    const countResult = search
-      ? await sql`
-          SELECT COUNT(*)::int as total FROM customers
-          WHERE name ILIKE ${"%" + search + "%"}
-            OR email ILIKE ${"%" + search + "%"}
-            OR company ILIKE ${"%" + search + "%"}
-        `
-      : await sql`SELECT COUNT(*)::int as total FROM customers`;
+    let countResult;
+    if (search && hideDeleted) {
+      const pattern = "%" + search + "%";
+      countResult = await sql`
+        SELECT COUNT(*)::int as total FROM customers
+        WHERE deleted_at IS NULL
+          AND (name ILIKE ${pattern} OR email ILIKE ${pattern} OR company ILIKE ${pattern})
+      `;
+    } else if (search) {
+      const pattern = "%" + search + "%";
+      countResult = await sql`
+        SELECT COUNT(*)::int as total FROM customers
+        WHERE name ILIKE ${pattern} OR email ILIKE ${pattern} OR company ILIKE ${pattern}
+      `;
+    } else if (hideDeleted) {
+      countResult = await sql`SELECT COUNT(*)::int as total FROM customers WHERE deleted_at IS NULL`;
+    } else {
+      countResult = await sql`SELECT COUNT(*)::int as total FROM customers`;
+    }
 
     const total = countResult[0].total;
 
     let customers;
-    if (search) {
+    if (search && hideDeleted) {
+      const pattern = "%" + search + "%";
+      customers = await sql`
+        SELECT
+          c.*,
+          COALESCE(agg.order_count, 0)::int AS order_count,
+          COALESCE(agg.total_spent, 0)::numeric AS total_spent
+        FROM customers c
+        LEFT JOIN (
+          SELECT
+            customer_id,
+            COUNT(*)::int AS order_count,
+            SUM(COALESCE(total_price, 0)) AS total_spent
+          FROM orders
+          GROUP BY customer_id
+        ) agg ON agg.customer_id = c.id
+        WHERE c.deleted_at IS NULL
+          AND (c.name ILIKE ${pattern} OR c.email ILIKE ${pattern} OR c.company ILIKE ${pattern})
+        ORDER BY c.created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+    } else if (search) {
       const pattern = "%" + search + "%";
       customers = await sql`
         SELECT
@@ -50,6 +83,25 @@ export async function GET(request: NextRequest) {
         WHERE c.name ILIKE ${pattern}
           OR c.email ILIKE ${pattern}
           OR c.company ILIKE ${pattern}
+        ORDER BY c.created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+    } else if (hideDeleted) {
+      customers = await sql`
+        SELECT
+          c.*,
+          COALESCE(agg.order_count, 0)::int AS order_count,
+          COALESCE(agg.total_spent, 0)::numeric AS total_spent
+        FROM customers c
+        LEFT JOIN (
+          SELECT
+            customer_id,
+            COUNT(*)::int AS order_count,
+            SUM(COALESCE(total_price, 0)) AS total_spent
+          FROM orders
+          GROUP BY customer_id
+        ) agg ON agg.customer_id = c.id
+        WHERE c.deleted_at IS NULL
         ORDER BY c.created_at DESC
         LIMIT ${limit} OFFSET ${offset}
       `;

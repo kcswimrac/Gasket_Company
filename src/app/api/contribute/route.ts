@@ -4,6 +4,7 @@ import { put } from "@vercel/blob";
 import { rateLimit } from "@/lib/rate-limit";
 import { sanitize, isValidEmail, maxLength } from "@/lib/sanitize";
 import { logError } from "@/lib/logger";
+import { scanFile } from "@/lib/virus-scan";
 
 export const runtime = "nodejs";
 
@@ -121,6 +122,20 @@ export async function POST(request: NextRequest) {
         { success: false, error: "Total upload size exceeds 200MB limit" },
         { status: 400 }
       );
+    }
+
+    // Scan all files for malware before storing
+    const allFiles: File[] = [...photoFiles, ...cadFiles];
+    for (const file of allFiles) {
+      const scanResult = await scanFile(file, file.name);
+      if (scanResult.skipped) {
+        console.log(`[virus-scan] Skipped "${file.name}": ${scanResult.reason}`);
+      } else if (!scanResult.safe) {
+        return NextResponse.json(
+          { success: false, error: `File "${file.name}" was flagged as potentially malicious and has been rejected.` },
+          { status: 400 }
+        );
+      }
     }
 
     // Upload photos to blob storage

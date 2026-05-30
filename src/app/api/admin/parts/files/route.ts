@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { neon } from "@neondatabase/serverless";
 import sharp from "sharp";
+import { scanFile } from "@/lib/virus-scan";
 
 export const runtime = "nodejs";
 
@@ -69,6 +70,18 @@ export async function POST(request: NextRequest) {
       if (fileType !== "stl_preview") {
         return NextResponse.json({ success: false, error: `Unsupported CAD file extension: ${ext}` }, { status: 400 });
       }
+    }
+
+    // Scan file for malware before storing
+    const scanFileName = file instanceof File ? file.name : "upload";
+    const scanResult = await scanFile(file, scanFileName);
+    if (scanResult.skipped) {
+      console.log(`[virus-scan] Skipped "${scanFileName}": ${scanResult.reason}`);
+    } else if (!scanResult.safe) {
+      return NextResponse.json(
+        { success: false, error: `File "${scanFileName}" was flagged as potentially malicious and has been rejected.` },
+        { status: 400 }
+      );
     }
 
     const sql = getSQL();

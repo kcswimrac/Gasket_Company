@@ -1,138 +1,60 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-
-const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
-const THROTTLE_MS = 60 * 1000; // 1 minute
-
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + "_backyard_salt");
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
+import { useSession } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 export default function AdminAuthGate({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [status, setStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const lastActivityRef = useRef(Date.now());
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // Throttled activity tracker
-  const handleActivity = useCallback(() => {
-    const now = Date.now();
-    if (now - lastActivityRef.current > THROTTLE_MS) {
-      lastActivityRef.current = now;
-    }
-  }, []);
-
-  // Idle timeout: check every 60s, logout after 30 min of inactivity
-  useEffect(() => {
-    if (status !== "authenticated") return;
-
-    // Reset activity timestamp on auth
-    lastActivityRef.current = Date.now();
-
-    const events = ["mousemove", "keydown", "mousedown", "touchstart"] as const;
-    events.forEach((evt) => window.addEventListener(evt, handleActivity));
-
-    const interval = setInterval(() => {
-      if (Date.now() - lastActivityRef.current > IDLE_TIMEOUT_MS) {
-        document.cookie = "admin_token=;path=/;max-age=0;SameSite=Strict";
-        setStatus("unauthenticated");
-      }
-    }, 60_000);
-
-    return () => {
-      events.forEach((evt) => window.removeEventListener(evt, handleActivity));
-      clearInterval(interval);
-    };
-  }, [status, handleActivity]);
+  // Don't gate the login page itself
+  const isLoginPage = pathname === "/admin/login";
 
   useEffect(() => {
-    fetch("/api/admin/stats", { credentials: "include" })
-      .then((res) => {
-        setStatus(res.ok ? "authenticated" : "unauthenticated");
-      })
-      .catch(() => setStatus("unauthenticated"));
-  }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    const hashed = await hashPassword(password);
-    document.cookie = `admin_token=${hashed};path=/;max-age=86400;SameSite=Strict;Secure`;
-
-    try {
-      const res = await fetch("/api/admin/stats", { credentials: "include" });
-      if (res.ok) {
-        setStatus("authenticated");
-      } else {
-        document.cookie = "admin_token=;path=/;max-age=0;SameSite=Strict";
-        setError("Invalid password");
-      }
-    } catch {
-      document.cookie = "admin_token=;path=/;max-age=0;SameSite=Strict";
-      setError("Connection error");
+    if (status === "unauthenticated" && !isLoginPage) {
+      router.push("/admin/login");
     }
-  };
+    // If authenticated and on login page, redirect to admin
+    if (status === "authenticated" && isLoginPage) {
+      router.push("/admin");
+    }
+  }, [status, router, isLoginPage]);
+
+  // Login page always renders immediately
+  if (isLoginPage) {
+    if (status === "authenticated") {
+      return (
+        <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+          <div className="text-charcoal-400 text-sm">Redirecting...</div>
+        </div>
+      );
+    }
+    return <>{children}</>;
+  }
 
   if (status === "loading") {
     return (
       <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
-        <div className="text-charcoal-400 text-sm">Checking authentication...</div>
+        <div className="text-charcoal-400 text-sm">
+          Checking authentication...
+        </div>
       </div>
     );
   }
 
-  if (status === "authenticated") {
-    return <>{children}</>;
+  if (status === "unauthenticated" || !session) {
+    return (
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+        <div className="text-charcoal-400 text-sm">Redirecting to login...</div>
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
-      <form
-        onSubmit={handleLogin}
-        className="bg-charcoal-900 border border-charcoal-700 rounded-lg p-8 w-full max-w-sm shadow-xl"
-      >
-        <h2 className="text-lg font-semibold text-charcoal-100 mb-1">
-          Admin Login
-        </h2>
-        <p className="text-sm text-charcoal-400 mb-6">
-          Enter the admin password to continue.
-        </p>
-
-        {error && (
-          <div className="mb-4 text-sm text-red-400 bg-red-900/20 border border-red-800 rounded px-3 py-2">
-            {error}
-          </div>
-        )}
-
-        <label className="block text-sm text-charcoal-300 mb-1.5">
-          Password
-        </label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full bg-charcoal-800 border border-charcoal-600 rounded px-3 py-2 text-charcoal-100 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 mb-4"
-          placeholder="Admin secret"
-          autoFocus
-          required
-        />
-
-        <button
-          type="submit"
-          className="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm rounded px-4 py-2 transition-colors"
-        >
-          Sign In
-        </button>
-      </form>
-    </div>
-  );
+  return <>{children}</>;
 }

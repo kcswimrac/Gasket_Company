@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
-const links = [
+const baseLinks = [
   { href: "/admin", label: "Dashboard", icon: "grid" },
   { href: "/admin/parts", label: "Parts", icon: "box" },
   { href: "/admin/orders", label: "Orders", icon: "cart" },
@@ -26,6 +27,8 @@ function Icon({ name }: { name: string }) {
       return <svg className={cls} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" /></svg>;
     case "users":
       return <svg className={cls} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" /></svg>;
+    case "shield":
+      return <svg className={cls} fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>;
     default:
       return null;
   }
@@ -33,6 +36,18 @@ function Icon({ name }: { name: string }) {
 
 export default function AdminNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const role = session?.user?.role;
+
+  // Build links — add "Users" for owners
+  const links = [...baseLinks];
+  if (role === "owner") {
+    links.push({ href: "/admin/users", label: "Users", icon: "shield" });
+  }
+
+  const handleLogout = () => {
+    signOut({ callbackUrl: "/admin/login" });
+  };
 
   return (
     <>
@@ -73,14 +88,22 @@ export default function AdminNav() {
         </div>
 
         <div className="p-3 border-t border-charcoal-800/50 space-y-1">
+          {/* User info */}
+          {session?.user && (
+            <div className="px-3 py-2 mb-1">
+              <p className="text-xs text-charcoal-300 font-medium truncate">
+                {session.user.name}
+              </p>
+              <p className="text-[10px] text-charcoal-500 capitalize">
+                {session.user.role}
+              </p>
+            </div>
+          )}
           <a href="/" className="flex items-center gap-2 px-3 py-2 text-xs text-charcoal-500 hover:text-charcoal-300 transition-colors">
-            ← Back to site
+            &larr; Back to site
           </a>
           <button
-            onClick={() => {
-              document.cookie = "admin_token=;path=/;max-age=0;SameSite=Strict";
-              window.location.href = "/admin";
-            }}
+            onClick={handleLogout}
             className="flex items-center gap-2 px-3 py-2 text-xs text-red-400/70 hover:text-red-400 transition-colors w-full text-left"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
@@ -92,7 +115,7 @@ export default function AdminNav() {
       {/* Mobile top bar */}
       <nav className="md:hidden fixed top-0 left-0 right-0 bg-charcoal-900 border-b border-charcoal-800/50 z-40">
         <div className="flex items-center gap-4 px-4 py-3 overflow-x-auto">
-          <a href="/" className="text-xs text-charcoal-500 shrink-0">←</a>
+          <a href="/" className="text-xs text-charcoal-500 shrink-0">&larr;</a>
           {links.map((link) => {
             const active = pathname === link.href;
             return (
@@ -109,11 +132,13 @@ export default function AdminNav() {
               </a>
             );
           })}
+          {session?.user && (
+            <span className="text-[10px] text-charcoal-500 capitalize shrink-0">
+              {session.user.name}
+            </span>
+          )}
           <button
-            onClick={() => {
-              document.cookie = "admin_token=;path=/;max-age=0;SameSite=Strict";
-              window.location.href = "/admin";
-            }}
+            onClick={handleLogout}
             className="text-xs font-medium whitespace-nowrap px-2 py-1 rounded text-red-400/70 hover:text-red-400 transition-colors shrink-0"
           >
             Logout
