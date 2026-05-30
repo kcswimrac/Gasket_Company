@@ -17,20 +17,6 @@ const OWNER_ONLY_PREFIXES = [
   "/api/admin/migrations",
 ];
 
-/** Routes that operators can access (plus anything not in owner-only) */
-const OPERATOR_ALLOWED_PREFIXES = [
-  "/api/admin/parts",
-  "/api/admin/orders",
-  "/api/admin/scans",
-  "/api/admin/bounties",
-  "/api/admin/customers",
-  "/api/admin/stats",
-  "/api/admin/autoquote",
-  "/api/admin/variants",
-  "/api/admin/upload",
-  "/api/admin/render",
-];
-
 export async function middleware(request: NextRequest) {
   if (!request.nextUrl.pathname.startsWith("/api/admin")) {
     return NextResponse.next();
