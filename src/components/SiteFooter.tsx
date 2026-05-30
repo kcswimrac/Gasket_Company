@@ -25,6 +25,7 @@ export default function SiteFooter() {
               {[
                 ["Custom Gaskets", "/gaskets"],
                 ["Parts Catalog", "/catalog"],
+                ["Track Order", "/track"],
                 ["Contribute a Part", "/catalog#contribute"],
                 ["Bounty Board", "/catalog#bounty"],
               ].map(([label, href]) => (

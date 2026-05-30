@@ -96,12 +96,22 @@ export default async function PartPage({ params }: PageProps) {
         ? `${part.year_start}+`
         : "";
 
-  const allPhotos =
+  type PartPhoto = {
+    id: string;
+    file_type: string;
+    file_name: string;
+    file_url: string;
+    thumbnail_url: string | null;
+    tier: string | null;
+    show_in_catalog: boolean;
+  };
+
+  const allPhotos: PartPhoto[] =
     part.files?.filter(
-      (f: { file_type: string; show_in_catalog: boolean; file_url: string }) =>
+      (f: PartPhoto) =>
         f.file_type.startsWith("photo") && f.show_in_catalog
     ) || [];
-  const photos = getPhotosForTier(allPhotos, null);
+  const photos = getPhotosForTier<PartPhoto>(allPhotos, null);
   const heroPhoto = photos[0] || null;
 
   return (
@@ -164,7 +174,7 @@ export default async function PartPage({ params }: PageProps) {
               {/* Thumbnails */}
               {photos.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto mt-3">
-                  {photos.map((f: { id: string; file_type: string; file_name: string; file_url: string; thumbnail_url: string | null; tier: string | null }) => {
+                  {photos.map((f) => {
                     const cl = fileChip(f.file_type, f.file_name);
                     return (
                       <div

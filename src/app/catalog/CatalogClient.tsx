@@ -15,6 +15,7 @@ import {
   type CatalogPart,
   type CartQuote,
 } from "./catalog-types";
+import { partSlug } from "@/lib/slug";
 
 /* ─── Part Card ─── */
 function PartCard({ part }: { part: CatalogPart }) {
@@ -107,7 +108,7 @@ function PartCard({ part }: { part: CatalogPart }) {
       {/* Info */}
       <div className="p-5">
         <div className="flex items-start justify-between mb-1">
-          <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">{part.name}</h3>
+          <a href={`/catalog/${partSlug(part)}`} onClick={(e) => e.stopPropagation()} className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors hover:underline">{part.name}</a>
           {!heroPhoto && (
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border ${FITMENT_COLORS[part.fitment_status] || ""}`}>
               {FITMENT_LABELS[part.fitment_status] || part.fitment_status}
