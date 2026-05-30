@@ -35,6 +35,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "scanQueueId and artifactType required" }, { status: 400 });
     }
 
+    // File upload validation: 200MB max per file
+    const MAX_FILE_SIZE = 200 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ success: false, error: "File exceeds 200MB limit" }, { status: 400 });
+    }
+
     const sql = getSQL();
     const fileName = file instanceof File ? file.name : "upload";
 

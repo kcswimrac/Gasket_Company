@@ -75,6 +75,15 @@ export async function PUT(request: NextRequest) {
         updated_at = NOW()
       WHERE id = ${id}
     `;
+
+    await logAudit({
+      action: "update_bounty",
+      entityType: "bounty",
+      entityId: id,
+      details: fields,
+      ip: request.headers.get("x-forwarded-for") || undefined,
+    });
+
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });
@@ -87,6 +96,14 @@ export async function DELETE(request: NextRequest) {
     const { id } = await request.json();
     if (!id) return NextResponse.json({ success: false, error: "id required" }, { status: 400 });
     await sql`DELETE FROM bounty_board WHERE id = ${id}`;
+
+    await logAudit({
+      action: "delete_bounty",
+      entityType: "bounty",
+      entityId: id,
+      ip: request.headers.get("x-forwarded-for") || undefined,
+    });
+
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });

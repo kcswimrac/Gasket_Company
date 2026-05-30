@@ -45,6 +45,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "partId and fileType required" }, { status: 400 });
     }
 
+    // File upload validation: 100MB max per file
+    const MAX_FILE_SIZE = 100 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ success: false, error: "File exceeds 100MB limit" }, { status: 400 });
+    }
+
+    // Validate file type matches the fileType field
+    const isPhotoType = fileType.startsWith("photo");
+    const isCadType = fileType.startsWith("cad") || fileType === "stl_preview";
+    const cadExtensions = [".step", ".stp", ".stl", ".iges", ".igs", ".f3d", ".sldprt", ".dxf", ".dwg", ".3mf", ".obj"];
+    const actualFileName = file instanceof File ? file.name : "upload";
+    const ext = "." + (actualFileName.split(".").pop()?.toLowerCase() || "");
+
+    if (isPhotoType) {
+      const fileType_ = file instanceof File ? file.type : "";
+      if (fileType_ && !fileType_.startsWith("image/")) {
+        return NextResponse.json({ success: false, error: "Photo files must be images" }, { status: 400 });
+      }
+    }
+    if (isCadType && !cadExtensions.includes(ext) && ext !== ".jpg" && ext !== ".jpeg" && ext !== ".png") {
+      // Allow common image extensions for STL preview renders, but validate CAD extensions for actual CAD
+      if (fileType !== "stl_preview") {
+        return NextResponse.json({ success: false, error: `Unsupported CAD file extension: ${ext}` }, { status: 400 });
+      }
+    }
+
     const sql = getSQL();
     const fileName = file instanceof File ? file.name : "upload";
     const isStep = fileType === "cad_step" || fileName.toLowerCase().endsWith(".step") || fileName.toLowerCase().endsWith(".stp");

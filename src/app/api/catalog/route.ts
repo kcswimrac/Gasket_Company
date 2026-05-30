@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { isCachedPriceStale, type PriceStatus } from "@/lib/autoquote/client";
+import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
@@ -183,6 +184,7 @@ export async function GET(request: NextRequest) {
       headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" },
     });
   } catch (e) {
+    logError("api/catalog", e);
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },
       { status: 500 }
