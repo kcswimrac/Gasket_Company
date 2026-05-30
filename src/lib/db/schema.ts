@@ -177,6 +177,9 @@ export const customers = pgTable("customers", {
   company: text("company"),
   isShopAccount: boolean("is_shop_account").notNull().default(false),
   notes: text("notes"),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  deletedAt: timestamp("deleted_at"),
+  deletionRequestedAt: timestamp("deletion_requested_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -344,4 +347,17 @@ export const bountyBoard = pgTable("bounty_board", {
   partId: uuid("part_id").references(() => parts.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/* ─── Admin Users ─── */
+
+export const adminUsers = pgTable("admin_users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("operator"),
+  active: boolean("active").notNull().default(true),
+  lastLoginAt: timestamp("last_login_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });

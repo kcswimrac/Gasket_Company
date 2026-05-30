@@ -146,13 +146,14 @@ export async function POST(request: NextRequest) {
         UPDATE customers SET
           name = ${customer.name},
           phone = ${customer.phone || null},
-          company = ${customer.company || null}
+          company = ${customer.company || null},
+          last_activity_at = NOW()
         WHERE id = ${customerId}
       `;
     } else {
       const created = await sql`
-        INSERT INTO customers (name, email, phone, company)
-        VALUES (${customer.name}, ${customer.email}, ${customer.phone || null}, ${customer.company || null})
+        INSERT INTO customers (name, email, phone, company, last_activity_at)
+        VALUES (${customer.name}, ${customer.email}, ${customer.phone || null}, ${customer.company || null}, NOW())
         RETURNING id
       `;
       customerId = created[0].id as string;
