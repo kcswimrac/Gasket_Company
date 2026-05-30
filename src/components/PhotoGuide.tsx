@@ -96,7 +96,7 @@ export default function PhotoGuide() {
             </div>
 
             <a
-              href="#quote"
+              href="/catalog#gasket-quote"
               className="inline-flex items-center justify-center mt-8 px-7 py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded tracking-wide transition-all shadow-lg shadow-emerald-500/15 uppercase"
             >
               Upload a Photo Now

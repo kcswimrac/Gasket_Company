@@ -91,7 +91,7 @@ export default function SiteHeader() {
           <div className="hidden md:flex items-center gap-3">
             <AccountIcon />
             <CartIcon count={count} />
-            <a href="/gaskets#quote" className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[13px] rounded tracking-wide transition-all shadow-lg shadow-emerald-500/15 uppercase">
+            <a href="/catalog#gasket-quote" className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-[13px] rounded tracking-wide transition-all shadow-lg shadow-emerald-500/15 uppercase">
               Get a Quote
             </a>
           </div>
@@ -144,7 +144,7 @@ export default function SiteHeader() {
             </a>
             <div className="pt-6">
               <a
-                href="/gaskets#quote"
+                href="/catalog#gasket-quote"
                 onClick={() => setOpen(false)}
                 className="block py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded text-center uppercase"
               >

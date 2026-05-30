@@ -60,7 +60,7 @@ function GasketHero() {
           </div>
 
           <div className="mt-10 flex flex-col sm:flex-row gap-3.5">
-            <a href="#quote" className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded tracking-wide transition-all shadow-lg shadow-emerald-500/15 uppercase">
+            <a href="/catalog#gasket-quote" className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded tracking-wide transition-all shadow-lg shadow-emerald-500/15 uppercase">
               Upload Your Gasket
               <svg className="ml-2.5 w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
             </a>
@@ -94,7 +94,7 @@ function GasketCTA() {
           DXF or photo. One gasket or a hundred. Most orders ship in 1–2 days.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="#quote" className="inline-flex items-center justify-center px-9 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-emerald-500/15 uppercase tracking-wide">
+          <a href="/catalog#gasket-quote" className="inline-flex items-center justify-center px-9 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-bold text-sm rounded-lg transition-all shadow-lg shadow-emerald-500/15 uppercase tracking-wide">
             Upload Your Gasket
           </a>
           <a href="/catalog" className="inline-flex items-center justify-center px-9 py-4 border border-charcoal-700 hover:border-emerald-500/25 text-charcoal-300 hover:text-emerald-300 font-medium text-sm rounded-lg transition-all uppercase tracking-wide">

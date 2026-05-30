@@ -88,7 +88,7 @@ function HeroSection() {
           <FadeUp delay={0.45}>
             <div className="mt-12 flex flex-wrap gap-4">
               <a
-                href="/gaskets#quote"
+                href="/catalog#gasket-quote"
                 className="px-9 py-4 bg-white text-obsidian font-bold text-sm rounded tracking-wide uppercase transition-all hover:bg-gold-400"
               >
                 Upload a Gasket

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { useCart } from "@/lib/cart";
 import {
   SEGMENTS,
@@ -16,6 +17,8 @@ import {
   type CartQuote,
 } from "./catalog-types";
 import { partSlug } from "@/lib/slug";
+
+const QuoteBuilder = dynamic(() => import("@/components/QuoteBuilder"), { ssr: false });
 
 /* ─── Part Card ─── */
 function PartCard({ part }: { part: CatalogPart }) {
@@ -865,6 +868,69 @@ function PartModal({ part, onClose }: { part: CatalogPart; onClose: () => void }
   );
 }
 
+/* ─── Custom Gasket Quote Section ─── */
+function GasketQuoteSection() {
+  const [expanded, setExpanded] = useState(false);
+
+  /* Auto-expand when navigated to via #gasket-quote */
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#gasket-quote") {
+      setExpanded(true);
+      setTimeout(() => {
+        document.getElementById("gasket-quote")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, []);
+
+  return (
+    <section id="gasket-quote" className="py-16 md:py-24 border-t border-charcoal-800/30">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+        {/* Banner */}
+        <div className="bg-charcoal-900/60 border border-charcoal-800/60 rounded-2xl p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center shrink-0">
+                <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white leading-tight">
+                  Need a Custom Gasket?
+                </h2>
+                <p className="mt-2 text-sm text-charcoal-300 leading-relaxed max-w-lg">
+                  Upload a DXF file or snap a photo of your gasket on paper for scale.
+                  We laser-cut an exact replacement in cork, rubber, neoprene, fiber, or paper — most orders ship in 1-2 days.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className={`shrink-0 inline-flex items-center gap-2 px-6 py-3 font-bold text-sm rounded-lg uppercase tracking-wider transition-all shadow-lg ${
+                expanded
+                  ? "bg-charcoal-800 hover:bg-charcoal-700 text-charcoal-300 shadow-none"
+                  : "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white shadow-emerald-500/15"
+              }`}
+            >
+              {expanded ? "Close" : "Get Gasket Quote"}
+              <svg className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Expandable QuoteBuilder */}
+          {expanded && (
+            <div className="mt-8 -mx-6 sm:-mx-8 -mb-6 sm:-mb-8">
+              <QuoteBuilder />
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Main Catalog Client ─── */
 export default function CatalogClient({ initialParts, initialFacets }: {
   initialParts?: CatalogPart[];
@@ -1069,6 +1135,9 @@ export default function CatalogClient({ initialParts, initialFacets }: {
           )}
         </div>
       </section>
+
+      {/* Custom Gasket Quote */}
+      <GasketQuoteSection />
 
       {/* Bounty Board */}
       {bounties.length > 0 && (
