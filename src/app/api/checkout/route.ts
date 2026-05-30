@@ -49,6 +49,13 @@ interface CustomerForm {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting: 5 requests per minute per IP
+    const ip = request.headers.get("x-forwarded-for") || "anonymous";
+    const rl = rateLimit(`checkout:${ip}`, 5, 60_000);
+    if (!rl.ok) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const { items, customer } = (await request.json()) as {
       items: CartItem[];
       customer: CustomerForm;
@@ -57,6 +64,14 @@ export async function POST(request: NextRequest) {
     if (!items?.length || !customer?.name || !customer?.email) {
       return NextResponse.json({ success: false, error: "Items and customer info required" }, { status: 400 });
     }
+
+    // Input validation
+    customer.name = sanitize(maxLength(customer.name, 100));
+    if (!isValidEmail(customer.email)) {
+      return NextResponse.json({ success: false, error: "Invalid email format" }, { status: 400 });
+    }
+    if (customer.phone) customer.phone = sanitize(maxLength(customer.phone, 20));
+    if (customer.address) customer.address = sanitize(maxLength(customer.address, 200));
 
     const sql = getSQL();
 
@@ -218,6 +233,7 @@ export async function POST(request: NextRequest) {
       message: "Order submitted for review. We'll confirm pricing and send a payment link.",
     });
   } catch (e) {
+    logError("api/checkout", e);
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },
       { status: 500 }

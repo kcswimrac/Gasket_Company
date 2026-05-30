@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -171,6 +172,14 @@ export async function PUT(request: NextRequest) {
         { status: 404 }
       );
     }
+
+    await logAudit({
+      action: "update_order",
+      entityType: "order",
+      entityId: id,
+      details: { status, trackingNumber, shippingMethod },
+      ip: request.headers.get("x-forwarded-for") || undefined,
+    });
 
     return NextResponse.json({ success: true, order: result[0] });
   } catch (e) {

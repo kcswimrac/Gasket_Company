@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { neon } from "@neondatabase/serverless";
 import { sendEmail, paymentLinkEmail } from "@/lib/email";
+import { logAudit } from "@/lib/audit";
+import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
@@ -65,6 +67,13 @@ export async function POST(request: NextRequest) {
     if (!stripeKey) {
       // No Stripe — just mark as quoted and return the total
       await sql`UPDATE orders SET status = 'quoted', updated_at = NOW() WHERE id = ${orderId}`;
+      await logAudit({
+        action: "confirm_order_pricing",
+        entityType: "order",
+        entityId: orderId,
+        details: { total: orderTotal.toFixed(2), stripeConfigured: false },
+        ip: request.headers.get("x-forwarded-for") || undefined,
+      });
       return NextResponse.json({
         success: true,
         status: "quoted",
@@ -127,6 +136,14 @@ export async function POST(request: NextRequest) {
       if (!result.sent) emailError = result.reason;
     }
 
+    await logAudit({
+      action: "confirm_order_pricing",
+      entityType: "order",
+      entityId: orderId,
+      details: { total: orderTotal.toFixed(2), paymentUrl: session.url, emailSent },
+      ip: request.headers.get("x-forwarded-for") || undefined,
+    });
+
     return NextResponse.json({
       success: true,
       status: "quoted",
@@ -136,6 +153,7 @@ export async function POST(request: NextRequest) {
       emailError,
     });
   } catch (e) {
+    logError("api/admin/orders/confirm", e);
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },
       { status: 500 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -112,6 +113,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    await logAudit({
+      action: "create_part",
+      entityType: "part",
+      entityId: result[0].id as string,
+      details: { name, segment, application },
+      ip: request.headers.get("x-forwarded-for") || undefined,
+    });
+
     return NextResponse.json({ success: true, part: result[0] });
   } catch (e) {
     return NextResponse.json(
@@ -157,6 +166,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Part not found" }, { status: 404 });
     }
 
+    await logAudit({
+      action: "update_part",
+      entityType: "part",
+      entityId: id,
+      details: fields,
+      ip: request.headers.get("x-forwarded-for") || undefined,
+    });
+
     return NextResponse.json({ success: true, part: result[0] });
   } catch (e) {
     return NextResponse.json(
@@ -180,6 +197,14 @@ export async function DELETE(request: NextRequest) {
     await sql`DELETE FROM autoquote_cache WHERE variant_id IN (SELECT id FROM part_variants WHERE part_id = ${id})`;
     // part_variants and part_files cascade automatically
     await sql`DELETE FROM parts WHERE id = ${id}`;
+
+    await logAudit({
+      action: "delete_part",
+      entityType: "part",
+      entityId: id,
+      ip: request.headers.get("x-forwarded-for") || undefined,
+    });
+
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json(

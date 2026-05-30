@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -38,6 +39,15 @@ export async function POST(request: NextRequest) {
       VALUES (${title}, ${description || null}, ${segment || null}, ${make || null}, ${model || null}, ${yearStart || null}, ${yearEnd || null}, ${reward || null}, ${priority || "normal"})
       RETURNING *
     `;
+
+    await logAudit({
+      action: "create_bounty",
+      entityType: "bounty",
+      entityId: result[0].id as string,
+      details: { title },
+      ip: request.headers.get("x-forwarded-for") || undefined,
+    });
+
     return NextResponse.json({ success: true, bounty: result[0] });
   } catch (e) {
     return NextResponse.json({ success: false, error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });

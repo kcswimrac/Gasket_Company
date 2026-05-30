@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { logAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,14 @@ export async function PUT(request: NextRequest) {
       INSERT INTO settings (key, value, updated_at) VALUES (${key}, ${String(value)}, NOW())
       ON CONFLICT (key) DO UPDATE SET value = ${String(value)}, updated_at = NOW()
     `;
+
+    await logAudit({
+      action: "update_setting",
+      entityType: "setting",
+      entityId: key,
+      details: { value: String(value) },
+      ip: request.headers.get("x-forwarded-for") || undefined,
+    });
 
     return NextResponse.json({ success: true });
   } catch (e) {

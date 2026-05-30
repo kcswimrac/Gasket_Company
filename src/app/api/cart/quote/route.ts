@@ -8,6 +8,8 @@ import {
   buildQuoteResult,
   type QuoteResult,
 } from "@/lib/autoquote/client";
+import { rateLimit } from "@/lib/rate-limit";
+import { logError } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -48,6 +50,13 @@ function makeResult(
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting: 20 requests per minute per IP
+    const ip = request.headers.get("x-forwarded-for") || "anonymous";
+    const rl = rateLimit(`cart-quote:${ip}`, 20, 60_000);
+    if (!rl.ok) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
     const sql = getSQL();
     const body = await request.json();
     const { variantId, partId, material, quantity = 1 } = body;
@@ -239,6 +248,7 @@ export async function POST(request: NextRequest) {
       }, quantity));
     }
   } catch (e) {
+    logError("api/cart/quote", e);
     return NextResponse.json(
       { success: false, error: e instanceof Error ? e.message : "Unknown error" },
       { status: 500 }
