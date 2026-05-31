@@ -2,9 +2,10 @@
 
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import { useCart } from "@/lib/cart";
 
 interface WishlistItem {
   id: string;
@@ -61,6 +62,9 @@ export default function CustomerAccountPage() {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loadingWishlist, setLoadingWishlist] = useState(true);
   const [removingWishlist, setRemovingWishlist] = useState<string | null>(null);
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [reorderSuccess, setReorderSuccess] = useState<string | null>(null);
+  const { addItem } = useCart();
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -127,6 +131,41 @@ export default function CustomerAccountPage() {
       setRemovingWishlist(null);
     }
   };
+
+  const handleReorder = useCallback(async (orderId: string) => {
+    setReorderingId(orderId);
+    setReorderSuccess(null);
+    try {
+      const res = await fetch(`/api/account/orders/${orderId}`);
+      const data = await res.json();
+      if (!data.success || !data.lineItems) return;
+
+      for (const item of data.lineItems) {
+        addItem({
+          partId: item.part_id || item.variant_id || item.id,
+          partName: item.part_name || "Order item",
+          variantId: item.variant_id || null,
+          tier: item.tier || null,
+          material: item.material || "Unknown",
+          process: item.process || "Unknown",
+          quantity: item.quantity || 1,
+          unitPrice: item.unit_price || item.base_price || null,
+          totalPrice: item.total_price || null,
+          leadTimeDays: item.lead_time_days || null,
+          isEstimate: !(item.last_quote_firm),
+          quoteId: null,
+          quoteSource: "reorder",
+        });
+      }
+
+      setReorderSuccess(orderId);
+      setTimeout(() => setReorderSuccess(null), 3000);
+    } catch {
+      // ignore
+    } finally {
+      setReorderingId(null);
+    }
+  }, [addItem]);
 
   const SEGMENT_LABELS: Record<string, string> = {
     tractor: "Tractor",
@@ -413,6 +452,21 @@ export default function CustomerAccountPage() {
                           )}
                         </div>
 
+                        {/* Invoice link */}
+                        <div className="mt-3 flex items-center gap-3 flex-wrap">
+                          <a
+                            href={`/account/orders/${order.id}/invoice`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                            </svg>
+                            Invoice
+                          </a>
+                        </div>
+
                         {/* Tracking link */}
                         {order.tracking_number && (
                           <div className="mt-3 flex items-center gap-2">
@@ -439,6 +493,37 @@ export default function CustomerAccountPage() {
                             </a>
                           </div>
                         )}
+
+                        {/* Re-order button */}
+                        <div className="mt-3 flex items-center gap-2">
+                          <button
+                            onClick={() => handleReorder(order.id)}
+                            disabled={reorderingId === order.id}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-charcoal-800 hover:bg-charcoal-700 text-emerald-400 font-bold text-[10px] rounded uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {reorderingId === order.id ? (
+                              <>
+                                <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                Adding...
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
+                                </svg>
+                                Re-order
+                              </>
+                            )}
+                          </button>
+                          {reorderSuccess === order.id && (
+                            <span className="text-[10px] text-emerald-400 font-medium animate-pulse">
+                              Added to cart
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

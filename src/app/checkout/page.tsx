@@ -12,6 +12,16 @@ export default function CheckoutPage() {
 
   const [error, setError] = useState<string | null>(null);
 
+  const [promoCode, setPromoCode] = useState("");
+  const [promoApplied, setPromoApplied] = useState<{
+    code: string;
+    discount: string;
+    discountedTotal: string;
+    message: string;
+  } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+
   const [form, setForm] = useState({
     name: "", email: "", phone: "", company: "",
     address: "", city: "", state: "", zip: "",
@@ -22,6 +32,38 @@ export default function CheckoutPage() {
   const hasEstimates = items.some((i) => i.isEstimate);
   const allFirmPriced = !hasEstimates && items.every((i) => i.unitPrice && parseFloat(i.unitPrice) > 0);
 
+  const displayTotal = promoApplied ? promoApplied.discountedTotal : total;
+
+  const applyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    setPromoApplied(null);
+    try {
+      const res = await fetch("/api/validate-promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: promoCode.trim(), subtotal: total }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setPromoApplied({
+          code: promoCode.trim().toUpperCase(),
+          discount: data.discount,
+          discountedTotal: data.discountedTotal,
+          message: data.message,
+        });
+        setPromoError(null);
+      } else {
+        setPromoError(data.message || "Invalid promo code");
+      }
+    } catch {
+      setPromoError("Failed to validate promo code");
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!form.name || !form.email) return;
     setSubmitting(true);
@@ -31,7 +73,11 @@ export default function CheckoutPage() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, customer: form }),
+        body: JSON.stringify({
+          items,
+          customer: form,
+          promoCode: promoApplied?.code || undefined,
+        }),
       });
       const data = await res.json();
 
@@ -212,15 +258,75 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
+                {/* Promo Code */}
+                <div className="border-t border-charcoal-800/50 pt-4 mb-4">
+                  <label className="block text-[10px] font-semibold text-charcoal-300 mb-1.5 uppercase tracking-wider">
+                    Promo Code
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      value={promoCode}
+                      onChange={(e) => {
+                        setPromoCode(e.target.value.toUpperCase());
+                        if (promoApplied) {
+                          setPromoApplied(null);
+                          setPromoError(null);
+                        }
+                      }}
+                      placeholder="Enter code"
+                      disabled={!!promoApplied}
+                      className="flex-1 bg-charcoal-950 border border-charcoal-700/50 rounded px-3 py-2 text-sm text-charcoal-100 placeholder:text-charcoal-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 uppercase disabled:opacity-50"
+                    />
+                    {promoApplied ? (
+                      <button
+                        onClick={() => {
+                          setPromoApplied(null);
+                          setPromoCode("");
+                          setPromoError(null);
+                        }}
+                        className="px-3 py-2 text-[10px] font-bold text-red-400 border border-red-500/30 rounded uppercase tracking-wider hover:bg-red-500/10 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <button
+                        onClick={applyPromo}
+                        disabled={promoLoading || !promoCode.trim()}
+                        className="px-3 py-2 text-[10px] font-bold bg-emerald-500 hover:bg-emerald-400 text-white rounded uppercase tracking-wider transition-colors disabled:opacity-50"
+                      >
+                        {promoLoading ? "..." : "Apply"}
+                      </button>
+                    )}
+                  </div>
+                  {promoApplied && (
+                    <p className="text-[10px] text-emerald-400 mt-1.5">{promoApplied.message}</p>
+                  )}
+                  {promoError && (
+                    <p className="text-[10px] text-red-400 mt-1.5">{promoError}</p>
+                  )}
+                </div>
+
                 <div className="border-t border-charcoal-800/50 pt-4 mb-4">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-charcoal-300">Subtotal</span>
                     <span className="text-white font-bold">${total}</span>
                   </div>
+                  {promoApplied && (
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-emerald-400">Discount ({promoApplied.code})</span>
+                      <span className="text-emerald-400 font-medium">-${promoApplied.discount}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-charcoal-300">Shipping</span>
                     <span className="text-emerald-400 font-medium">Free — Continental US</span>
                   </div>
+                  {promoApplied && (
+                    <div className="flex justify-between text-sm mt-2 pt-2 border-t border-charcoal-800/50">
+                      <span className="text-white font-bold">Total</span>
+                      <span className="text-white font-bold">${displayTotal}</span>
+                    </div>
+                  )}
                 </div>
 
                 {hasEstimates && (

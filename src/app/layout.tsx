@@ -55,6 +55,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable} ${jetbrains.variable}`}>
+      <head>
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`} />
+            <script dangerouslySetInnerHTML={{ __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${process.env.NEXT_PUBLIC_GA_ID}')` }} />
+          </>
+        )}
+      </head>
       <body className="font-sans antialiased">
         <SessionWrapper>
           <CartProvider>{children}</CartProvider>

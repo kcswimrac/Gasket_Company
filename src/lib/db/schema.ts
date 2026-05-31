@@ -381,6 +381,21 @@ export const wishlists = pgTable("wishlists", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+/* ─── Promo Codes ─── */
+
+export const promoCodes = pgTable("promo_codes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  code: text("code").notNull().unique(),
+  discountType: text("discount_type").notNull().default("percentage"),
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(),
+  minOrderAmount: decimal("min_order_amount", { precision: 10, scale: 2 }),
+  maxUses: integer("max_uses"),
+  currentUses: integer("current_uses").default(0),
+  active: boolean("active").notNull().default(true),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 /* ─── Admin Users ─── */
 
 export const adminUsers = pgTable("admin_users", {

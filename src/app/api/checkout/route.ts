@@ -56,9 +56,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const { items, customer } = (await request.json()) as {
+    const { items, customer, promoCode } = (await request.json()) as {
       items: CartItem[];
       customer: CustomerForm;
+      promoCode?: string;
     };
 
     if (!items?.length || !customer?.name || !customer?.email) {
@@ -159,11 +160,65 @@ export async function POST(request: NextRequest) {
       customerId = created[0].id as string;
     }
 
+    // ── Promo code validation ──
+    let discountAmount = 0;
+    let promoId: string | null = null;
+    let promoNote = "";
+
+    if (promoCode) {
+      const promoRows = await sql`
+        SELECT id, code, discount_type, discount_value, min_order_amount,
+               max_uses, current_uses, active, expires_at
+        FROM promo_codes
+        WHERE code = ${promoCode.toUpperCase().trim()}
+        LIMIT 1
+      `;
+
+      if (promoRows.length === 0) {
+        return NextResponse.json({ success: false, error: "Invalid promo code" }, { status: 400 });
+      }
+
+      const promo = promoRows[0];
+
+      if (!promo.active) {
+        return NextResponse.json({ success: false, error: "This promo code is no longer active" }, { status: 400 });
+      }
+
+      if (promo.expires_at && new Date(promo.expires_at as string) < new Date()) {
+        return NextResponse.json({ success: false, error: "This promo code has expired" }, { status: 400 });
+      }
+
+      if (promo.max_uses && (promo.current_uses as number) >= (promo.max_uses as number)) {
+        return NextResponse.json({ success: false, error: "This promo code has reached its usage limit" }, { status: 400 });
+      }
+
+      const rawTotal = items.reduce((s, i) => s + parseFloat(i.totalPrice || "0"), 0);
+      if (promo.min_order_amount && rawTotal < parseFloat(promo.min_order_amount as string)) {
+        return NextResponse.json({
+          success: false,
+          error: `Minimum order of $${parseFloat(promo.min_order_amount as string).toFixed(2)} required for this promo code`,
+        }, { status: 400 });
+      }
+
+      if (promo.discount_type === "percentage") {
+        discountAmount = rawTotal * (parseFloat(promo.discount_value as string) / 100);
+      } else {
+        discountAmount = parseFloat(promo.discount_value as string);
+      }
+
+      discountAmount = Math.min(discountAmount, rawTotal);
+      discountAmount = Math.round(discountAmount * 100) / 100;
+      promoId = promo.id as string;
+      promoNote = `\nPromo: ${promo.code} (-$${discountAmount.toFixed(2)})`;
+    }
+
     // Create order in our DB
-    const totalPrice = items.reduce((s, i) => s + parseFloat(i.totalPrice || "0"), 0);
+    const rawTotalPrice = items.reduce((s, i) => s + parseFloat(i.totalPrice || "0"), 0);
+    const totalPrice = Math.round((rawTotalPrice - discountAmount) * 100) / 100;
+    const orderNotes = (customer.notes || "") + promoNote;
     const orderRows = await sql`
       INSERT INTO orders (customer_id, status, total_price, notes)
-      VALUES (${customerId}, ${allPriced ? "quoted" : "pending_quote"}, ${totalPrice.toFixed(2)}, ${customer.notes || null})
+      VALUES (${customerId}, ${allPriced ? "quoted" : "pending_quote"}, ${totalPrice.toFixed(2)}, ${orderNotes || null})
       RETURNING id
     `;
     const orderId = orderRows[0].id as string;
@@ -205,6 +260,21 @@ export async function POST(request: NextRequest) {
         quantity: item.quantity,
       }));
 
+      // Add discount line item if promo applied
+      if (discountAmount > 0 && promoCode) {
+        lineItems.push({
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `Discount (${promoCode.toUpperCase()})`,
+              description: "Promo code discount",
+            },
+            unit_amount: -Math.round(discountAmount * 100),
+          },
+          quantity: 1,
+        });
+      }
+
       const origin = request.headers.get("origin") || "https://backyardrestorations.com";
 
       const session = await stripe.checkout.sessions.create({
@@ -223,7 +293,17 @@ export async function POST(request: NextRequest) {
       // Store Stripe session ID on the order
       await sql`UPDATE orders SET notes = COALESCE(notes, '') || ${`\nStripe: ${session.id}`} WHERE id = ${orderId}`;
 
+      // Increment promo code usage
+      if (promoId) {
+        await sql`UPDATE promo_codes SET current_uses = current_uses + 1 WHERE id = ${promoId}`;
+      }
+
       return NextResponse.json({ success: true, url: session.url, orderId });
+    }
+
+    // Increment promo code usage for estimate orders too
+    if (promoId) {
+      await sql`UPDATE promo_codes SET current_uses = current_uses + 1 WHERE id = ${promoId}`;
     }
 
     // Items have estimates — skip Stripe for now, mark as pending review

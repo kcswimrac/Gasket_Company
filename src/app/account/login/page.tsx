@@ -1,12 +1,14 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 
-export default function CustomerLoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get("reset") === "success";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -56,6 +58,27 @@ export default function CustomerLoginPage() {
               </p>
             </div>
 
+            {resetSuccess && (
+              <div className="mb-6 bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3">
+                <svg
+                  className="w-5 h-5 text-emerald-400 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <p className="text-sm text-emerald-400">
+                  Password reset successfully. Sign in with your new password.
+                </p>
+              </div>
+            )}
+
             {error && (
               <div className="mb-6 bg-red-500/5 border border-red-500/20 rounded-xl p-4 flex items-center gap-3">
                 <svg
@@ -99,6 +122,14 @@ export default function CustomerLoginPage() {
                   className={inputCls}
                   required
                 />
+                <div className="mt-2 text-right">
+                  <a
+                    href="/account/forgot-password"
+                    className="text-xs text-charcoal-400 hover:text-emerald-400 transition-colors"
+                  >
+                    Forgot password?
+                  </a>
+                </div>
               </div>
 
               <button
@@ -151,5 +182,13 @@ export default function CustomerLoginPage() {
       </main>
       <SiteFooter />
     </>
+  );
+}
+
+export default function CustomerLoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

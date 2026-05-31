@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { sendEmail, welcomeEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 
@@ -69,6 +70,10 @@ export async function POST(request: NextRequest) {
         WHERE id = ${existing[0].id}
       `;
 
+      // Send welcome email (non-blocking)
+      const welcome = welcomeEmail({ customerName: name });
+      sendEmail({ to: normalizedEmail, subject: welcome.subject, html: welcome.html }).catch(() => {});
+
       return NextResponse.json({
         success: true,
         customerId: existing[0].id,
@@ -81,6 +86,10 @@ export async function POST(request: NextRequest) {
       VALUES (${name}, ${normalizedEmail}, ${phone || null}, ${company || null}, ${passwordHash}, false)
       RETURNING id
     `;
+
+    // Send welcome email (non-blocking)
+    const welcome = welcomeEmail({ customerName: name });
+    sendEmail({ to: normalizedEmail, subject: welcome.subject, html: welcome.html }).catch(() => {});
 
     return NextResponse.json({
       success: true,

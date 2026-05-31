@@ -420,6 +420,224 @@ function PricingSettingsPanel() {
   );
 }
 
+interface PromoCode {
+  id: string;
+  code: string;
+  discount_type: string;
+  discount_value: string;
+  min_order_amount: string | null;
+  max_uses: number | null;
+  current_uses: number;
+  active: boolean;
+  expires_at: string | null;
+  created_at: string;
+}
+
+function PromoCodesPanel() {
+  const [promos, setPromos] = useState<PromoCode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    code: "",
+    discountType: "percentage" as "percentage" | "fixed",
+    discountValue: "",
+    minOrderAmount: "",
+    maxUses: "",
+    expiresAt: "",
+  });
+
+  const fetchPromos = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/promos");
+      const data = await res.json();
+      if (data.success) setPromos(data.promos);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPromos();
+  }, [fetchPromos]);
+
+  const handleCreate = async () => {
+    if (!form.code || !form.discountValue) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/promos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setForm({ code: "", discountType: "percentage", discountValue: "", minOrderAmount: "", maxUses: "", expiresAt: "" });
+        setShowForm(false);
+        fetchPromos();
+      } else {
+        setError(data.error);
+      }
+    } catch {
+      setError("Failed to create promo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleActive = async (id: string, active: boolean) => {
+    await fetch("/api/admin/promos", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, active: !active }),
+    });
+    fetchPromos();
+  };
+
+  return (
+    <div className="bg-charcoal-900 border border-charcoal-800/50 rounded-xl overflow-hidden">
+      <div className="px-6 py-4 border-b border-charcoal-800/50 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <h3 className="text-sm font-bold text-white">Promo Codes</h3>
+          <span className="text-[10px] text-charcoal-500 font-mono">{promos.length} codes</span>
+        </div>
+        <button onClick={() => setShowForm(!showForm)} className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium">
+          {showForm ? "Cancel" : "+ Add Code"}
+        </button>
+      </div>
+
+      <div className="p-6 space-y-4">
+        {/* Add form */}
+        {showForm && (
+          <div className="bg-charcoal-950/40 rounded-lg p-4 border border-charcoal-800/30 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] text-charcoal-500 uppercase tracking-wider mb-1">Code</label>
+                <input
+                  value={form.code}
+                  onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
+                  placeholder="SAVE10"
+                  className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40 uppercase"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-charcoal-500 uppercase tracking-wider mb-1">Type</label>
+                <select
+                  value={form.discountType}
+                  onChange={(e) => setForm((f) => ({ ...f, discountType: e.target.value as "percentage" | "fixed" }))}
+                  className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                >
+                  <option value="percentage">Percentage (%)</option>
+                  <option value="fixed">Fixed ($)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] text-charcoal-500 uppercase tracking-wider mb-1">
+                  Value {form.discountType === "percentage" ? "(%)" : "($)"}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.discountValue}
+                  onChange={(e) => setForm((f) => ({ ...f, discountValue: e.target.value }))}
+                  placeholder="10"
+                  className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-charcoal-500 uppercase tracking-wider mb-1">Min Order ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.minOrderAmount}
+                  onChange={(e) => setForm((f) => ({ ...f, minOrderAmount: e.target.value }))}
+                  placeholder="Optional"
+                  className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-charcoal-500 uppercase tracking-wider mb-1">Max Uses</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={form.maxUses}
+                  onChange={(e) => setForm((f) => ({ ...f, maxUses: e.target.value }))}
+                  placeholder="Unlimited"
+                  className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-charcoal-500 uppercase tracking-wider mb-1">Expires</label>
+                <input
+                  type="date"
+                  value={form.expiresAt}
+                  onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))}
+                  className="w-full bg-charcoal-950 border border-charcoal-700/50 rounded px-2.5 py-2 text-sm text-charcoal-100 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                />
+              </div>
+            </div>
+            {error && <p className="text-xs text-red-400">{error}</p>}
+            <button
+              onClick={handleCreate}
+              disabled={saving || !form.code || !form.discountValue}
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs rounded uppercase tracking-wider transition-colors disabled:opacity-50"
+            >
+              {saving ? "Creating..." : "Create Code"}
+            </button>
+          </div>
+        )}
+
+        {/* List */}
+        {loading ? (
+          <p className="text-xs text-charcoal-500">Loading...</p>
+        ) : promos.length === 0 ? (
+          <p className="text-xs text-charcoal-500">No promo codes yet. Click &quot;+ Add Code&quot; to create one.</p>
+        ) : (
+          <div className="space-y-2">
+            {promos.map((p) => (
+              <div key={p.id} className="flex items-center justify-between bg-charcoal-950/40 rounded-lg px-3 py-2.5 border border-charcoal-800/30">
+                <div className="flex items-center gap-3">
+                  <span className={`w-1.5 h-1.5 rounded-full ${p.active ? "bg-emerald-400" : "bg-charcoal-600"}`} />
+                  <span className="text-xs font-mono text-charcoal-200 font-bold">{p.code}</span>
+                  <span className="text-[10px] text-charcoal-500">
+                    {p.discount_type === "percentage"
+                      ? `${parseFloat(p.discount_value)}% off`
+                      : `$${parseFloat(p.discount_value).toFixed(2)} off`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-charcoal-500">
+                    {p.current_uses}{p.max_uses ? `/${p.max_uses}` : ""} uses
+                  </span>
+                  {p.expires_at && (
+                    <span className={`text-[10px] ${new Date(p.expires_at) < new Date() ? "text-red-400" : "text-charcoal-500"}`}>
+                      {new Date(p.expires_at) < new Date() ? "Expired" : `Exp ${new Date(p.expires_at).toLocaleDateString()}`}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => toggleActive(p.id, p.active)}
+                    className={`text-[10px] font-medium px-2 py-0.5 rounded ${p.active ? "text-red-400 hover:text-red-300" : "text-emerald-400 hover:text-emerald-300"}`}
+                  >
+                    {p.active ? "Deactivate" : "Activate"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<{
     activeParts: number; recentParts: number;
@@ -468,6 +686,14 @@ export default function AdminDashboard() {
           Pricing Settings
         </h2>
         <PricingSettingsPanel />
+      </div>
+
+      {/* Promo Codes */}
+      <div className="mb-10">
+        <h2 className="text-sm font-bold text-charcoal-300 uppercase tracking-wider mb-4">
+          Promo Codes
+        </h2>
+        <PromoCodesPanel />
       </div>
 
       {/* Database & Migrations */}

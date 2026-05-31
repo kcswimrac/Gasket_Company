@@ -150,3 +150,60 @@ export function orderStatusEmail(opts: {
     `,
   };
 }
+
+export function passwordResetEmail(opts: {
+  token: string;
+}): { subject: string; html: string } {
+  const resetUrl = `${BASE_URL}/account/reset-password?token=${opts.token}`;
+  return {
+    subject: "Reset your password — Backyard Restoration",
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+        <div style="background: #0d1117; padding: 32px; border-radius: 12px;">
+          <h1 style="color: #fff; font-size: 20px; margin: 0 0 8px;">Reset Your Password</h1>
+          <p style="color: #8b949e; font-size: 14px; margin: 0 0 24px;">We received a request to reset your password. Click the button below to choose a new one.</p>
+
+          <a href="${resetUrl}" style="display: block; background: #10b981; color: #fff; text-align: center; padding: 16px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">
+            Reset Password
+          </a>
+
+          <p style="color: #c9d1d9; font-size: 13px; line-height: 1.6; margin: 24px 0 0;">If you didn't request this, you can safely ignore this email. The link expires in 1 hour.</p>
+          <p style="color: #484f58; font-size: 12px; text-align: center; margin: 16px 0 0;">If you have any questions, reply to this email or contact us directly.</p>
+        </div>
+        <p style="color: #484f58; font-size: 11px; text-align: center; margin-top: 16px;">Backyard Restoration — Custom Gaskets & Reproduction Parts</p>
+      </div>
+    `,
+  };
+}
+
+export function welcomeEmail(opts: {
+  customerName: string;
+}): { subject: string; html: string } {
+  const catalogUrl = `${BASE_URL}/catalog`;
+  const quoteUrl = `${BASE_URL}/gaskets`;
+  return {
+    subject: "Welcome to Backyard Restoration",
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
+        <div style="background: #0d1117; padding: 32px; border-radius: 12px;">
+          <h1 style="color: #fff; font-size: 20px; margin: 0 0 8px;">Welcome to Backyard Restoration</h1>
+          <p style="color: #8b949e; font-size: 14px; margin: 0 0 24px;">Hi ${opts.customerName}, thanks for creating an account! We're glad to have you.</p>
+
+          <p style="color: #c9d1d9; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">You can now track orders, save parts to your wishlist, and get custom gasket quotes.</p>
+
+          <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+            <a href="${catalogUrl}" style="flex: 1; display: block; background: #161b22; border: 1px solid #30363d; color: #10b981; text-align: center; padding: 14px 8px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">
+              Browse Catalog
+            </a>
+            <a href="${quoteUrl}" style="flex: 1; display: block; background: #10b981; color: #fff; text-align: center; padding: 14px 8px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 13px;">
+              Get a Gasket Quote
+            </a>
+          </div>
+
+          <p style="color: #484f58; font-size: 12px; text-align: center; margin: 0;">If you have any questions, reply to this email or contact us directly.</p>
+        </div>
+        <p style="color: #484f58; font-size: 11px; text-align: center; margin-top: 16px;">Backyard Restoration — Custom Gaskets & Reproduction Parts</p>
+      </div>
+    `,
+  };
+}
