@@ -182,6 +182,8 @@ export const customers = pgTable("customers", {
   lastActivityAt: timestamp("last_activity_at").defaultNow(),
   deletedAt: timestamp("deleted_at"),
   deletionRequestedAt: timestamp("deletion_requested_at"),
+  resetToken: text("reset_token"),
+  resetTokenExpiresAt: timestamp("reset_token_expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

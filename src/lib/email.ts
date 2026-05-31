@@ -1,3 +1,4 @@
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://backyardrestorations.com";
 const FROM_ADDRESS = process.env.EMAIL_FROM || "Backyard Restoration <orders@backyardrestorations.com>";
 
 interface SendResult {
